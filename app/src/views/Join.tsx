@@ -156,13 +156,15 @@ export default function Join() {
 
 export function ProfileForm({ onDone, submitLabel = "Join the draft pool" }: { onDone: () => void; submitLabel?: string }) {
   const { me } = useMe();
-  const { setRinkId } = useFilter();
+  const { rinkId: viewing, setRinkId } = useFilter();
   const [name, setName] = useState(me?.user.name ?? "");
   const [number, setNumber] = useState(me?.user.number ?? "");
   const [position, setPosition] = useState<string>(me?.user.position ?? "");
   const [rink, setRink] = useState<number | null>(me?.user.homeRink?.id ?? null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Starts on the rink you were looking at; one tap changes it.
+  useEffect(() => { if (rink === null && viewing) setRink(viewing); }, [viewing, rink]);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
