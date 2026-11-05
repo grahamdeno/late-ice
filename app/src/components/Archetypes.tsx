@@ -5,11 +5,11 @@ import { Section } from "@/lib/ui";
 
 export const ARCHETYPE_LABEL: Record<string, string> = {
   goon: "Goon", pest: "Pest", grinder: "Grinder", sniper: "Sniper", playmaker: "Playmaker",
-  beauty: "Beauty", duster: "Duster", cherry_picker: "Cherry picker", bender: "Bender",
+  beauty: "Beauty", duster: "Duster", cherry_picker: "Cherry picker", bender: "Bender", energy: "Energy guy",
 };
 export const ARCHETYPE_BLURB: Record<string, string> = {
   goon: "Drops the gloves", pest: "Chirps all game", grinder: "Wins the corners", sniper: "Picks corners",
-  playmaker: "Sees the ice", beauty: "Flow and dangles", duster: "Keeps the bench warm", cherry_picker: "Waits for the breakaway", bender: "Ankles fold, still shows up",
+  playmaker: "Sees the ice", beauty: "Flow and dangles", duster: "Keeps the bench warm", cherry_picker: "Waits for the breakaway", bender: "Ankles fold, still shows up", energy: "Loudest on the bench",
 };
 
 export function ArchetypeChip({ a }: { a?: { archetype: string; votes: number } | null }) {

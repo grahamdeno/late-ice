@@ -2,7 +2,7 @@ import "server-only";
 import { one, q, type Tx } from "./db";
 import { HttpError, currentSeason } from "./services";
 
-export const ARCHETYPES = ["goon", "pest", "grinder", "sniper", "playmaker", "beauty", "duster", "cherry_picker", "bender"] as const;
+export const ARCHETYPES = ["goon", "pest", "grinder", "sniper", "playmaker", "beauty", "duster", "cherry_picker", "bender", "energy"] as const;
 /** Fewest votes before an archetype shows, so one teammate can't brand someone alone. */
 export const MIN_VOTES = 2;
 
