@@ -15,6 +15,9 @@ import Game from "@/pages/Game";
 import Rink from "@/pages/Rink";
 import { Leagues, LeaguePage, TeamPage } from "@/pages/Leagues";
 import { Players, PlayerPage } from "@/pages/Players";
+import Join from "@/pages/Join";
+import MePage from "@/pages/Me";
+import Pool from "@/pages/Pool";
 
 function ScrollTop() {
   const [loc] = useLocation();
@@ -36,6 +39,11 @@ function AppRouter() {
       <Route path="/players" component={Players} />
       <Route path="/player/:id">{(p) => <PlayerPage id={p.id} />}</Route>
       <Route path="/rink" component={Rink} />
+      <Route path="/join" component={Join} />
+      <Route path="/me" component={MePage} />
+      <Route path="/pool" component={Pool} />
+      <Route path="/pool/:team/match/:slot">{(p) => <Pool teamId={p.team} slotId={p.slot} />}</Route>
+      <Route path="/pool/:team">{(p) => <Pool teamId={p.team} />}</Route>
       <Route component={NotFound} />
     </Switch>
   );

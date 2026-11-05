@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { FaceoffDot, LevelPill, useFilter } from "@/lib/ui";
+import { useMe } from "@/lib/auth";
+import { SNAPSHOT } from "@/lib/queryClient";
 
 function Icon({ d, active }: { d: string; active: boolean }) {
   return (
@@ -21,6 +23,7 @@ const NAV = [
 export function Shell({ children }: { children: React.ReactNode }) {
   const [loc] = useLocation();
   const { leagueId, setLeagueId, boot } = useFilter();
+  const { me } = useMe();
   const [open, setOpen] = useState(false);
   const startY = useRef<number | null>(null);
   const current = boot?.leagues.find((l) => l.id === leagueId);
@@ -42,15 +45,23 @@ export function Shell({ children }: { children: React.ReactNode }) {
               <FaceoffDot size={26} />
               <span style={{ fontWeight: 900, letterSpacing: "-0.03em", fontSize: 19 }}>late ice</span>
             </Link>
+            <div className="flex items-center gap-2">
             <button
               onClick={() => setOpen((o) => !o)}
               className="flex items-center gap-2 h-9 pl-3 pr-2 rounded-full bg-[var(--ice-3)] border border-[var(--line)] text-sm font-bold"
               data-testid="button-league-switcher"
               aria-expanded={open}
             >
-              {current ? <><LevelPill level={current.level === "DEMO" ? "Demo" : current.level} /> {current.name}</> : <>All Wilmington</>}
+              {current ? <><LevelPill level={current.level === "DEMO" ? "Demo" : current.level} /> <span className="max-w-[110px] truncate">{current.name}</span></> : <>All Wilmington</>}
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" style={{ transform: open ? "rotate(180deg)" : "", transition: "transform .2s" }}><path d="M6 9l6 6 6-6" /></svg>
             </button>
+            {!SNAPSHOT && (
+              <Link href={me ? "/me" : "/join"} className="relative h-9 min-w-9 px-2.5 rounded-full bg-[var(--ice-3)] border border-[var(--line)] flex items-center justify-center text-xs font-black" data-testid="link-me" aria-label={me ? "My profile" : "Join"}>
+                {me?.user.name ? (me.user.number ? `#${me.user.number}` : me.user.name.split(" ").map((w) => w[0]).join("").slice(0, 2)) : "Join"}
+                {me?.unread ? <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-[var(--red)] border-2 border-[var(--ice)]" /> : null}
+              </Link>
+            )}
+            </div>
           </div>
           <div className="flex justify-center"><div className="mt-1 h-1 w-10 rounded-full bg-[#263042]" /></div>
         </div>
