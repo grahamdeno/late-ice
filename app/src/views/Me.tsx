@@ -190,7 +190,7 @@ export default function MePage() {
         <div className="card p-4">
           <div className="grid grid-cols-3 gap-2">
             {(["active", "ir", "away"] as const).map((s) => (
-              <button key={s} className={`h-11 rounded-xl border text-sm font-bold ${u.status === s ? "border-[var(--red)] bg-[var(--red-dim)]" : "border-[var(--line)] bg-[var(--ice-3)]"}`} onClick={() => run("PATCH", "/api/me", { status: s, statusUntil: until || null })} data-testid={`button-status-${s}`}>
+              <button key={s} className={`h-12 px-1 rounded-xl border text-[13px] leading-tight font-bold ${u.status === s ? "border-[var(--red)] bg-[var(--red-dim)]" : "border-[var(--line)] bg-[var(--ice-3)]"}`} onClick={() => run("PATCH", "/api/me", { status: s, statusUntil: until || null })} data-testid={`button-status-${s}`}>
                 {STATUS_LABEL[s]}
               </button>
             ))}
