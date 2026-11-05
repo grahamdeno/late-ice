@@ -12,7 +12,7 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
   if (!t) throw new HttpError(404, "Team not found");
   const league = await one<any>(sql, "SELECT * FROM leagues WHERE id=$1", [t.league_id]);
   const roster = await q(sql,
-    `SELECT p.id, p.display_name AS name, p.position, p.rating, p.games_rated, p.user_id IS NOT NULL AS registered, re.number,
+    `SELECT p.id, p.display_name AS name, p.position, p.rating, p.games_rated, p.user_id IS NOT NULL AS registered, re.number, re.is_sub,
       (SELECT u.avatar FROM users u WHERE u.id=p.user_id) avatar,
       (SELECT CASE WHEN bool_or(r.role='captain') THEN 'C' WHEN bool_or(r.role='assistant_captain') THEN 'A' END FROM role_grants r
          WHERE r.user_id=p.user_id AND r.scope_type='team' AND r.scope_id=re.team_id AND r.revoked_at IS NULL) badge,

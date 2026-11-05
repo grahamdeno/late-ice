@@ -139,7 +139,7 @@ async function resolvePlayer(db: Tx, teamId: number, number: string | null, name
 
 const PALETTE = ["#38BDF8", "#F472B6", "#A3E635", "#FBBF24", "#C084FC", "#2DD4BF", "#FB7185"];
 
-export interface ConfirmInput { leagueId: number; homeTeamId: number | null; awayTeamId: number | null; data: OcrResult }
+export interface ConfirmInput { leagueId: number; homeTeamId: number | null; awayTeamId: number | null; data: OcrResult; eventId?: number | null }
 
 /** Turn a reviewed sheet into a game, its stat lines and rating moves. Run inside a transaction. */
 export async function confirmSheet(db: Tx, sheetId: number, input: ConfirmInput) {
@@ -149,9 +149,20 @@ export async function confirmSheet(db: Tx, sheetId: number, input: ConfirmInput)
   const league = await one<any>(db, "SELECT * FROM leagues WHERE id=$1", [input.leagueId]);
   if (!league) throw new HttpError(400, "Pick a league");
   const d = input.data;
+  // A tournament game: opponents from outside the app land in the rink's hidden "Tournament guests" league.
+  const event = input.eventId ? await one<any>(db, "SELECT * FROM events WHERE id=$1", [input.eventId]) : null;
+  if (input.eventId && !event) throw new HttpError(400, "That tournament isn't here.");
+  const guestLeague = async () => (await one<any>(db, "SELECT * FROM leagues WHERE rink_id=$1 AND level='TOURN'", [league.rink_id]))
+    ?? (await one<any>(db, "INSERT INTO leagues (rink_id, level, name, season, sort) VALUES ($1,'TOURN','Tournament guests','',99) RETURNING *", [league.rink_id]));
 
   const ensureTeam = async (id: number | null, name: string | null) => {
     if (id) return id;
+    if (event && name) {
+      const gl = await guestLeague();
+      const found = await one<any>(db, "SELECT id FROM teams WHERE league_id=$1 AND lower(name)=lower($2)", [gl.id, name]);
+      if (found) return found.id as number;
+      return (await one<{ id: number }>(db, "INSERT INTO teams (league_id,name,color,is_sample,created_from_sheet) VALUES ($1,$2,$3,0,$4) RETURNING id", [gl.id, name, PALETTE[0], sheetId]))!.id;
+    }
     if (!name) throw new HttpError(400, "A team name could not be read. Retake the photo.");
     const n = ((await one<{ c: number }>(db, "SELECT COUNT(*) c FROM teams"))?.c ?? 0) % PALETTE.length;
     return (await one<{ id: number }>(
@@ -178,17 +189,18 @@ export async function confirmSheet(db: Tx, sheetId: number, input: ConfirmInput)
   const season = await seasonFor(db, league.rink_id, d.date);
   const gameId = (await one<{ id: number }>(
     db,
-    `INSERT INTO games (league_id,season_id,home_team_id,away_team_id,played_on,start_time,home_score,away_score,periods_json,goals_json,penalties_json,shots_json,sheet_id)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`,
+    `INSERT INTO games (league_id,season_id,home_team_id,away_team_id,played_on,start_time,home_score,away_score,periods_json,goals_json,penalties_json,shots_json,sheet_id,event_id)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`,
     [
       league.id, season?.id ?? null, homeId, awayId, d.date, d.time, hs, as,
       JSON.stringify({ home: d.home.score_by_period, away: d.away.score_by_period }),
       JSON.stringify({ home: d.home.goals, away: d.away.goals }),
       JSON.stringify({ home: d.home.penalties, away: d.away.penalties }),
       JSON.stringify({ home: d.home.shots_by_period, away: d.away.shots_by_period }),
-      sheetId,
+      sheetId, event?.id ?? null,
     ],
   ))!.id;
+  if (event) for (const t of [homeId, awayId]) await q(db, "INSERT INTO event_teams (event_id, team_id) VALUES ($1,$2) ON CONFLICT DO NOTHING", [event.id, t]);
 
   const sides: [OcrTeam, OcrTeam, number, number][] = [
     [d.home, d.away, homeId, as],
@@ -241,7 +253,7 @@ async function replaceImported(db: Tx, gameId: number) {
 export async function teamRecord(db: Tx, teamId: number, seasonId: number | null = null) {
   const sq = seasonId ? " AND season_id=$2" : "";
   const sp = seasonId ? [seasonId] : [];
-  const gs = await q<any>(db, `SELECT * FROM games WHERE (home_team_id=$1 OR away_team_id=$1) AND source='sheet'${sq}`, [teamId, ...sp]);
+  const gs = await q<any>(db, `SELECT * FROM games WHERE (home_team_id=$1 OR away_team_id=$1) AND source='sheet' AND event_id IS NULL${sq}`, [teamId, ...sp]);
   const imp = await one<any>(db, `SELECT SUM(gp)::int gp, SUM(w)::int w, SUM(l)::int l, SUM(t)::int t, SUM(gf)::int gf, SUM(ga)::int ga, COUNT(*)::int n, COUNT(gf)::int ngf FROM team_imports WHERE team_id=$1${sq}`, [teamId, ...sp]);
   // Goals are known only if every imported baseline carried them.
   const goalsKnown = !imp?.n || imp.ngf === imp.n;
@@ -270,12 +282,12 @@ export async function standings(db: Tx, leagueId: number, seasonId: number | nul
 export async function leaders(db: Tx, leagueId: number | null, limit = 10, seasonId: number | null = null) {
   const params: any[] = [];
   const p = (v: any) => { params.push(v); return `$${params.length}`; };
-  const scope = () => (leagueId ? `l.id=${p(leagueId)}` : "l.level<>'DEMO'") + (seasonId ? ` AND season_id=${p(seasonId)}` : "");
+  const scope = () => (leagueId ? `l.id=${p(leagueId)}` : "l.level NOT IN ('DEMO','TOURN')") + (seasonId ? ` AND season_id=${p(seasonId)}` : "");
   const s1 = scope(), s2 = scope();
   return q<any>(
     db,
     `WITH lines AS (
-       SELECT s.player_id, s.team_id, s.goals g, s.assists a, gm.season_id season_id FROM player_game_stats s JOIN games gm ON gm.id=s.game_id JOIN leagues l ON l.id=gm.league_id WHERE ${s1}
+       SELECT s.player_id, s.team_id, s.goals g, s.assists a, gm.season_id season_id FROM player_game_stats s JOIN games gm ON gm.id=s.game_id JOIN leagues l ON l.id=gm.league_id WHERE gm.event_id IS NULL AND ${s1}
        UNION ALL
        SELECT pi.player_id, pi.team_id, pi.g, pi.a, pi.season_id FROM player_imports pi JOIN teams t ON t.id=pi.team_id JOIN leagues l ON l.id=t.league_id WHERE ${s2}
      )

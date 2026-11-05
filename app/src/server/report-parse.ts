@@ -24,7 +24,8 @@ export function parseReport(text: string): Parsed {
   const leagueName = leagueLine.match(/^LEAGUE\s+(.+?)\s*(?:\||$)/i)?.[1]?.trim() || null;
   const levelField = leagueLine.match(/\|\s*LEVEL\s+([^|]+?)\s*(?:\||$)/i)?.[1]?.trim().toUpperCase() ?? null;
   const fromText = (t: string) => t.match(/\b([ABCD]) League\b/i)?.[1]?.toUpperCase() ?? (/(40\+|over 40)/i.test(t) ? "40+" : null);
-  const level = (levelField && /^([ABCD]|40\+)$/.test(levelField) ? levelField : null) ?? fromText(leagueName ?? "") ?? fromText(header);
+  // LEVEL OTHER (e.g. "Sunday A/B League") means the name is the level; don't guess one from the name.
+  const level = levelField === "OTHER" ? null : (levelField && /^([ABCD]|40\+)$/.test(levelField) ? levelField : null) ?? fromText(leagueName ?? "") ?? fromText(header);
   const teamRows: PTeamRow[] = [];
   const totals: PTotal[] = [];
   const goalies: string[] = [];

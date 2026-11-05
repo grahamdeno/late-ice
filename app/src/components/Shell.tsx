@@ -101,7 +101,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                   <div className="font-black">All</div>
                   <div className="text-xs text-[var(--mute)]">Every league</div>
                 </button>
-                {boot?.leagues.filter((l) => l.level !== "DEMO").map((l) => (
+                {boot?.leagues.filter((l) => l.level !== "DEMO" && l.level !== "TOURN").map((l) => (
                   <button
                     key={l.id}
                     className={`rounded-xl p-3 text-left border ${leagueId === l.id ? "border-[var(--red)] bg-[var(--red-dim)]" : "border-[var(--line)] bg-[var(--ice-3)]"}`}

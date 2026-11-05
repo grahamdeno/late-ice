@@ -286,6 +286,13 @@ export async function mergePlayers(db: Tx, fromId: number, intoId: number) {
 }
 
 export async function linkSlot(db: Tx, playerId: number, userId: number) {
+  // One person, one rating: a second spot (another team, another rink, a sub game) folds into the first.
+  const mine = await one<any>(db, "SELECT id FROM players WHERE user_id=$1 AND id<>$2 ORDER BY games_rated DESC, id LIMIT 1", [userId, playerId]);
+  if (mine) {
+    await mergePlayers(db, playerId, mine.id);
+    await refreshDisplay(db, mine.id);
+    return;
+  }
   await q(db, "UPDATE players SET user_id=$1, claimed=1 WHERE id=$2", [userId, playerId]);
   const u = await one<any>(db, "SELECT * FROM users WHERE id=$1", [userId]);
   if (u?.position && u.position !== "G") {
@@ -304,7 +311,7 @@ export async function suggestionsFor(db: Tx, u: any) {
   const rows = await q<any>(db,
     `SELECT p.id, p.name, p.display_name, p.rating, re.number, t.id team_id, t.name team_name, t.color, t.logo, l.level
      FROM roster_entries re JOIN players p ON p.id=re.player_id JOIN teams t ON t.id=re.team_id JOIN leagues l ON l.id=t.league_id
-     WHERE p.user_id IS NULL AND l.rink_id=$1 AND l.level<>'DEMO'`, [u.home_rink_id]);
+     WHERE p.user_id IS NULL AND l.rink_id=$1 AND l.level NOT IN ('DEMO','TOURN')`, [u.home_rink_id]);
   const first = (s: string) => (s.trim().split(/\s+/)[0] || "").replace(/[^a-z]/gi, "").toLowerCase();
   const lastInit = (s: string) => { const t = s.trim().split(/\s+/); return t.length > 1 ? t[t.length - 1][0]?.toLowerCase() : ""; };
   return rows
@@ -329,4 +336,14 @@ export async function slotForUser(db: Tx, target: any, level: string) {
   return (await one<{ id: number }>(db,
     "INSERT INTO players (name,name_key,position,rating,start_rating,claimed,user_id) VALUES ($1,$2,$3,$4,$4,1,$5) RETURNING id",
     [target.name, target.name.toLowerCase().replace(/[^a-z]/g, ""), target.position || "F", start, target.id]))!.id;
+}
+
+/** Earlier claims could leave one person with a player record per team. Fold them into one (nightly, before the replay). */
+export async function consolidatePeople(db: Tx) {
+  let merged = 0;
+  for (const u of await q<any>(db, "SELECT user_id FROM players WHERE user_id IS NOT NULL GROUP BY user_id HAVING COUNT(*) > 1")) {
+    const ps = await q<any>(db, "SELECT id FROM players WHERE user_id=$1 ORDER BY games_rated DESC, id", [u.user_id]);
+    for (const p of ps.slice(1)) { await mergePlayers(db, p.id, ps[0].id); merged++; }
+  }
+  return merged;
 }

@@ -73,7 +73,7 @@ export function Leagues() {
       <div className="label">Polar Ice Wilmington · {boot.season?.name}</div>
       <h1 className="font-display text-[40px] leading-none font-black uppercase mt-1">Standings</h1>
       <p className="text-sm text-[var(--mute)] mt-2">Two points a win, one a tie. Standings reset every season; ratings carry over.</p>
-      <div className="space-y-3 mt-5">{boot.leagues.filter((l) => l.level !== "DEMO").map((l) => <LeagueCard key={l.id} id={l.id} />)}</div>
+      <div className="space-y-3 mt-5">{boot.leagues.filter((l) => l.level !== "DEMO" && l.level !== "TOURN").map((l) => <LeagueCard key={l.id} id={l.id} />)}</div>
     </div>
   );
 }
@@ -174,10 +174,10 @@ export function TeamPage({ id }: { id: string }) {
       ) : null}
       <CaptainPanel team={team} captain={data.captain} assistants={data.assistants} />
       <Schedule teamId={team.id} />
-      <Section title="Roster" action={<span className="label">{roster.length} players</span>}>
+      <Section title="Roster" action={<span className="label">{roster.filter((p: any) => !p.is_sub).length} players</span>}>
         {roster.length ? (
           <div className="card divide-y divide-[var(--line)]">
-            {roster.map((p: any) => (
+            {roster.filter((p: any) => !p.is_sub).map((p: any) => (
               <Link key={p.id} href={`/player/${p.id}`} className="flex items-center gap-3 px-4 py-3 text-sm" data-testid={`row-roster-${p.id}`}>
                 <Bobble avatar={p.avatar} jersey={team.color} archetype={data.archetypes?.won?.[p.id]?.archetype} goalie={p.position === "G"} size={30} />
                 <span className="tnum text-[var(--mute)] w-8">{p.number ? `#${p.number}` : ""}</span>
@@ -188,6 +188,9 @@ export function TeamPage({ id }: { id: string }) {
             ))}
           </div>
         ) : <Empty title="Roster fills itself" body="Players are added straight from the scoresheet the first time this team's game is scanned." />}
+        {roster.some((p: any) => p.is_sub) && (
+          <p className="text-xs text-[var(--mute)] mt-2 px-1" data-testid="text-subs">Subs this season: {roster.filter((p: any) => p.is_sub).map((p: any) => p.name).join(", ")}. Their games count for them, not as roster spots.</p>
+        )}
       </Section>
       <ArchetypeVotes teamId={team.id} roster={roster} data={data.archetypes} />
       <ShotMap teamId={team.id} />
