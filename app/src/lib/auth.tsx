@@ -5,7 +5,7 @@ import { apiRequest, getQueryFn, queryClient, setToken } from "./queryClient";
 import { supabase } from "./supabase";
 
 export interface MeUser {
-  id: number; phone: string; name: string | null; number: string | null; position: "F" | "D" | "G" | null;
+  id: number; email: string | null; phone: string | null; name: string | null; number: string | null; position: "F" | "D" | "G" | null;
   homeRink: { id: number; name: string } | null; status: "available" | "ir" | "away" | "resting";
   statusUntil: string | null; hidden: boolean; profileComplete: boolean;
 }
@@ -72,10 +72,10 @@ export async function signOut() {
   queryClient.clear();
 }
 
-/** "(910) 555-0101" -> "+19105550101", or null. */
-export function toE164(raw: string) {
-  const d = raw.replace(/\D/g, "").replace(/^1(?=\d{10}$)/, "");
-  return d.length === 10 ? `+1${d}` : null;
+/** Trimmed, lowercase email, or null if it doesn't look like one. */
+export function normEmail(raw: string) {
+  const e = raw.trim().toLowerCase();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) ? e : null;
 }
 
 /** Run a write, then refresh everything that may show it. Returns an error message or null. */

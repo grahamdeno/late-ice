@@ -1,9 +1,10 @@
 // Drives the built app in a phone-sized browser through join, claim, captain and draft,
 // saving screenshots to shots/. CI publishes them for review.
-// Test numbers use the fixed code from supabase/config.toml.
+// Sign-in codes are read from the local mail catcher.
 import { spawn } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { chromium } from "playwright";
+import { latestCode, lastMailId } from "./mail.mjs";
 
 const PORT = 3098, BASE = `http://localhost:${PORT}`;
 mkdirSync("shots", { recursive: true });
@@ -18,12 +19,14 @@ function watch(page, who) {
   page.on("pageerror", (e) => errors.push(`${who}: ${e}`));
   page.on("console", (m) => { if (m.type() === "error" && !/fonts|favicon|Failed to load resource/.test(m.text())) errors.push(`${who}: ${m.text()}`); });
 }
-async function join(page, phone, name, number, pos) {
+async function join(page, email, name, number, pos) {
   await page.goto(`${BASE}/join`);
-  await page.getByTestId("input-phone").fill(phone);
+  await page.getByTestId("input-email").fill(email);
+  const before = await lastMailId(email);
   await page.getByTestId("button-send-code").click();
   await page.getByTestId("input-code").waitFor();
-  await page.getByTestId("input-code").fill("123456");
+  const { code } = await latestCode(email, before);
+  await page.getByTestId("input-code").fill(code);
   await page.getByTestId("button-verify").click();
   await page.getByTestId("input-name").waitFor();
   await page.getByTestId("input-name").fill(name);
@@ -39,9 +42,26 @@ try {
   await page.goto(BASE);
   await shoot(page, "home-signed-out");
   await page.goto(`${BASE}/join`);
-  await page.getByTestId("input-phone").fill("9105550101");
-  await shoot(page, "join-phone");
-  await join(page, "9105550101", "Graham DeNoyer", "12", "F");
+  await page.getByTestId("input-email").fill("graham@example.com");
+  await shoot(page, "join-email");
+  // Code step: wrong code shows a clear error; resend is on cooldown.
+  const before0 = await lastMailId("graham@example.com");
+  await page.getByTestId("button-send-code").click();
+  await page.getByTestId("input-code").waitFor();
+  await latestCode("graham@example.com", before0);
+  await page.getByTestId("input-code").fill("000000");
+  await page.getByTestId("button-verify").click();
+  await page.getByTestId("text-error").waitFor();
+  await shoot(page, "join-code-wrong");
+  if (!/doesn't match/.test(await page.getByTestId("text-error").innerText())) errors.push("wrong code should say it doesn't match");
+  const t1 = await page.getByTestId("button-resend").innerText();
+  await page.waitForTimeout(2500);
+  const t2 = await page.getByTestId("button-resend").innerText();
+  if (t1 === t2) errors.push(`resend countdown is not ticking (${t1})`);
+  if (!(await page.getByTestId("button-resend").isDisabled())) errors.push("resend should be on cooldown");
+  // Start over with a fresh page; the server allows a new code after 1 second locally.
+  await page.waitForTimeout(1500);
+  await join(page, "graham@example.com", "Graham DeNoyer", "12", "F");
   await shoot(page, "join-profile");
   await page.getByTestId("button-save-profile").click();
   await page.waitForURL(/\/me$/);
@@ -57,7 +77,7 @@ try {
   const ctx2 = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const p2 = await ctx2.newPage();
   watch(p2, "sam");
-  await join(p2, "9105550102", "Sam Okafor", "9", "D");
+  await join(p2, "sam@example.com", "Sam Okafor", "9", "D");
   await p2.getByTestId("button-save-profile").click();
   await p2.waitForURL(/\/me$/);
 

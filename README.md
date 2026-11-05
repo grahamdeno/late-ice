@@ -21,7 +21,7 @@ Late Ice is a national rating and competition layer for adult rec ("beer league"
 
 - **App:** Next.js (App Router, TypeScript, Tailwind) in `app/`, installable as a PWA. Pages and the API live in one deploy.
 - **Data:** Supabase Postgres. Row level security is on for every table with no policies, so the browser key can read nothing; all data goes through the server, and real names of unclaimed players never leave it.
-- **Sign-in:** Supabase phone codes.
+- **Sign-in:** a 6-digit code emailed by Supabase Auth (sent through Resend). No passwords, no links.
 - **Scoresheets:** photos in a private Supabase Storage bucket; a Claude vision model reads them after the upload returns.
 - **Ratings:** `app/src/server/rating.ts`. Each confirmed game is rated once; a nightly job (Vercel Cron, `/api/cron/recompute`) replays every game from starting ratings so ratings can't drift.
 
@@ -35,13 +35,13 @@ npx supabase status -o env  # copy API_URL, ANON_KEY, SERVICE_ROLE_KEY, DB_URL i
 npm run dev                 # http://localhost:3000
 ```
 
-Local test numbers (910) 555-0101, -0102 and -0103 sign in with code 123456; no text is sent.
+Locally, sign-in emails are caught by Mailpit at http://127.0.0.1:54324 instead of being sent; open it to read your code.
 
 ## Deploy (Supabase + Vercel)
 
 1. **Supabase:** create a project. From Project Settings > API copy the URL, anon key and service role key. From Connect, copy the **Transaction pooler** URI (port 6543) for the app and the **Session pooler** URI (port 5432) for migrations.
 2. **Schema:** add a GitHub repository secret `SUPABASE_DB_URL` with the Session pooler URI. The `Database migrations` workflow applies `app/supabase/migrations`.
-3. **Phone sign-in:** Supabase > Authentication > Sign In / Providers > Phone: enable it and enter the Twilio account SID, auth token and messaging service SID. A Twilio trial works for numbers you verify in Twilio; texting anyone needs a paid Twilio number with US carrier registration.
+3. **Email sign-in:** Authentication > Sign In / Providers: Email on (6-digit codes, 10-minute expiry), Phone off. Email Templates: Magic Link and Confirm signup show `{{ .Token }}` (copy `app/supabase/templates/magic_link.html`). SMTP: Resend (`smtp.resend.com`, port 465, user `resend`, the Resend API key as password) with a sender on a verified domain. Raise the hourly email rate limit to fit sign-ups.
 4. **Vercel:** import the repo with root directory `app` and add the variables from `app/.env.example` (`DATABASE_URL` is the Transaction pooler URI). `vercel.json` schedules the nightly rating replay.
 
 ## The app (Wilmington pilot)

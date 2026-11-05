@@ -5,6 +5,8 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { readFileSync } from "node:fs";
 import postgres from "postgres";
 import { createClient } from "@supabase/supabase-js";
+// @ts-ignore plain JS helper
+import { latestCode, lastMailId } from "./mail.mjs";
 
 const PORT = 3099;
 const BASE = `http://localhost:${PORT}`;
@@ -47,16 +49,24 @@ async function call(method: string, url: string, body?: unknown, token?: string)
   return { status: res.status, json, text };
 }
 
-/** Sign in a test number (fixed code in supabase/config.toml) and register. */
-async function signUp(phone: string, profile: { name: string; number: string; position: string }) {
+/** Sign in by emailed code (read from the local mail catcher) and register. */
+async function signUp(email: string, profile: { name: string; number: string; position: string }) {
   const sb = createClient(env.NEXT_PUBLIC_SUPABASE_URL!, env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false } });
-  const s = await sb.auth.signInWithOtp({ phone });
-  ok(!s.error, `code requested for ${phone}${s.error ? ": " + s.error.message : ""}`);
-  const v = await sb.auth.verifyOtp({ phone, token: "123456", type: "sms" });
-  ok(!v.error && v.data.session, `verified ${phone}${v.error ? ": " + v.error.message : ""}`);
+  const inbox = email.toLowerCase();
+  const before = await lastMailId(inbox);
+  const s = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+  ok(!s.error, `code requested for ${email}${s.error ? ": " + s.error.message : ""}`);
+  const { code } = await latestCode(inbox, before);
+  ok(/^\d{6}$/.test(code), `email for ${email} shows a 6-digit code`);
+  const wrong = await sb.auth.verifyOtp({ email, token: code === "000000" ? "111111" : "000000", type: "email" });
+  ok(!!wrong.error, "a wrong code is rejected");
+  const v = await sb.auth.verifyOtp({ email, token: code, type: "email" });
+  ok(!v.error && v.data.session, `verified ${email}${v.error ? ": " + v.error.message : ""}`);
+  const again = await sb.auth.verifyOtp({ email, token: code, type: "email" });
+  ok(!!again.error, "a used code can't be reused");
   const token = v.data.session!.access_token;
   const me = await call("GET", "/api/me", undefined, token);
-  ok(me.status === 200 && me.json.user.profileComplete === false, `${phone} gets a new account`);
+  ok(me.status === 200 && me.json.user.profileComplete === false && me.json.user.email === email.toLowerCase() && me.json.user.phone === null, `${email} gets a new account keyed on email, no phone`);
   const rinks = await call("GET", "/api/rinks");
   const p = await call("PATCH", "/api/me", { ...profile, homeRinkId: rinks.json[0].id }, token);
   ok(p.status === 200 && p.json.user.profileComplete, `${profile.name} profile complete`);
@@ -101,7 +111,7 @@ async function main() {
   const anon = createClient(env.NEXT_PUBLIC_SUPABASE_URL!, env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false } });
   const leak = await anon.from("players").select("name").limit(1);
   ok(!!leak.error || (leak.data ?? []).length === 0, "browser key can't read players (real names stay private)");
-  const write = await anon.from("users").insert({ phone: "+10000000000" });
+  const write = await anon.from("users").insert({ email: "nope@example.com" });
   ok(!!write.error, "browser key can't write");
 
   console.log("nightly job");
@@ -124,8 +134,19 @@ async function main() {
   console.log("sign-in");
   ok((await call("GET", "/api/me")).status === 401, "signed-out /api/me is 401");
   ok((await call("GET", "/api/me", undefined, "not-a-token")).status === 401, "bad token is 401");
-  const graham = await signUp("+19105550101", { name: "Graham DeNoyer", number: "12", position: "F" });
+  const graham = await signUp("Graham@Example.com", { name: "Graham DeNoyer", number: "12", position: "F" });
   ok((await call("PATCH", "/api/me", { name: "Graham" }, graham)).status === 400, "one-word name rejected");
+  {
+    const sb = createClient(env.NEXT_PUBLIC_SUPABASE_URL!, env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false } });
+    const before = await lastMailId("graham@example.com");
+    await new Promise((r) => setTimeout(r, 1500)); // local limit: one code per address per second
+    const r = await sb.auth.signInWithOtp({ email: "graham@example.com", options: { shouldCreateUser: true } });
+    ok(!r.error, `returning user can request a new code${r.error ? ": " + r.error.message : ""}`);
+    const { code } = await latestCode("graham@example.com", before);
+    const v = await sb.auth.verifyOtp({ email: "graham@example.com", token: code, type: "email" });
+    const again = await call("GET", "/api/me", undefined, v.data.session!.access_token);
+    ok(again.json.user.name === "Graham DeNoyer", "signing in again (any letter case) reaches the same account");
+  }
   let me = await call("GET", "/api/me", undefined, graham);
   const sug = me.json.suggestions.find((s: any) => s.name === "Graham D.");
   ok(sug && sug.team_id === hh, "suggests the posted 'Graham D.' on Hammer'd Heads");
@@ -142,7 +163,7 @@ async function main() {
   ok(p.json.player.mine === true && p.json.player.registered === true && p.json.player.name_key === undefined, "player page knows it's mine and hides internals");
 
   console.log("draft pool and draft");
-  const sam = await signUp("+19105550102", { name: "Sam Okafor", number: "9", position: "D" });
+  const sam = await signUp("sam@example.com", { name: "Sam Okafor", number: "9", position: "D" });
   ok((await call("GET", "/api/pool", undefined, sam)).status === 403, "pool is captains only");
   const pool = await call("GET", "/api/pool", undefined, graham);
   const samRow = pool.json.players.find((x: any) => x.name === "Sam Okafor");
@@ -160,7 +181,7 @@ async function main() {
   ok(me.json.notifications.some((n: any) => n.kind === "decline"), "captain hears about the decline");
 
   console.log("match, release, merge");
-  const mt = await signUp("+19105550103", { name: "Mike Tolliver", number: "44", position: "F" });
+  const mt = await signUp("mike@example.com", { name: "Mike Tolliver", number: "44", position: "F" });
   const mtId = (await call("GET", "/api/me", undefined, mt)).json.user.id;
   ok((await call("POST", `/api/teams/${hh}/match`, { playerId: mike, userId: mtId }, graham)).status === 200, "captain matches Mike to the #44 sheet slot");
   team = await call("GET", `/api/teams/${hh}`);
