@@ -5,7 +5,7 @@ import * as A from "@/server/accounts";
 import { teamRoleOf } from "@/server/permissions";
 import { attendance, nextGame } from "@/server/schedule";
 import { cleanAvatar } from "@/lib/avatar";
-import { teamArchetypes } from "@/server/archetypes";
+import { teamArchetypes, setOwnArchetype } from "@/server/archetypes";
 import { subRequestsFor } from "@/server/subs";
 
 export const dynamic = "force-dynamic";
@@ -53,6 +53,7 @@ export const PATCH = handle(async (req) => {
     if (!(await one(sql, "SELECT 1 FROM rinks WHERE id=$1", [Number(b.homeRinkId) || 0]))) throw new HttpError(400, "Pick your home rink.");
     next.home_rink_id = Number(b.homeRinkId);
   }
+  if (b.archetypeSelf !== undefined) await setOwnArchetype(sql, u.id, b.archetypeSelf || null);
   if (b.status === "available") b.status = "active";
   if (b.status !== undefined) {
     if (!A.STATUSES.has(b.status)) throw new HttpError(400, "Unknown status.");

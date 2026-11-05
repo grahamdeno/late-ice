@@ -155,6 +155,18 @@ try {
   await page.waitForTimeout(900);
   if (!(await page.getByTestId("text-spot-added").count())) errors.push("adding a player by hand showed no confirmation");
   await shoot(page, "manage-team-added");
+  const manageTeamId = await page.evaluate(() => location.pathname.split("/")[2]);
+  await page.goto(BASE + `/team/${manageTeamId}`); await page.waitForTimeout(1000);
+  if (await page.locator('[data-testid^="link-lineup-"]').count()) {
+    await page.locator('[data-testid^="link-lineup-"]').first().click();
+    await page.waitForURL(/\/lineup\//); await page.waitForTimeout(1200);
+    await shoot(page, "lineup");
+    await page.locator('[data-testid="slot-f0-0"]').click();
+    await page.waitForTimeout(400);
+    await shoot(page, "lineup-pick");
+  }
+  // The draft pool link lives on the Manage team page, so go back there first.
+  await page.goto(BASE + `/team/${manageTeamId}/manage`); await page.waitForTimeout(1000);
   await page.getByTestId("link-draft").click();
   await page.waitForURL(/\/pool\//);
   await page.waitForTimeout(1000);

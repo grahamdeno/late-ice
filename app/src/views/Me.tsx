@@ -1,4 +1,6 @@
 "use client";
+import { ARCHETYPE_LABEL } from "@/components/Archetypes";
+import { queryClient, authHeaders, apiUrl } from "@/lib/queryClient";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "@/lib/router";
 import { useMe, act, signOut, POSITION_LABEL, STATUS_LABEL, ROLE_LABEL } from "@/lib/auth";
@@ -154,6 +156,8 @@ export default function MePage() {
         </Section>
       )}
 
+      {me.slots.length > 0 && <FindSpot run={run} />}
+
       <Section title="My teams">
         {me.slots.length ? (
           <div className="space-y-2">
@@ -210,7 +214,19 @@ export default function MePage() {
       )}
 
       {me.slots.length > 0 && (
-        <AvatarBuilder saved={u.avatar} jersey={me.slots[0].color} number={me.slots[0].number} archetype={me.slots[0].archetype ?? null} goalie={u.position === "G"} />
+        <AvatarBuilder saved={u.avatar} jersey={me.slots[0].color} number={me.slots[0].number} archetype={u.archetypeSelf ? { archetype: u.archetypeSelf, votes: 0 } : me.slots[0].archetype ?? null} goalie={u.position === "G"} />
+      )}
+
+      {me.roles.some((r) => r.role === "admin") && (
+        <Section title="Your archetype">
+          <div className="card p-4" data-testid="card-own-archetype">
+            <p className="text-xs text-[var(--mute)]">As system admin you can pick your own. Your team's vote is kept and still shows next to it.</p>
+            <select className="input w-full mt-2" value={u.archetypeSelf ?? ""} onChange={async (e) => { await act("PATCH", "/api/me", { archetypeSelf: e.target.value || null }); await queryClient.invalidateQueries(); }} data-testid="select-own-archetype">
+              <option value="">Let my team decide</option>
+              {Object.entries(ARCHETYPE_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+            </select>
+          </div>
+        </Section>
       )}
 
       <Section title="Availability">
@@ -267,5 +283,38 @@ export default function MePage() {
         <button className="btn btn-ghost h-9 text-sm" onClick={async () => { await signOut(); nav("/"); }} data-testid="button-sign-out">Sign out</button>
       </div>
     </div>
+  );
+}
+
+/** Second team, or a sub spot the app didn't suggest: search unclaimed spots by name or team, then claim. */
+function FindSpot({ run }: { run: (m: string, u: string, b?: unknown) => Promise<unknown> }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [rows, setRows] = useState<any[] | null>(null);
+  useEffect(() => {
+    if (!open || text.trim().length < 2) { setRows(null); return; }
+    const t = setTimeout(async () => {
+      try { const r = await fetch(apiUrl(`/api/me/spots?q=${encodeURIComponent(text)}`), { headers: authHeaders() }); setRows((await r.json()).spots ?? []); } catch { setRows([]); }
+    }, 250);
+    return () => clearTimeout(t);
+  }, [text, open]);
+  if (!open) return <button className="text-sm font-bold text-[var(--blue)] mt-5 px-1" onClick={() => setOpen(true)} data-testid="button-find-spot">On another team too? Find your spot</button>;
+  return (
+    <Section title="Find your spot">
+      <div className="card p-4 space-y-2" data-testid="card-find-spot">
+        <input className="input w-full" autoFocus placeholder="Your name or the team's" value={text} onChange={(e) => setText(e.target.value)} data-testid="input-find-spot" />
+        {rows && rows.length === 0 && <p className="text-xs text-[var(--mute)]">Nothing unclaimed matches. Ask that team's captain to add you.</p>}
+        <div className="divide-y divide-[var(--line)]">
+          {(rows ?? []).map((s) => (
+            <div key={`${s.id}-${s.team_id}`} className="flex items-center gap-3 py-2.5" data-testid={`row-spot-${s.id}`}>
+              <TeamBadge team={{ id: s.team_id, name: s.team_name, color: s.color, logo: s.logo }} size={28} />
+              <span className="flex-1 min-w-0"><span className="block font-bold text-sm truncate">{s.number ? `#${s.number} ` : ""}{s.name}</span><span className="block text-[11px] text-[var(--mute)] truncate">{s.team_name} · {s.rink}</span></span>
+              <button className="btn btn-red h-8 text-xs" onClick={() => confirm(`Claim ${s.name} on ${s.team_name}? Their captain sees it.`) && run("POST", `/api/players/${s.id}/claim`)} data-testid={`button-claim-spot-${s.id}`}>That's me</button>
+            </div>
+          ))}
+        </div>
+        <button className="text-xs text-[var(--mute)]" onClick={() => { setOpen(false); setText(""); }}>Close</button>
+      </div>
+    </Section>
   );
 }

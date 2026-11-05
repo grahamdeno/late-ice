@@ -53,5 +53,7 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
     ...(road.length ? [{ key: "road_trip", label: "Road Trip", detail: road.map((e: any) => e.name).join(", ") }] : []),
     ...mvps.map((e: any) => ({ key: "mvp", label: "Tournament MVP", detail: e.name, eventId: e.id })),
   ];
-  return { player: p, teams, archetypes, badges, history, importedGames, totals, imported: imp.gp ? imp : null, lines, ranks, reliability: Math.min(100, raw.games_rated * 10) };
+  // The one shown on the card: a player's own pick if they have one, else the team vote with the most agreement.
+  const shown = archetypes.map((x: any) => x.won).filter(Boolean).sort((a: any, b: any) => Number(!!b.self) - Number(!!a.self) || b.votes - a.votes)[0] ?? null;
+  return { player: p, teams, archetypes, archetype: shown, badges, history, importedGames, totals, imported: imp.gp ? imp : null, lines, ranks, reliability: Math.min(100, raw.games_rated * 10) };
 });

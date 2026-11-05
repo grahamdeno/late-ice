@@ -163,6 +163,10 @@ async function main() {
   const mine = team.json.roster.find((r: any) => r.id === sug.id);
   ok(mine.name === "Graham DeNoyer" && mine.registered === true, "claimed slot shows full name and registered");
   ok((await call("POST", `/api/teams/${hh}/captain`, undefined, graham)).status === 200, "take the captain role");
+  ok(!(await call("GET", "/api/me", undefined, graham)).json.suggestions.some((s: any) => s.team_id === hh), "once you hold a spot, the same team isn't suggested again");
+  const foundSpots = await call("GET", "/api/me/spots?q=hammer", undefined, graham);
+  ok(foundSpots.status === 200 && Array.isArray(foundSpots.json.spots), "find your spot by hand, by team name");
+  ok((await call("GET", "/api/me/spots?q=x", undefined, graham)).json.spots.length === 0, "one letter isn't a search");
   ok((await call("GET", `/api/teams/${hh}`)).json.captain?.name === "Graham DeNoyer", "team shows the captain");
   const p = await call("GET", `/api/players/${sug.id}`, undefined, graham);
   ok(p.json.player.mine === true && p.json.player.registered === true && p.json.player.name_key === undefined, "player page knows it's mine and hides internals");
@@ -591,9 +595,21 @@ async function main() {
   const pp = (await call("GET", `/api/players/${samSlot.id}`, undefined, graham)).json;
   const ppa = pp.archetypes.find((x: any) => x.teamId === hh);
   ok(ppa && ppa.won.archetype === "sniper" && ppa.mine === "sniper" && ppa.canVote, "the player page shows it, and your vote to change");
+  ok(pp.archetype?.archetype === "sniper" && !pp.archetype.self, "the player card shows his archetype");
   ok((await call("GET", `/api/players/${samSlot.id}`, undefined, sam)).json.archetypes.find((x: any) => x.teamId === hh).canVote === false, "but not on your own page");
   ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: samSlot.id, archetype: "playmaker" }, graham)).status === 200, "anyone can change their vote any time");
   ok((await call("GET", `/api/players/${samSlot.id}`, undefined, graham)).json.archetypes.find((x: any) => x.teamId === hh).mine === "playmaker", "the change sticks");
+
+  console.log("archetypes: the admin picks his own");
+  ok((await call("PATCH", "/api/me", { archetypeSelf: "sniper" }, sam)).status === 403, "a player can't pick his own");
+  ok((await call("PATCH", "/api/me", { archetypeSelf: "wizard" }, boss)).status === 400, "only the listed archetypes");
+  const bossSet = await call("PATCH", "/api/me", { archetypeSelf: "bender" }, boss);
+  ok(bossSet.status === 200 && bossSet.json.user.archetypeSelf === "bender", "the system admin picks Bender for himself");
+  const bossPid = (await db`SELECT p.id FROM players p JOIN users u ON u.id=p.user_id WHERE u.email='boss@example.com'`)[0].id;
+  const bossCard = (await call("GET", `/api/players/${bossPid}`)).json;
+  ok(bossCard.archetype?.archetype === "bender" && bossCard.archetype.self === true, "his card shows it, marked as his own pick");
+  ok((await call("GET", `/api/teams/${hh}`)).json.archetypes.won[bossPid]?.archetype === "bender", "the roster shows it too");
+  ok((await call("PATCH", "/api/me", { archetypeSelf: null }, boss)).json.user.archetypeSelf === null, "and he can hand it back to the team");
 
   console.log("bobblehead");
   const av = await call("PATCH", "/api/me", { avatar: { skin: 4, hair: 2, helmet: "#EEF3F8", guard: "visor", beard: "full", style: "flow", eyeBlack: true } }, sam);
@@ -697,7 +713,7 @@ async function main() {
 
   console.log("manage team: adding and editing spots, roster sizes");
   const mtBefore = (await call("GET", `/api/teams/${hh}/manage`, undefined, graham)).json;
-  ok(mtBefore.counts && mtBefore.counts.rosterMax === 15 && mtBefore.counts.goalieMax === 2, "a league starts at 15 skaters and 2 goalies");
+  ok(mtBefore.counts && mtBefore.counts.rosterMax === 25 && mtBefore.counts.goalieMax === 2, "a league starts at 25 skaters and 2 goalies");
   const lgFirst = (await db`SELECT league_id FROM teams WHERE id=${hh}`)[0].league_id;
   ok((await call("PATCH", `/api/leagues/${lgFirst}`, { rosterMax: 40 }, boss)).status === 200, "staff raise the roster size");
   const added = await call("POST", `/api/teams/${hh}/slots`, { name: "Pat Newguy", number: "71", position: "D" }, graham);
@@ -723,6 +739,23 @@ async function main() {
   await call("PATCH", "/api/me", { status: "active" }, sam);
   ok((await call("PATCH", `/api/leagues/${lgOf}`, { rosterMax: 15 }, boss)).status === 200, "and back to 15");
   ok((await call("PATCH", `/api/leagues/${lgOf}`, { rosterMax: 99 }, boss)).status === 400, "an absurd size is refused");
+
+  console.log("lineup");
+  const lgGame = await call("POST", `/api/teams/${hh}/schedule`, { date: `${ymd(4).slice(0, 4)}-${ymd(4).slice(4, 6)}-${ymd(4).slice(6)}`, time: "20:00", opponentTeamId: blId, kind: "league" }, graham);
+  ok(lgGame.status === 200, "a game to set lines for");
+  ok((await call("GET", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`)).status === 403, "before the captain sets it, outsiders see nothing");
+  const lu = await call("GET", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, undefined, graham);
+  ok(lu.status === 200 && !lu.json.saved && lu.json.lineup.f.length === 3 && lu.json.players.length > 0, "the team sees a first guess from who's In");
+  const firstTwo = lu.json.players.slice(0, 2).map((p: any) => p.id);
+  const lineupBody = { f: [[firstTwo[0], null, null], [null, null, null], [null, null, null]], d: [[firstTwo[1], null], [null, null], [null, null]], g: [null], extras: [] };
+  ok((await call("PUT", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, lineupBody, nobody)).status === 403, "only the team's captains set it");
+  ok((await call("PUT", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, { ...lineupBody, d: [[firstTwo[0], null], [null, null], [null, null]] }, graham)).status === 400, "a player in two spots is refused");
+  ok((await call("PUT", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, { ...lineupBody, g: [999999] }, graham)).status === 400, "someone not on the roster is refused");
+  ok((await call("PUT", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, lineupBody, graham)).status === 200, "captain saves the lines");
+  const lu2 = (await call("GET", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, undefined, graham)).json;
+  ok(lu2.saved && lu2.lineup.f[0][0] === firstTwo[0] && lu2.can.edit === true, "and it comes back as set");
+  const pub = await call("GET", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`);
+  ok(pub.status === 200 && pub.json.can.edit === false && pub.json.players.length === 2 && pub.json.players.every((p: any) => p.answer === null), "once set, outsiders see only the placed players and no In or Out answers");
 
   console.log("subs");
   const ivSlot = (await db`SELECT p.id FROM players p WHERE p.user_id=${ivId}`)[0].id;
@@ -811,7 +844,7 @@ async function main() {
   ok(/Disallow: \//.test(robots) && /noindex/.test(await (await fetch(`${BASE}/`)).text()), "search engines are told to stay out");
 
   console.log("pages render");
-  for (const path of ["/", "/leagues", `/team/${hh}`, `/player/${mike}`, "/players", "/rink", "/scan", "/join", "/privacy", `/game/${conf.json.gameId}`, `/league/${lg}`]) {
+  for (const path of ["/", "/leagues", `/team/${hh}`, `/player/${mike}`, "/players", "/rink", "/scan", "/join", "/privacy", `/game/${conf.json.gameId}`, `/league/${lg}`, `/team/${hh}/manage`, `/team/${hh}/lineup/${lgGame.json.id}`]) {
     const r = await fetch(BASE + path);
     ok(r.status === 200, `${path} renders`);
   }

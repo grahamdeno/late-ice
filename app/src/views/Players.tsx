@@ -78,9 +78,19 @@ export function PlayerPage({ id }: { id: string }) {
       <BackBar href="/players" title="Player" />
       <div className="card-hi p-5">
         <div className="flex items-start justify-between gap-3">
-          <Bobble avatar={player.avatar} jersey={teams[0]?.color} number={teams[0]?.number} archetype={data.archetypes?.[0]?.won?.archetype} goalie={player.position === "G"} size={72} label={`${player.name}'s bobblehead`} />
+          <Bobble avatar={player.avatar} jersey={teams[0]?.color} number={teams[0]?.number} archetype={data.archetype?.archetype} goalie={player.position === "G"} size={72} label={`${player.name}'s bobblehead`} />
           <div className="min-w-0 flex-1">
             <h1 className="font-black text-[26px] leading-tight" data-testid="text-player-name">{player.name}</h1>
+            {data.archetype && (
+              <div className="mt-1 flex items-center gap-2 flex-wrap" data-testid="player-archetype">
+                <span className="inline-flex items-center h-6 px-2 rounded-md text-[11px] font-black uppercase tracking-wide" style={{ background: "var(--red-dim)", color: "var(--red)" }}>{ARCHETYPE_LABEL[data.archetype.archetype]}</span>
+                <span className="text-[11px] text-[var(--mute)]">
+                  {data.archetype.self
+                    ? `Picked by ${player.registered ? "the player" : "staff"}${data.archetype.teamVote && data.archetype.teamVote !== data.archetype.archetype ? ` · team says ${ARCHETYPE_LABEL[data.archetype.teamVote]}` : ""}`
+                    : `${ARCHETYPE_BLURB[data.archetype.archetype]} · ${data.archetype.votes} teammates agree`}
+                </span>
+              </div>
+            )}
             <div className="flex flex-wrap gap-1.5 mt-2">
               {teams.map((t: any) => (
                 <Link key={t.id} href={`/team/${t.id}`} className="chip h-7 text-xs" data-testid={`link-player-team-${t.id}`}>
@@ -119,7 +129,7 @@ export function PlayerPage({ id }: { id: string }) {
             <div key={x.teamId} className="p-3.5 flex items-center gap-3 text-sm">
               <span className="flex-1 min-w-0">
                 <span className="block font-bold">{x.won ? ARCHETYPE_LABEL[x.won.archetype] : "No archetype yet"}<span className="text-[var(--mute)] font-medium"> · {x.teamName}</span></span>
-                <span className="block text-xs text-[var(--mute)]">{x.won ? `${ARCHETYPE_BLURB[x.won.archetype]}. ${x.won.votes} teammates agree.` : `Shows once ${x.minVotes} teammates agree.`}</span>
+                <span className="block text-xs text-[var(--mute)]">{x.won ? (x.won.self ? `Picked by the player.${x.won.teamVote ? ` Team vote: ${ARCHETYPE_LABEL[x.won.teamVote]}.` : ""}` : `${ARCHETYPE_BLURB[x.won.archetype]}. ${x.won.votes} teammates agree.`) : `Shows once ${x.minVotes} teammates agree.`}</span>
               </span>
               {x.canVote && (
                 <select className="input h-9 text-sm w-[140px]" aria-label={`Your vote for ${player.name}`} value={x.mine ?? ""} onChange={async (e) => setVoteErr(await act("PUT", `/api/teams/${x.teamId}/archetypes`, { playerId: player.id, archetype: e.target.value || null }))} data-testid={`select-player-archetype-${x.teamId}`}>

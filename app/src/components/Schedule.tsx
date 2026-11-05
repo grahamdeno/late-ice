@@ -1,4 +1,5 @@
 "use client";
+import { Link } from "@/lib/router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { act } from "@/lib/auth";
@@ -143,6 +144,7 @@ export function Schedule({ teamId }: { teamId: number }) {
               </div>
               {g.status === "scheduled" && g.rsvp?.member && <div className="mt-2.5"><Rsvp g={g} /></div>}
               {g.status === "scheduled" && (g.rsvp?.member || can.manual) && <Counts g={g} />}
+              {g.status === "scheduled" && (g.rsvp?.member || can.manual) && <Link href={`/team/${teamId}/lineup/${g.id}`} className="inline-block mt-2 text-xs font-bold text-[var(--blue)]" data-testid={`link-lineup-${g.id}`}>{can.manual ? "Set the lineup" : "Lineup"} ›</Link>}
               {g.status === "scheduled" && can.manual && <SubFinder gameId={g.id} />}
             </div>
           ))}
