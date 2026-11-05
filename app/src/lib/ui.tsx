@@ -93,11 +93,11 @@ export function GameRow({ g }: { g: GameCard }) {
   const homeWon = g.homeScore >= g.awayScore, awayWon = g.awayScore >= g.homeScore;
   return (
     <Link href={`/game/${g.id}`} className="card block p-4 hover:border-[#2a3446] transition-colors" data-testid={`card-game-${g.id}`}>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2 text-xs text-[var(--mute)]">
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2 min-w-0 text-xs text-[var(--mute)] whitespace-nowrap overflow-hidden">
           <LevelPill level={g.league.level === "DEMO" ? "Demo" : g.league.level} /> <span>{fmtDate(g.playedOn)}</span>{g.startTime && <span>· {g.startTime}</span>}
         </div>
-        <span className="label">{(g as any).source === "daysmart" ? "Final · DaySmart" : "Final"}</span>
+        <span className="label shrink-0">{(g as any).source === "daysmart" ? "Final · DaySmart" : "Final"}</span>
       </div>
       {[[g.home, g.homeScore, homeWon], [g.away, g.awayScore, awayWon]].map(([t, s, w]: any, i) => (
         <div key={i} className="flex items-center gap-3 py-1">
@@ -113,8 +113,8 @@ export function GameRow({ g }: { g: GameCard }) {
 export function Section({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
     <section className="mt-7">
-      <div className="flex items-end justify-between mb-3 px-1">
-        <h2 className="text-[17px] font-black tracking-tight">{title}</h2>
+      <div className="flex items-end justify-between gap-3 mb-3 px-1">
+        <h2 className="min-w-0 text-[17px] font-black tracking-tight">{title}</h2>
         {action}
       </div>
       {children}

@@ -14,7 +14,7 @@ export default function Home() {
     <div>
       <div className="rise">
         <div className="label">{league ? `${league.name} · ${boot?.season?.name ?? ""}` : `Wilmington, NC · Polar Ice${boot?.season ? ` · ${boot.season.name}` : ""}`}</div>
-        <h1 className="font-display text-[44px] leading-[0.95] font-black uppercase mt-1">Every game counts.<br /><span className="text-[var(--red)]">Even the 11:15.</span></h1>
+        <h1 className="font-display text-[clamp(34px,11.5vw,44px)] leading-[0.95] font-black uppercase mt-1">Every game counts.<br /><span className="text-[var(--red)]">Even the 11:15.</span></h1>
       </div>
 
       <Link href="/scan" className="card-hi mt-5 p-5 flex items-center gap-4 rise" data-testid="card-scan-cta" style={{ animationDelay: ".05s" }}>

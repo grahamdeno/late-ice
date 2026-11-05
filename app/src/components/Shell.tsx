@@ -30,7 +30,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const isActive = (href: string) => (href === "/" ? loc === "/" : loc.startsWith(href) || (href === "/leagues" && loc.startsWith("/league")));
 
   return (
-    <div className="min-h-[100dvh] rink-bg">
+    <div className="min-h-[100dvh] rink-bg w-full overflow-x-clip">
       <header
         className="fixed top-0 inset-x-0 z-40"
         style={{ paddingTop: "env(safe-area-inset-top)" }}
@@ -40,23 +40,23 @@ export function Shell({ children }: { children: React.ReactNode }) {
         }}
       >
         <div className="mx-auto max-w-[560px] px-4">
-          <div className="mt-2 h-14 rounded-2xl flex items-center justify-between px-3 border border-[var(--line)]" style={{ background: "rgba(11,15,22,.86)", backdropFilter: "blur(14px)" }}>
-            <Link href="/" className="flex items-center gap-2" data-testid="link-home-logo" aria-label="Late Ice home">
+          <div className="mt-2 h-14 rounded-2xl flex items-center justify-between gap-2 px-3 overflow-hidden border border-[var(--line)]" style={{ background: "rgba(11,15,22,.86)", backdropFilter: "blur(14px)" }}>
+            <Link href="/" className="flex items-center gap-2 shrink-0" data-testid="link-home-logo" aria-label="Late Ice home">
               <FaceoffDot size={26} />
-              <span style={{ fontWeight: 900, letterSpacing: "-0.03em", fontSize: 19 }}>Late Ice</span>
+              <span className="whitespace-nowrap" style={{ fontWeight: 900, letterSpacing: "-0.03em", fontSize: 19 }}>Late Ice</span>
             </Link>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 min-w-0">
             <button
               onClick={() => setOpen((o) => !o)}
-              className="flex items-center gap-2 h-9 pl-3 pr-2 rounded-full bg-[var(--ice-3)] border border-[var(--line)] text-sm font-bold"
+              className="flex items-center gap-1.5 min-w-0 h-9 pl-3 pr-2 rounded-full bg-[var(--ice-3)] border border-[var(--line)] text-sm font-bold"
               data-testid="button-league-switcher"
               aria-expanded={open}
             >
-              {current ? <><LevelPill level={current.level === "DEMO" ? "Demo" : current.level} /> <span className="max-w-[110px] truncate">{current.name}</span></> : <>All Wilmington</>}
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" style={{ transform: open ? "rotate(180deg)" : "", transition: "transform .2s" }}><path d="M6 9l6 6 6-6" /></svg>
+              {current ? <><LevelPill level={current.level === "DEMO" ? "Demo" : current.level} /> <span className="min-w-0 max-w-[110px] truncate">{current.name}</span></> : <span className="min-w-0 truncate"><span className="hidden min-[380px]:inline">All </span>Wilmington</span>}
+              <svg className="shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" style={{ transform: open ? "rotate(180deg)" : "", transition: "transform .2s" }}><path d="M6 9l6 6 6-6" /></svg>
             </button>
             {(
-              <Link href={me ? "/me" : "/join"} className="relative h-9 min-w-9 px-2.5 rounded-full bg-[var(--ice-3)] border border-[var(--line)] flex items-center justify-center text-xs font-black" data-testid="link-me" aria-label={me ? "My profile" : "Join"}>
+              <Link href={me ? "/me" : "/join"} className="relative shrink-0 h-9 min-w-9 px-2.5 rounded-full bg-[var(--ice-3)] border border-[var(--line)] flex items-center justify-center text-xs font-black" data-testid="link-me" aria-label={me ? "My profile" : "Join"}>
                 {me?.user.name ? (me.user.number ? `#${me.user.number}` : me.user.name.split(" ").map((w) => w[0]).join("").slice(0, 2)) : "Join"}
                 {me?.unread ? <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-[var(--red)] border-2 border-[var(--ice)]" /> : null}
               </Link>
@@ -111,7 +111,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      <main className="mx-auto max-w-[560px] px-4 pb-32" style={{ paddingTop: "calc(env(safe-area-inset-top) + 84px)" }}>{children}</main>
+      <main className="mx-auto max-w-[560px] min-w-0 px-4 pb-32 break-words" style={{ paddingTop: "calc(env(safe-area-inset-top) + 84px)" }}>{children}</main>
 
       <nav className="fixed bottom-0 inset-x-0 z-40" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         <div className="absolute inset-x-0 bottom-0 h-28 pointer-events-none" style={{ background: "linear-gradient(transparent, var(--ice) 55%)" }} />
