@@ -1,3 +1,4 @@
+import { validRegion } from "@/lib/geo";
 import { handle, body } from "@/server/http";
 import { sql, q, one } from "@/server/db";
 import { HttpError } from "@/server/services";
@@ -17,13 +18,14 @@ const ROLES = new Set(["owner", "hockey_director", "league_coordinator", "front_
 export const POST = handle(async (req) => {
   const u = await A.requireApproved(req);
   const b = await body(req);
-  const d = { name: clean(b.name), city: clean(b.city, 60), state: clean(b.state, 2).toUpperCase(), address: clean(b.address, 120), website: clean(b.website, 120), phone: clean(b.phone, 30) };
-  if (!d.name || !d.city || !/^[A-Z]{2}$/.test(d.state)) throw new HttpError(400, "Rink name, city and two-letter state, please.");
+  const country = String(b.country || "US").toUpperCase() === "CA" ? "CA" : "US";
+  const d = { name: clean(b.name), city: clean(b.city, 60), state: clean(b.state, 2).toUpperCase(), country, address: clean(b.address, 120), website: clean(b.website, 120), phone: clean(b.phone, 30) };
+  if (!d.name || !d.city || !validRegion(country, d.state)) throw new HttpError(400, country === "CA" ? "Rink name, city and province, please." : "Rink name, city and state, please.");
   const matches = await similarRinks(sql, d.name, d.city);
   if (matches.length && !b.confirmNew) throw new HttpError(409, "That looks like a rink that's already here.", { matches });
   const manage = !!b.manage;
   const role = manage ? (ROLES.has(b.role) ? b.role : "other") : null;
-  const map = await mapLookup(d.name, d.city, d.state);
+  const map = await mapLookup(d.name, d.city, d.state, country);
   const website = d.website || map.matches[0]?.website || null;
   const details = { ...d, website, manage, role, map, emailOnDomain: manage ? emailOnRinkDomain(u.email, website) : false, note: clean(b.note, 400) || null };
   if (await P.can(sql, u, "rink.create")) {

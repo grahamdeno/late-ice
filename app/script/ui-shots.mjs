@@ -228,6 +228,10 @@ try {
       const t0 = await top();
       await page.mouse.move(195, 700); await page.mouse.wheel(0, 900); await page.waitForTimeout(500);
       if (Math.abs((await top()) - t0) > 1) errors.push("page scrolled under the open top sheet");
+      await page.getByTestId("button-change-rink").click();
+      await page.waitForTimeout(600);
+      await widthCheck(page, "rink picker");
+      if (!(await page.getByTestId("rink-picker").count())) errors.push("Change rink didn't open the rink picker");
       await page.getByTestId("button-close-switcher").click();
     }
   }

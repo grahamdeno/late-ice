@@ -5,7 +5,8 @@ import { Link, useLocation } from "@/lib/router";
 import { apiRequest, queryClient, setToken } from "@/lib/queryClient";
 import { useMe, normEmail, POSITION_LABEL, INVITE_KEY } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import { FaceoffDot, Loading } from "@/lib/ui";
+import { FaceoffDot, Loading, useFilter } from "@/lib/ui";
+import { RinkPicker } from "@/components/RinkPicker";
 
 type Step = "email" | "code" | "profile";
 const COOLDOWN = 60;
@@ -155,21 +156,22 @@ export default function Join() {
 
 export function ProfileForm({ onDone, submitLabel = "Join the draft pool" }: { onDone: () => void; submitLabel?: string }) {
   const { me } = useMe();
-  const { data: rinks } = useQuery<{ id: number; name: string; address: string }[]>({ queryKey: ["/api/rinks"] });
+  const { rinkId: viewing, setRinkId } = useFilter();
   const [name, setName] = useState(me?.user.name ?? "");
   const [number, setNumber] = useState(me?.user.number ?? "");
   const [position, setPosition] = useState<string>(me?.user.position ?? "");
   const [rink, setRink] = useState<number | null>(me?.user.homeRink?.id ?? null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-
-  useEffect(() => { if (rink === null && rinks?.length === 1) setRink(rinks[0].id); }, [rinks, rink]);
+  // Starts on the rink you were looking at; one tap changes it.
+  useEffect(() => { if (rink === null && viewing) setRink(viewing); }, [viewing, rink]);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true); setErr(null);
     try {
       await apiRequest("PATCH", "/api/me", { name, number, position, homeRinkId: rink });
+      if (rink) setRinkId(rink);
       await queryClient.invalidateQueries();
       onDone();
     } catch (e: any) { setErr(e.message); }
@@ -200,14 +202,7 @@ export function ProfileForm({ onDone, submitLabel = "Join the draft pool" }: { o
       </div>
       <div>
         <span className="label">Home rink</span>
-        <div className="space-y-1.5 mt-1.5">
-          {(rinks ?? []).map((r) => (
-            <button type="button" key={r.id} onClick={() => setRink(r.id)} className={`w-full text-left rounded-xl border p-3 ${rink === r.id ? "border-[var(--red)] bg-[var(--red-dim)]" : "border-[var(--line)] bg-[var(--ice-3)]"}`} data-testid={`button-rink-${r.id}`}>
-              <div className="font-bold text-sm">{r.name}</div>
-              <div className="text-xs text-[var(--mute)]">{r.address}</div>
-            </button>
-          ))}
-        </div>
+        <div className="mt-1.5"><RinkPicker value={rink} onPick={setRink} /></div>
       </div>
       {err && <p className="text-sm down" data-testid="text-error">{err}</p>}
       <button className="btn btn-red w-full h-12" disabled={busy || !name.trim() || !position || !rink} data-testid="button-save-profile">{busy ? "Saving…" : submitLabel}</button>

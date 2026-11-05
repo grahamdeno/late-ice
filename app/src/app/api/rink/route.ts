@@ -15,7 +15,7 @@ export const GET = handle(async (req) => {
     const st = await standings(sql, l.id, season?.id ?? null);
     leagues.push({ ...l, teams: (await one<any>(sql, "SELECT COUNT(*) c FROM teams WHERE league_id=$1", [l.id]))!.c, games: st.reduce((a: number, t: any) => a + t.gp, 0) / 2, leader: st[0] ?? null });
   }
-  const top = await q(sql, "SELECT p.id,p.display_name AS name,p.rating,p.position FROM players p WHERE p.games_rated>0 AND EXISTS (SELECT 1 FROM roster_entries re JOIN teams t ON t.id=re.team_id JOIN leagues l ON l.id=t.league_id WHERE re.player_id=p.id AND l.level NOT IN ('DEMO','TOURN')) ORDER BY p.rating DESC LIMIT 5");
+  const top = await q(sql, "SELECT p.id,p.display_name AS name,p.rating,p.position FROM players p WHERE p.games_rated>0 AND EXISTS (SELECT 1 FROM roster_entries re JOIN teams t ON t.id=re.team_id JOIN leagues l ON l.id=t.league_id WHERE re.player_id=p.id AND l.rink_id=$1 AND l.level NOT IN ('DEMO','TOURN')) ORDER BY p.rating DESC LIMIT 5", [rink.id]);
   const seasons = await q(sql, "SELECT * FROM seasons WHERE rink_id=$1 ORDER BY starts_on", [rink.id]);
   const u = await A.userFromRequest(req).catch(() => null);
   const scope = { rinkId: rink.id };

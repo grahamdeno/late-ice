@@ -279,10 +279,10 @@ export async function standings(db: Tx, leagueId: number, seasonId: number | nul
   return rows.sort((a, b) => b.pts - a.pts || (b.diff ?? 0) - (a.diff ?? 0) || (b.gf ?? 0) - (a.gf ?? 0) || a.name.localeCompare(b.name));
 }
 
-export async function leaders(db: Tx, leagueId: number | null, limit = 10, seasonId: number | null = null) {
+export async function leaders(db: Tx, leagueId: number | null, limit = 10, seasonId: number | null = null, rinkId: number | null = null) {
   const params: any[] = [];
   const p = (v: any) => { params.push(v); return `$${params.length}`; };
-  const scope = () => (leagueId ? `l.id=${p(leagueId)}` : "l.level NOT IN ('DEMO','TOURN')") + (seasonId ? ` AND season_id=${p(seasonId)}` : "");
+  const scope = () => (leagueId ? `l.id=${p(leagueId)}` : "l.level NOT IN ('DEMO','TOURN')" + (rinkId ? ` AND l.rink_id=${p(rinkId)}` : "")) + (seasonId ? ` AND season_id=${p(seasonId)}` : "");
   const s1 = scope(), s2 = scope();
   return q<any>(
     db,

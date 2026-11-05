@@ -6,11 +6,21 @@ import { AuthProvider } from "@/lib/auth";
 import { FilterCtx, type Boot } from "@/lib/ui";
 import { Shell } from "@/components/Shell";
 
+const RINK_KEY = "lateice.rink";
 function Filtered({ children }: { children: React.ReactNode }) {
   const [leagueId, setLeagueId] = useState<number | null>(null);
-  const { data: boot } = useQuery<Boot>({ queryKey: ["/api/bootstrap"] });
+  // The rink you're looking at: picked on this phone, else your home rink (the server fills that in), else the first rink.
+  const [rinkId, setRinkIdState] = useState<number | null>(null);
+  useEffect(() => {
+    try { const v = Number(localStorage.getItem(RINK_KEY)); if (v > 0) setRinkIdState(v); } catch { /* private mode */ }
+  }, []);
+  const setRinkId = (id: number) => {
+    setRinkIdState(id); setLeagueId(null);
+    try { localStorage.setItem(RINK_KEY, String(id)); } catch { /* private mode */ }
+  };
+  const { data: boot } = useQuery<Boot>({ queryKey: [rinkId ? `/api/bootstrap?rink=${rinkId}` : "/api/bootstrap"] });
   return (
-    <FilterCtx.Provider value={{ leagueId, setLeagueId, boot }}>
+    <FilterCtx.Provider value={{ leagueId, setLeagueId, rinkId: rinkId ?? boot?.rink?.id ?? null, setRinkId, boot }}>
       <Shell>{children}</Shell>
     </FilterCtx.Provider>
   );

@@ -1,15 +1,18 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@/lib/router";
-import { FaceoffDot, LevelPill, Loading, Section, TeamBadge, fmtRating } from "@/lib/ui";
+import { FaceoffDot, LevelPill, Loading, Section, TeamBadge, fmtRating, useFilter } from "@/lib/ui";
 import { useMe, act } from "@/lib/auth";
 import { AddButton, AddLeagueForm, AddSeasonForm, EditRinkForm, RinkRequestForm, RINK_ROLE_LABEL } from "@/components/ManageForms";
 
 export default function Rink() {
-  const { data } = useQuery<any>({ queryKey: ["/api/rink"] });
+  const { rinkId } = useFilter();
+  const { data } = useQuery<any>({ queryKey: [rinkId ? `/api/rink?id=${rinkId}` : "/api/rink"] });
   const [open, setOpen] = useState<string | null>(null);
   const close = () => setOpen(null);
+  // The pull-down sheet's "Rink not here? Add it" lands here with the add form open.
+  useEffect(() => { if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("add")) setOpen("newrink"); }, []);
   if (!data) return <Loading />;
   const { rink, region, leagues, top, season, seasons } = data;
   const can = data.can ?? {};
@@ -18,7 +21,7 @@ export default function Rink() {
   const totalTeams = leagues.reduce((s: number, l: any) => s + l.teams, 0);
   return (
     <div>
-      <div className="label">{region.name}, {region.state} · Home rink</div>
+      <div className="label">{rink.city ?? region.name}, {rink.state ?? region.state}{rink.country === "CA" ? " · Canada" : ""}</div>
       <h1 className="font-display text-[40px] leading-none font-black uppercase mt-1" data-testid="text-rink-name">{rink.name}</h1>
       {rink.former_name && <div className="text-sm text-[var(--mute)] mt-2">Formerly {rink.former_name}</div>}
       {can.edit && (open === "rink" ? <div className="mt-3"><EditRinkForm rink={rink} onDone={close} /></div> : <div className="mt-2"><button className="text-sm text-[var(--blue)] font-bold" onClick={() => setOpen("rink")} data-testid="button-edit-rink">Edit rink</button></div>)}
@@ -94,12 +97,12 @@ export default function Rink() {
 
       <RinkAccess rinkId={rink.id} rinkName={rink.name} />
 
-      <Section title="Region">
+      <Section title="Other rinks">
         <div className="card p-4 flex items-center gap-3">
           <FaceoffDot size={36} />
           <div className="flex-1">
-            <div className="font-bold">{region ? `${region.name}, ${region.state}` : rink.name}</div>
-            <div className="text-xs text-[var(--mute)]">Is your rink missing? Add it and an admin checks it's real.</div>
+            <div className="font-bold">Rinks in the US and Canada</div>
+            <div className="text-xs text-[var(--mute)]">Switch rinks from the pill at the top. Rink missing? Add it and an admin checks it's real.</div>
           </div>
           {data.signedIn ? (open !== "newrink" && <button className="btn btn-ghost h-9 text-sm shrink-0" onClick={() => setOpen("newrink")} data-testid="button-add-missing-rink">Add a rink</button>) : <Link href="/join" className="btn btn-ghost h-9 text-sm shrink-0">Join to add</Link>}
         </div>
