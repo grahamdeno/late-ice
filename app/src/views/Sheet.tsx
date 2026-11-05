@@ -29,12 +29,15 @@ export default function Sheet({ id }: { id: string }) {
   const [zoom, setZoom] = useState(false);
   const [saving, setSaving] = useState(false);
   const [sent, setSent] = useState(false);
+  const [eventId, setEventId] = useState<number | null>(null);
+  const { data: events } = useQuery<any[]>({ queryKey: ["/api/events"] });
   const [err, setErr] = useState<{ message: string; gameId?: number } | null>(null);
 
   useEffect(() => {
     if ((s?.status === "review" || s?.status === "awaiting") && !d) {
       setD(structuredClone(s.data));
       setLeagueId(s.suggestion?.leagueId ?? null);
+      setEventId(s.suggestion?.eventId ?? null);
       setTeamIds({ home: s.suggestion?.home.teamId ?? null, away: s.suggestion?.away.teamId ?? null });
     }
     if (s?.status === "confirmed" && s.gameId) nav(`/game/${s.gameId}`);
@@ -143,7 +146,7 @@ export default function Sheet({ id }: { id: string }) {
     setSaving(true); setErr(null);
     const res = await fetch(img(`/api/sheets/${id}/confirm`), {
       method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() },
-      body: JSON.stringify({ leagueId, homeTeamId: teamIds.home, awayTeamId: teamIds.away, data: d }),
+      body: JSON.stringify({ leagueId, homeTeamId: teamIds.home, awayTeamId: teamIds.away, data: d, eventId }),
     });
     const j = await res.json();
     if (!res.ok) { setErr(j); setSaving(false); return; }
@@ -155,7 +158,7 @@ export default function Sheet({ id }: { id: string }) {
     if (!leagueId) return setErr({ message: "Pick the league this game was in." });
     setSaving(true); setErr(null);
     try {
-      await apiRequest("POST", `/api/sheets/${id}/submit`, { leagueId, homeTeamId: teamIds.home, awayTeamId: teamIds.away, data: d });
+      await apiRequest("POST", `/api/sheets/${id}/submit`, { leagueId, homeTeamId: teamIds.home, awayTeamId: teamIds.away, data: d, eventId });
       await queryClient.invalidateQueries();
       setSent(true);
     } catch (e: any) { setErr({ message: e.message }); }
@@ -191,6 +194,15 @@ export default function Sheet({ id }: { id: string }) {
             <button key={l.id} className="chip" data-active={leagueId === l.id} onClick={() => setLeagueId(l.id)} data-testid={`chip-league-${l.level}`}>{l.level}</button>
           ))}
         </div>
+        {events && events.length > 0 && (
+          <label className="mt-3 flex items-center gap-2 text-sm">
+            <span className="label">Game type</span>
+            <select className="input h-9 text-sm flex-1 min-w-0" value={eventId ?? ""} onChange={(e) => setEventId(e.target.value ? Number(e.target.value) : null)} data-testid="select-sheet-event">
+              <option value="">League game</option>
+              {events.map((e: any) => <option key={e.id} value={e.id}>Tournament: {e.name}</option>)}
+            </select>
+          </label>
+        )}
         <div className="mt-3 text-xs text-[var(--mute)]">
           {d.date ? new Date(d.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }) : "Date unread"}{d.time ? ` · ${d.time}` : ""}{d.rink_text ? ` · ${d.rink_text}` : ""}
         </div>

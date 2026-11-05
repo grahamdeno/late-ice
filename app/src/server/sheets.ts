@@ -59,7 +59,7 @@ export async function sheetView(s: any) {
   const data: OcrResult | null = proposal?.data ?? (s.extracted_json ? JSON.parse(s.extracted_json) : null);
   let suggestion: any = data && (s.status === "review" || s.status === "awaiting") ? await suggest(sql, data) : null;
   if (suggestion && proposal) {
-    suggestion = { ...suggestion, leagueId: proposal.leagueId ?? suggestion.leagueId,
+    suggestion = { ...suggestion, eventId: proposal.eventId ?? null, leagueId: proposal.leagueId ?? suggestion.leagueId,
       home: { ...suggestion.home, teamId: proposal.homeTeamId ?? suggestion.home?.teamId }, away: { ...suggestion.away, teamId: proposal.awayTeamId ?? suggestion.away?.teamId } };
   }
   const by = s.submitted_by ? await one<any>(sql, "SELECT name FROM users WHERE id=$1", [s.submitted_by]) : null;

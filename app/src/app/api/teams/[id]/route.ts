@@ -12,7 +12,7 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
   if (!t) throw new HttpError(404, "Team not found");
   const league = await one<any>(sql, "SELECT * FROM leagues WHERE id=$1", [t.league_id]);
   const roster = await q(sql,
-    `SELECT p.id, p.display_name AS name, p.position, p.rating, p.games_rated, p.user_id IS NOT NULL AS registered, re.number,
+    `SELECT p.id, p.display_name AS name, p.position, p.rating, p.games_rated, p.user_id IS NOT NULL AS registered, re.number, re.is_sub,
       (SELECT u.avatar FROM users u WHERE u.id=p.user_id) avatar,
       (SELECT CASE WHEN bool_or(r.role='captain') THEN 'C' WHEN bool_or(r.role='assistant_captain') THEN 'A' END FROM role_grants r
          WHERE r.user_id=p.user_id AND r.scope_type='team' AND r.scope_id=re.team_id AND r.revoked_at IS NULL) badge,
@@ -36,7 +36,7 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
     can: await (async () => {
       const u = await userFromRequest(req).catch(() => null);
       const removable = (await userCan(sql, u, "team.remove", { teamId: t.id, leagueId: t.league_id, rinkId: league.rink_id })) && (await teamIsEmpty(sql, t.id));
-      return { remove: removable, rename: await userCan(sql, u, "team.edit", { teamId: t.id, leagueId: t.league_id, rinkId: league.rink_id }) };
+      return { remove: removable, rename: await userCan(sql, u, "team.edit", { teamId: t.id, leagueId: t.league_id, rinkId: league.rink_id }), manageRoster: await userCan(sql, u, "roster.manage", { teamId: t.id, leagueId: t.league_id, rinkId: league.rink_id }) };
     })(),
   };
 });

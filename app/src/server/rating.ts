@@ -56,6 +56,10 @@ export async function rateGame(db: Tx, gameId: number) {
     }
     if (l.pim >= 6) reasons.push({ label: `${l.pim} penalty minutes`, value: -0.004 });
     if (p.games_rated < 5) reasons.push({ label: `Provisional: game ${p.games_rated + 1} of 5 moves faster`, value: 0 });
+    if (g.event_id) {
+      for (const r of reasons) r.value = r.value / 2;
+      reasons.push({ label: "Tournament game: counts half", value: 0 });
+    }
     const delta = reasons.reduce((s, r) => s + r.value, 0);
     const after = Math.max(1, Math.min(7, Math.round((p.rating + delta) * 1000) / 1000));
     await q(db, "UPDATE players SET rating=$1, games_rated=games_rated+1, position=CASE WHEN $2=1 THEN 'G' ELSE position END WHERE id=$3", [after, l.is_goalie ? 1 : 0, p.id]);

@@ -14,7 +14,7 @@ export const PUT = handle<{ gid: string }>(async (req, { gid }) => {
   const g = await one<any>(sql, "SELECT * FROM scheduled_games WHERE id=$1", [num(gid)]);
   if (!g) throw new HttpError(404, "Game not found.");
   if (new Date(g.starts_at).getTime() < Date.now() - 3 * 3600 * 1000) throw new HttpError(400, "That game is over.");
-  const onTeam = await one(sql, "SELECT 1 FROM players p JOIN roster_entries re ON re.player_id=p.id WHERE p.user_id=$1 AND re.team_id=$2", [u.id, g.team_id]);
+  const onTeam = await one(sql, "SELECT 1 FROM players p JOIN roster_entries re ON re.player_id=p.id WHERE p.user_id=$1 AND re.team_id=$2 AND NOT re.is_sub", [u.id, g.team_id]);
   if (!onTeam) throw new HttpError(403, "Only players on this team's roster can answer.");
   if (answer === null) await q(sql, "DELETE FROM rsvps WHERE scheduled_game_id=$1 AND user_id=$2", [g.id, u.id]);
   else await q(sql,

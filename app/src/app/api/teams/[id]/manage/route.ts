@@ -10,7 +10,7 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
   const teamId = num(id);
   const t = await A.requireCaptain(sql, u, teamId);
   const slots = (await q<any>(sql,
-    `SELECT p.id, p.display_name AS name, p.rating, p.position, p.hidden, p.user_id, re.number, re.source,
+    `SELECT p.id, p.display_name AS name, p.rating, p.position, p.hidden, p.user_id, re.number, re.source, re.is_sub,
        (SELECT CASE WHEN bool_or(r.role='captain') THEN 'C' WHEN bool_or(r.role='assistant_captain') THEN 'A' END FROM role_grants r
           WHERE r.user_id=p.user_id AND r.scope_type='team' AND r.scope_id=re.team_id AND r.revoked_at IS NULL) badge,
        u.name user_name, u.status, u.status_until,

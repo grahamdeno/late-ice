@@ -18,20 +18,28 @@ export function AddButton({ label, onClick, testid }: { label: string; onClick: 
   return <button className="text-sm text-[var(--blue)] font-bold" onClick={onClick} data-testid={testid}>+ {label}</button>;
 }
 
-const LEVEL_OPTS = [["A", "A League"], ["B", "B League"], ["C", "C League"], ["D", "D League"], ["40+", "Over 40"], ["", "Something else"]] as const;
+const LEVEL_OPTS = [["A", "A: top level"], ["B", "B"], ["C", "C"], ["D", "D: newest players"]] as const;
+const TAG_OPTS = [["", "No tag"], ["40+", "40+"], ["50+", "50+"], ["Women's", "Women's"], ["Coed", "Coed"]] as const;
 const COLORS = ["#EF4444", "#F97316", "#F5B301", "#22C55E", "#14B8A6", "#3B82F6", "#8B5CF6", "#EC4899", "#A3A3A3", "#F8FAFC"];
 
 export function AddLeagueForm({ rinkId, onDone }: { rinkId: number; onDone: () => void }) {
   const [level, setLevel] = useState("C");
+  const [tag, setTag] = useState("");
   const [name, setName] = useState("");
   const { busy, err, send } = useSend();
   return (
-    <form className="card p-4 space-y-2.5" onSubmit={async (e) => { e.preventDefault(); if (await send("POST", `/api/rinks/${rinkId}/leagues`, { level, name })) onDone(); }} data-testid="form-add-league">
+    <form className="card p-4 space-y-2.5" onSubmit={async (e) => { e.preventDefault(); if (await send("POST", `/api/rinks/${rinkId}/leagues`, { level, tag, name })) onDone(); }} data-testid="form-add-league">
       <div className="label">New league</div>
-      <select className="input w-full" value={level} onChange={(e) => setLevel(e.target.value)} data-testid="select-league-level">
-        {LEVEL_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-      </select>
-      <input className="input w-full" placeholder={level ? "Name (optional, e.g. C League Sunday)" : "League name"} value={name} onChange={(e) => setName(e.target.value)} required={!level} data-testid="input-league-name" />
+      <input className="input w-full" placeholder="Name the rink uses, e.g. Monday A League" value={name} onChange={(e) => setName(e.target.value)} data-testid="input-league-name" />
+      <div className="grid grid-cols-2 gap-2">
+        <label className="block min-w-0"><span className="label">Skill level</span>
+          <select className="input w-full mt-1" value={level} onChange={(e) => setLevel(e.target.value)} data-testid="select-league-level">{LEVEL_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+        </label>
+        <label className="block min-w-0"><span className="label">Tag</span>
+          <select className="input w-full mt-1" value={tag} onChange={(e) => setTag(e.target.value)} data-testid="select-league-tag">{TAG_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+        </label>
+      </div>
+      <p className="text-[11px] text-[var(--mute)]">Skill level is one scale for every rink, so standings and ratings compare fairly. The name is whatever your rink calls it.</p>
       {err && <p className="text-sm down">{err}</p>}
       <div className="grid grid-cols-2 gap-2"><button type="button" className="btn btn-ghost h-11" onClick={onDone}>Cancel</button><button className="btn btn-red h-11" disabled={busy} data-testid="button-save-league">{busy ? "Adding…" : "Add league"}</button></div>
     </form>

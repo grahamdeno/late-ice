@@ -8,6 +8,7 @@ import { Section, fmtRating } from "@/lib/ui";
 const COLORS = ["#EF4444", "#F97316", "#F5B301", "#22C55E", "#14B8A6", "#3B82F6", "#8B5CF6", "#EC4899", "#A3A3A3", "#F8FAFC"];
 
 const ACTION_TEXT: Record<string, string> = {
+  mark_sub: "marked as a sub:", unmark_sub: "put back on the roster:", invite_link: "made an invite link", invite_revoked: "turned off the invite link",
   claim: "claimed", match: "matched", draft: "drafted", release: "released", remove: "removed", merge: "merged",
   captain: "became captain", step_down: "stepped down as captain", decline: "declined", contest: "contested the captain", edit_team: "edited the team",
   assistant: "named an assistant captain:", assistant_removed: "removed an assistant captain:", captain_assigned: "set the captain:",
@@ -92,6 +93,7 @@ function RosterBuilder({ teamId, isCaptain, assistants }: { teamId: number; isCa
                   {!s.registered && <Link href={`/pool/${teamId}/match/${s.id}`} className="btn btn-ghost h-8 text-xs" data-testid={`button-match-${s.id}`}>Match</Link>}
                   {s.registered && s.user_id !== me?.user.id && <button className="btn btn-ghost h-8 text-xs" onClick={() => confirm(`Release ${s.name}'s claim on this spot?`) && run("POST", `/api/teams/${teamId}/slots/${s.id}/release`)} data-testid={`button-release-${s.id}`}>Release</button>}
                   <button className="btn btn-ghost h-8 text-xs" onClick={() => { setMergeFrom(s.id); setOpenId(null); }} data-testid={`button-merge-${s.id}`}>Same person as…</button>
+                  {s.user_id !== me?.user.id && !s.badge && <button className="btn btn-ghost h-8 text-xs" onClick={() => run("PATCH", `/api/teams/${teamId}/slots/${s.id}/sub`, { sub: !s.is_sub })} data-testid={`button-sub-${s.id}`}>{s.is_sub ? "Not a sub" : "Mark as sub"}</button>}
                   {s.user_id !== me?.user.id && (isCaptain || !s.badge) && <button className="btn btn-ghost h-8 text-xs" onClick={() => confirm(`Take ${s.name} off the roster? Games already played keep their lines.`) && run("POST", `/api/teams/${teamId}/slots/${s.id}/remove`)} data-testid={`button-remove-${s.id}`}>Remove</button>}
                 </>
               )}

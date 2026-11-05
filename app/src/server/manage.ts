@@ -4,7 +4,8 @@ import { one, q, type Tx } from "./db";
 import { HttpError, similarity } from "./services";
 
 const PALETTE = ["#EF4444", "#3B82F6", "#22C55E", "#F5B301", "#EC4899", "#14B8A6", "#A855F7", "#F97316", "#06B6D4", "#84CC16"];
-export const LEVELS = ["A", "B", "C", "D", "40+"];
+export const LEVELS = ["A", "B", "C", "D"];
+export const TAGS = ["40+", "50+", "Women's", "Coed"];
 const SORT: Record<string, number> = { A: 0, B: 1, C: 2, D: 3, "40+": 4 };
 
 export const clean = (v: unknown, max = 80) => String(v ?? "").trim().replace(/\s+/g, " ").slice(0, max);
@@ -80,12 +81,13 @@ export async function createRink(db: Tx, d: any, actor: number | null) {
 
 export async function createLeague(db: Tx, rinkId: number, b: any) {
   const level = LEVELS.includes(String(b.level)) ? String(b.level) : null;
-  const name = clean(b.name, 60) || (level ? (level === "40+" ? "Over 40" : `${level} League`) : "");
-  if (!name) throw new HttpError(400, "Give the league a name.");
+  if (!level) throw new HttpError(400, "Pick the skill level: A, B, C or D.");
+  const tag = TAGS.includes(String(b.tag)) ? String(b.tag) : null;
+  const name = clean(b.name, 60) || `${tag ? `${tag} ` : ""}${level} League`;
   if (await one(db, "SELECT 1 FROM leagues WHERE rink_id=$1 AND lower(name)=lower($2)", [rinkId, name])) throw new HttpError(409, `${name} is already here.`);
   const season = await one<any>(db, "SELECT name FROM seasons WHERE rink_id=$1 ORDER BY ends_on DESC LIMIT 1", [rinkId]);
-  return one<any>(db, "INSERT INTO leagues (rink_id, level, name, blurb, season, sort) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *",
-    [rinkId, level ?? name.slice(0, 12), name, clean(b.blurb, 140) || null, season?.name ?? "", level ? SORT[level] : 5]);
+  return one<any>(db, "INSERT INTO leagues (rink_id, level, name, blurb, season, sort, tag) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *",
+    [rinkId, level, name, clean(b.blurb, 140) || null, season?.name ?? "", SORT[level], tag]);
 }
 
 export async function createTeam(db: Tx, leagueId: number, b: any) {

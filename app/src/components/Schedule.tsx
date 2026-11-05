@@ -89,6 +89,35 @@ function Counts({ g }: { g: any }) {
   );
 }
 
+/** Short a player? Ask someone who said Will sub. */
+function SubFinder({ gameId }: { gameId: number }) {
+  const [open, setOpen] = useState(false);
+  const { data } = useQuery<any>({ queryKey: [`/api/schedule/${gameId}/subs`], enabled: open });
+  const [err, setErr] = useState<string | null>(null);
+  if (!open) return <button className="text-xs text-[var(--blue)] font-bold mt-2" onClick={() => setOpen(true)} data-testid={`button-find-sub-${gameId}`}>Find a sub</button>;
+  const askedOf = (id: number) => data?.asked?.find((a: any) => a.user_id === id && a.status !== "canceled");
+  return (
+    <div className="mt-2 rounded-xl border border-[var(--line)] p-3" data-testid={`panel-subs-${gameId}`}>
+      <div className="flex items-center justify-between"><span className="label">Players who'll sub</span><button className="text-xs text-[var(--mute)]" onClick={() => setOpen(false)}>Close</button></div>
+      {!data ? <p className="text-xs text-[var(--mute)] mt-1">Loading…</p> : data.candidates.length === 0 ? <p className="text-xs text-[var(--mute)] mt-1">Nobody at this rink has turned on Will sub yet.</p> : (
+        <div className="divide-y divide-[var(--line)] mt-1">
+          {data.candidates.map((c: any) => {
+            const a = askedOf(c.id);
+            return (
+              <div key={c.id} className="flex items-center gap-2 py-2 text-sm">
+                <span className="flex-1 min-w-0"><span className="block font-bold truncate">{c.name}{c.number ? ` #${c.number}` : ""}</span><span className="block text-xs text-[var(--mute)] truncate">{[c.position, c.rating ? Number(c.rating).toFixed(2) : null, c.teams].filter(Boolean).join(" · ")}</span></span>
+                {a ? <span className={`text-xs font-bold ${a.status === "accepted" ? "up" : a.status === "declined" ? "down" : "text-[var(--mute)]"}`}>{a.status === "accepted" ? "Yes" : a.status === "declined" ? "No" : "Asked"}</span>
+                  : <button className="btn btn-ghost h-8 text-xs" onClick={async () => setErr(await act("POST", `/api/schedule/${gameId}/subs`, { userId: c.id }))} data-testid={`button-ask-sub-${c.id}`}>Ask</button>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {err && <p className="text-xs down mt-1">{err}</p>}
+    </div>
+  );
+}
+
 export function Schedule({ teamId }: { teamId: number }) {
   const { data } = useQuery<any>({ queryKey: [`/api/teams/${teamId}/schedule`] });
   const [err, setErr] = useState<string | null>(null);
@@ -114,6 +143,7 @@ export function Schedule({ teamId }: { teamId: number }) {
               </div>
               {g.status === "scheduled" && g.rsvp?.member && <div className="mt-2.5"><Rsvp g={g} /></div>}
               {g.status === "scheduled" && (g.rsvp?.member || can.manual) && <Counts g={g} />}
+              {g.status === "scheduled" && can.manual && <SubFinder gameId={g.id} />}
             </div>
           ))}
         </div>

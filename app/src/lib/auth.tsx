@@ -21,6 +21,7 @@ export interface MyRole { id: number; role: string; scopeType: string; scopeId: 
 export interface Notice { id: number; kind: string; title: string; body: string | null; link: string | null; team_id: number | null; read_at: string | null; created_at: string }
 export interface Me {
   user: MeUser; slots: MeSlot[]; captainTeams: { id: number; name: string; color: string; logo: string | null; level: string; rink_id: number; role: "captain" | "assistant_captain" }[];
+  subRequests: any[];
   roles: MyRole[]; staff: boolean; handoffs: { id: number; team_id: number; team_name: string; from_name: string }[];
   notifications: Notice[]; unread: number;
   suggestions: { id: number; name: string; rating: number; number: string | null; team_id: number; team_name: string; color: string; logo: string | null; level: string; score: number }[];

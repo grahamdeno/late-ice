@@ -116,12 +116,17 @@ export async function nextGame(db: Tx, teamId: number) {
   return (await upcoming(db, teamId, 4)).find((g) => g.status === "scheduled") ?? null;
 }
 
+const ids0 = (games: any[]) => games.map((g) => g.id);
+
 /** Who's in, out or late for each game. Injured reserve and Away count as out until their return date. */
 export async function attendance(db: Tx, teamId: number, games: any[], viewerId: number | null, showNames: boolean) {
   const members = await q<any>(db,
     `SELECT DISTINCT ON (u.id) u.id, p.display_name AS name, u.status, u.status_until
      FROM players p JOIN roster_entries re ON re.player_id=p.id JOIN users u ON u.id=p.user_id
-     WHERE re.team_id=$1 AND u.merged_into IS NULL ORDER BY u.id, p.id`, [teamId]);
+     WHERE re.team_id=$1 AND NOT re.is_sub AND u.merged_into IS NULL ORDER BY u.id, p.id`, [teamId]);
+  const subs = ids0(games).length ? await q<any>(db,
+    `SELECT sr.scheduled_game_id gid, u.name FROM sub_requests sr JOIN users u ON u.id=sr.user_id
+     WHERE sr.status='accepted' AND sr.scheduled_game_id IN (SELECT jsonb_array_elements_text($1::text::jsonb)::int)`, [JSON.stringify(ids0(games))]) : [];
   const ids = games.map((g) => g.id);
   const answers = ids.length ? await q<any>(db,
     "SELECT scheduled_game_id gid, user_id, answer FROM rsvps WHERE scheduled_game_id IN (SELECT jsonb_array_elements_text($1::text::jsonb)::int)", [JSON.stringify(ids)]) : [];
@@ -136,6 +141,7 @@ export async function attendance(db: Tx, teamId: number, games: any[], viewerId:
       (out as any)[ans ?? "none"].push(m.name);
       if (m.id === viewerId) { mine = ans; mineAuto = !explicit && !!ans; }
     }
+    for (const sb of subs.filter((x) => x.gid === g.id)) out.in.push(`${sb.name} (sub)`);
     g.rsvp = {
       counts: { in: out.in.length, out: out.out.length, late: out.late.length, none: out.none.length },
       names: showNames || isMember ? out : null,

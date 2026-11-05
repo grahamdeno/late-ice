@@ -1,7 +1,7 @@
 import { handle, body, num } from "@/server/http";
 import { sql, q, one } from "@/server/db";
 import { recomputeAll } from "@/server/rating";
-import { refreshDisplays } from "@/server/accounts";
+import { refreshDisplays, consolidatePeople } from "@/server/accounts";
 import { runDueMerges } from "@/server/staff";
 import { syncAllFeeds } from "@/server/schedule";
 import { runBackup } from "@/server/backup";
@@ -13,7 +13,8 @@ export const maxDuration = 60;
 export const GET = handle(async (req) => {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) return new Response("Unauthorized", { status: 401 });
-  const r = await recomputeAll();
+  const people = await sql.begin((tx) => consolidatePeople(tx));
+  const r = { ...(await recomputeAll()), people };
   await refreshDisplays(sql, true);
   const merges = await runDueMerges();
   const feeds = await syncAllFeeds();

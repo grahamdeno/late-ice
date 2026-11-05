@@ -6,6 +6,7 @@ import { teamRoleOf } from "@/server/permissions";
 import { attendance, nextGame } from "@/server/schedule";
 import { cleanAvatar } from "@/lib/avatar";
 import { teamArchetypes } from "@/server/archetypes";
+import { subRequestsFor } from "@/server/subs";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,7 @@ export const GET = handle(async (req) => {
   const staff = roles.some((r) => ["scorekeeper", "commissioner", "rink_manager", "support", "admin"].includes(r.role));
   const notifications = await q(sql, "SELECT * FROM notifications WHERE user_id=$1 ORDER BY id DESC LIMIT 30", [u.id]);
   const unread = (await one<any>(sql, "SELECT COUNT(*) c FROM notifications WHERE user_id=$1 AND read_at IS NULL", [u.id]))!.c;
-  return { user: await A.publicUser(sql, u), slots, captainTeams, notifications, unread, suggestions: await A.suggestionsFor(sql, u), roles, staff, handoffs };
+  return { subRequests: await subRequestsFor(sql, u.id), user: await A.publicUser(sql, u), slots, captainTeams, notifications, unread, suggestions: await A.suggestionsFor(sql, u), roles, staff, handoffs };
 });
 
 export const PATCH = handle(async (req) => {

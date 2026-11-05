@@ -17,7 +17,7 @@ export async function teamArchetypes(db: Tx, teamId: number, viewerId: number | 
   const rows = await q<any>(db,
     `SELECT player_id, archetype, COUNT(*)::int n, MAX(updated_at) last FROM archetype_votes
      WHERE team_id=$1 AND season_id IS NOT DISTINCT FROM $2 GROUP BY player_id, archetype`, [teamId, sid]);
-  const size = (await one<any>(db, "SELECT COUNT(*)::int n FROM roster_entries WHERE team_id=$1", [teamId]))?.n ?? 0;
+  const size = (await one<any>(db, "SELECT COUNT(*)::int n FROM roster_entries WHERE team_id=$1 AND NOT is_sub", [teamId]))?.n ?? 0;
   const MIN_VOTES = minVotes(size);
   const won: Record<number, { archetype: string; votes: number }> = {};
   for (const r of rows.sort((a, b) => b.n - a.n || +new Date(b.last) - +new Date(a.last))) {
@@ -25,14 +25,14 @@ export async function teamArchetypes(db: Tx, teamId: number, viewerId: number | 
   }
   const mine: Record<number, string> = {};
   if (viewerId) for (const r of await q<any>(db, "SELECT player_id, archetype FROM archetype_votes WHERE team_id=$1 AND season_id IS NOT DISTINCT FROM $2 AND voter_user_id=$3", [teamId, sid, viewerId])) mine[r.player_id] = r.archetype;
-  const own = viewerId ? (await q<any>(db, "SELECT p.id FROM players p JOIN roster_entries re ON re.player_id=p.id WHERE p.user_id=$1 AND re.team_id=$2", [viewerId, teamId])).map((r) => r.id as number) : [];
+  const own = viewerId ? (await q<any>(db, "SELECT p.id FROM players p JOIN roster_entries re ON re.player_id=p.id WHERE p.user_id=$1 AND re.team_id=$2 AND NOT re.is_sub", [viewerId, teamId])).map((r) => r.id as number) : [];
   return { won, mine, voter: own.length > 0, own, minVotes: MIN_VOTES };
 }
 
 export async function castVote(db: Tx, teamId: number, voterId: number, playerId: number, archetype: string | null) {
   if (archetype !== null && !(ARCHETYPES as readonly string[]).includes(archetype)) throw new HttpError(400, "Pick one of the archetypes.");
-  if (!(await one(db, "SELECT 1 FROM players p JOIN roster_entries re ON re.player_id=p.id WHERE p.user_id=$1 AND re.team_id=$2", [voterId, teamId]))) throw new HttpError(403, "Only players on this team vote.");
-  const target = await one<any>(db, "SELECT p.user_id FROM players p JOIN roster_entries re ON re.player_id=p.id WHERE p.id=$1 AND re.team_id=$2", [playerId, teamId]);
+  if (!(await one(db, "SELECT 1 FROM players p JOIN roster_entries re ON re.player_id=p.id WHERE p.user_id=$1 AND re.team_id=$2 AND NOT re.is_sub", [voterId, teamId]))) throw new HttpError(403, "Only players on this team vote.");
+  const target = await one<any>(db, "SELECT p.user_id FROM players p JOIN roster_entries re ON re.player_id=p.id WHERE p.id=$1 AND re.team_id=$2 AND NOT re.is_sub", [playerId, teamId]);
   if (!target) throw new HttpError(404, "That player isn't on this team.");
   if (target.user_id === voterId) throw new HttpError(400, "Your teammates pick yours.");
   const sid = await seasonOf(db, teamId);

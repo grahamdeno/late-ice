@@ -49,6 +49,22 @@ export default function MePage() {
 
   return (
     <div>
+      {me.subRequests?.length > 0 && (
+        <div className="card mb-3 p-4" data-testid="card-sub-requests">
+          <div className="label mb-2">Sub requests</div>
+          {me.subRequests.map((r: any) => (
+            <div key={r.id} className="flex items-center gap-3 py-1.5 text-sm">
+              <span className="flex-1 min-w-0"><span className="block font-bold truncate">{r.team_name}</span><span className="block text-xs text-[var(--mute)] truncate">{r.local_date}{r.local_time ? ` · ${r.local_time}` : ""}{r.opponent ? ` · ${r.is_home === false ? "@" : "vs"} ${r.opponent}` : ""}</span></span>
+              {r.status === "accepted" ? <span className="text-xs font-bold up">You're in</span> : (
+                <>
+                  <button className="btn btn-ghost h-8 text-xs" onClick={() => run("PUT", `/api/sub-requests/${r.id}`, { answer: "no" })} data-testid={`button-sub-no-${r.id}`}>No</button>
+                  <button className="btn btn-red h-8 text-xs" onClick={() => run("PUT", `/api/sub-requests/${r.id}`, { answer: "yes" })} data-testid={`button-sub-yes-${r.id}`}>Yes</button>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
       {u.access === "waiting" && (
         <div className="card mb-3 p-4 border-[var(--amber)]/50" data-testid="card-waitlist">
           <div className="font-bold text-sm">You're on the waitlist</div>

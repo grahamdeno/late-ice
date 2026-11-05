@@ -27,7 +27,7 @@ export const GET = handle(async (req) => {
     const seasons = await q(sql, "SELECT id, name, starts_on, ends_on FROM seasons WHERE rink_id=$1 ORDER BY starts_on DESC", [rinkId]);
     const manage = await P.can(sql, u, "rink.staff", { rinkId });
     const leagues = [];
-    for (const l of await q<any>(sql, "SELECT id, level, name FROM leagues WHERE rink_id=$1 ORDER BY sort", [rinkId])) {
+    for (const l of await q<any>(sql, "SELECT id, level, name, tag FROM leagues WHERE rink_id=$1 ORDER BY sort", [rinkId])) {
       if (!manage && !(await P.can(sql, u, "game.resolve", { leagueId: l.id, rinkId }))) continue;
       const teams = await q<any>(sql,
         `SELECT t.id, t.name, t.color, t.is_sample,
