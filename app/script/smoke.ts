@@ -139,6 +139,7 @@ async function main() {
   {
     const sb = createClient(env.NEXT_PUBLIC_SUPABASE_URL!, env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false } });
     const before = await lastMailId("graham@example.com");
+    await new Promise((r) => setTimeout(r, 1500)); // local limit: one code per address per second
     const r = await sb.auth.signInWithOtp({ email: "graham@example.com", options: { shouldCreateUser: true } });
     ok(!r.error, `returning user can request a new code${r.error ? ": " + r.error.message : ""}`);
     const { code } = await latestCode("graham@example.com", before);
