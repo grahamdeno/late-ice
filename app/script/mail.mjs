@@ -10,8 +10,8 @@ async function json(url) {
 
 async function newestBody(email) {
   try {
-    const s = await json(`${MAIL}/api/v1/search?query=${encodeURIComponent(`to:"${email}"`)}&limit=1`);
-    const m = s.messages?.[0];
+    const s = await json(`${MAIL}/api/v1/search?query=${encodeURIComponent(`to:"${email}"`)}&limit=50`);
+    const m = (s.messages || []).slice().sort((a, b) => String(b.Created).localeCompare(String(a.Created)))[0];
     if (m) { const full = await json(`${MAIL}/api/v1/message/${m.ID}`); return { id: m.ID, text: `${full.Text || ""}\n${full.HTML || ""}` }; }
     return null;
   } catch {

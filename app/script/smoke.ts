@@ -139,7 +139,8 @@ async function main() {
   {
     const sb = createClient(env.NEXT_PUBLIC_SUPABASE_URL!, env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false } });
     const before = await lastMailId("graham@example.com");
-    await sb.auth.signInWithOtp({ email: "graham@example.com", options: { shouldCreateUser: true } });
+    const r = await sb.auth.signInWithOtp({ email: "graham@example.com", options: { shouldCreateUser: true } });
+    ok(!r.error, `returning user can request a new code${r.error ? ": " + r.error.message : ""}`);
     const { code } = await latestCode("graham@example.com", before);
     const v = await sb.auth.verifyOtp({ email: "graham@example.com", token: code, type: "email" });
     const again = await call("GET", "/api/me", undefined, v.data.session!.access_token);
