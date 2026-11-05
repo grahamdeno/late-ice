@@ -164,8 +164,8 @@ async function main() {
   ok(mine.name === "Graham DeNoyer" && mine.registered === true, "claimed slot shows full name and registered");
   ok((await call("POST", `/api/teams/${hh}/captain`, undefined, graham)).status === 200, "take the captain role");
   ok(!(await call("GET", "/api/me", undefined, graham)).json.suggestions.some((s: any) => s.team_id === hh), "once you hold a spot, the same team isn't suggested again");
-  const found = await call("GET", "/api/me/spots?q=hammer", undefined, graham);
-  ok(found.status === 200 && Array.isArray(found.json.spots), "find your spot by hand, by team name");
+  const foundSpots = await call("GET", "/api/me/spots?q=hammer", undefined, graham);
+  ok(foundSpots.status === 200 && Array.isArray(foundSpots.json.spots), "find your spot by hand, by team name");
   ok((await call("GET", "/api/me/spots?q=x", undefined, graham)).json.spots.length === 0, "one letter isn't a search");
   ok((await call("GET", `/api/teams/${hh}`)).json.captain?.name === "Graham DeNoyer", "team shows the captain");
   const p = await call("GET", `/api/players/${sug.id}`, undefined, graham);
