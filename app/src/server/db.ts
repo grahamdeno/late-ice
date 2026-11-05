@@ -6,8 +6,12 @@ import postgres from "postgres";
 const g = globalThis as unknown as { __lateIceSql?: postgres.Sql };
 
 function make() {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL is not set");
+  const raw = process.env.DATABASE_URL;
+  if (!raw) throw new Error("DATABASE_URL is not set");
+  // Strip Prisma-style flags (pgbouncer=true, connection_limit) that Postgres itself would reject.
+  const u = new URL(raw);
+  for (const k of ["pgbouncer", "connection_limit", "pool_timeout"]) u.searchParams.delete(k);
+  const url = u.toString();
   return postgres(url, {
     prepare: false,
     max: Number(process.env.PG_POOL_MAX || 5),

@@ -5,6 +5,7 @@ name: Database migrations
 # Connect > Session pooler URI, port 5432, with the database password filled in. The direct
 # connection is IPv6-only and GitHub runners cannot reach it).
 # Already-applied migrations are skipped, so running it again is safe.
+# First run against the hosted project: 2026-11-05.
 on:
   workflow_dispatch:
   push:
