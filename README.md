@@ -17,6 +17,11 @@ Late Ice is a national rating and competition layer for adult rec ("beer league"
 | 11:52 PM | Confirm the final | The captain scans the scoresheet. Players confirm their line and vote three stars. |
 | 11:53 PM | Your rating moves | The goal light goes on, your new LIR shows up with a breakdown of why it moved, and badges and standings update. |
 
+## Hosting
+
+- **GitHub Pages** (static): https://grahamdeno.github.io/late-ice/ is built by `.github/workflows/pages.yml` on every push. With no server configured it is a read-only mirror: the build runs the server once, snapshots every read endpoint into `data/*.json`, and the UI reads those. Set a repository variable `LATE_ICE_API` to a running server's address and the same site becomes the full app. Anyone can also type a server address on the Rink page of the mirror.
+- **Server** (scanner, database, sign-in): `app/Dockerfile` runs anywhere that runs containers. `render.yaml` and `fly.toml` are ready for Render and Fly.io; both need `ANTHROPIC_API_KEY` and a persistent disk mounted at `/data`. Set `ALLOWED_ORIGINS` to the Pages origin (or `*`).
+
 ## The app (Wilmington pilot)
 
 `app/` is the working pilot for Polar Ice Wilmington. Snap a photo of the scoresheet and the app reads every goal, assist and penalty, then updates standings and each player's Late Ice Rating. There is no manual score entry.

@@ -111,3 +111,10 @@ body {
 .drop-in { animation: drop .22s ease-out; }
 @keyframes rise { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
 .rise { animation: rise .35s ease-out both; }
+
+.input {
+  height: 44px; border-radius: 12px; padding: 0 14px; background: var(--ice-3); border: 1px solid var(--line); color: var(--white);
+  font-size: 15px; outline: none; min-width: 0;
+}
+.input:focus { border-color: var(--red); }
+.input::placeholder { color: var(--mute); }

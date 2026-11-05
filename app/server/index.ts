@@ -14,6 +14,23 @@ declare module "http" {
   }
 }
 
+// The UI may be served from another origin (GitHub Pages). Reflect allowed
+// origins so cookies work across them. ALLOWED_ORIGINS="https://a.github.io,https://b.com"
+// or "*" to reflect any origin (fine for a public read-mostly pilot).
+const allowed = (process.env.ALLOWED_ORIGINS || "*").split(",").map((s) => s.trim()).filter(Boolean);
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && (allowed.includes("*") || allowed.includes(origin))) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
+  }
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
+
 app.use(
   express.json({
     limit: "15mb",

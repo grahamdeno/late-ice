@@ -10,7 +10,7 @@ const q = <T = any>(sql: string, ...p: any[]) => sqlite.prepare(sql).all(...p) a
 const one = <T = any>(sql: string, ...p: any[]) => sqlite.prepare(sql).get(...p) as T | undefined;
 
 const ROOT = process.cwd();
-const UPLOADS = path.join(ROOT, "uploads");
+const UPLOADS = process.env.LATE_ICE_UPLOADS || (process.env.LATE_ICE_DB ? path.join(path.dirname(process.env.LATE_ICE_DB), "uploads") : path.join(ROOT, "uploads"));
 const SAMPLES = path.join(ROOT, "samples");
 fs.mkdirSync(UPLOADS, { recursive: true });
 

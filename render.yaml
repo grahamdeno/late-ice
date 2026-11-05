@@ -1,0 +1,19 @@
+# One-click server on Render: https://render.com/deploy?repo=https://github.com/grahamdeno/late-ice
+services:
+  - type: web
+    name: late-ice
+    runtime: docker
+    rootDir: app
+    plan: starter
+    healthCheckPath: /api/bootstrap
+    disk:
+      name: lateice-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: "*"
+      - key: LATE_ICE_DB
+        value: /data/data.db

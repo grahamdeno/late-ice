@@ -1,0 +1,22 @@
+# fly launch --no-deploy && fly secrets set ANTHROPIC_API_KEY=... && fly volumes create lateice_data -s 1 && fly deploy
+app = "late-ice"
+primary_region = "iad"
+
+[build]
+  dockerfile = "app/Dockerfile"
+
+[env]
+  PORT = "5000"
+  LATE_ICE_DB = "/data/data.db"
+  ALLOWED_ORIGINS = "*"
+
+[http_service]
+  internal_port = 5000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[mounts]
+  source = "lateice_data"
+  destination = "/data"

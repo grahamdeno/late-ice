@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
-import { apiRequest } from "@/lib/queryClient";
+import { Link, useLocation } from "wouter";
+import { SNAPSHOT, apiRequest } from "@/lib/queryClient";
 import { FaceoffDot, img } from "@/lib/ui";
 
 /** Shrink big phone photos before upload. Keeps handwriting legible, cuts upload time. */
@@ -35,7 +35,7 @@ export default function Scan() {
       const { id } = await r.json();
       nav(`/sheet/${id}`);
     } catch (e: any) {
-      setErr("Upload failed. Check your signal and try again.");
+      setErr(e?.message?.includes("read-only") ? e.message : "Upload failed. Check your signal and try again.");
       setBusy(false);
     }
   };
@@ -72,6 +72,11 @@ export default function Scan() {
           <button className="btn btn-ghost" disabled={busy} onClick={() => lib.current?.click()} data-testid="button-upload">Upload</button>
         </div>
         {err && <div className="text-sm text-[var(--down)] mt-3" data-testid="text-upload-error">{err}</div>}
+        {SNAPSHOT && (
+          <div className="card p-3 mt-3 text-sm" data-testid="text-snapshot-scan">
+            This copy is a read-only mirror of the standings. Scanning needs the Late Ice server. <Link href="/rink" className="underline">Set the server address</Link> on the Rink page.
+          </div>
+        )}
       </div>
 
       <div className="mt-6 grid grid-cols-3 gap-2 text-center">
@@ -84,7 +89,7 @@ export default function Scan() {
         ))}
       </div>
 
-      {samples && samples.length > 0 && (
+      {!SNAPSHOT && samples && samples.length > 0 && (
         <div className="mt-7">
           <div className="flex items-end justify-between mb-3">
             <h2 className="font-black text-[17px]">No sheet handy? Try one.</h2>

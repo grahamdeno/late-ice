@@ -1,11 +1,15 @@
+import { useState } from "react";
+import { API_BASE, SNAPSHOT, setServerBase } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { FaceoffDot, LevelPill, Loading, Section, TeamBadge, fmtRating } from "@/lib/ui";
 
 export default function Rink() {
+  const [serverInput, setServerInput] = useState<string>(() => { try { return localStorage.getItem("lateice.server") || ""; } catch { return ""; } });
   const { data } = useQuery<any>({ queryKey: ["/api/rink"] });
   if (!data) return <Loading />;
   const { rink, region, leagues, top, season, seasons } = data;
+
   const totalGames = leagues.reduce((s: number, l: any) => s + l.games, 0);
   const totalTeams = leagues.reduce((s: number, l: any) => s + l.teams, 0);
   return (
@@ -42,6 +46,22 @@ export default function Rink() {
         <div className="p-3.5 flex gap-3"><span className="label w-16 pt-0.5">Ice</span><span>One {rink.surface}</span></div>
         <a href={rink.website} target="_blank" rel="noreferrer" className="p-3.5 flex gap-3 items-center" data-testid="link-rink-website"><span className="label w-16">League</span><span className="text-[var(--blue)] flex-1">Adult hockey league page</span><span>›</span></a>
       </div>
+
+      <Section title="Server" action={<span className="label">{SNAPSHOT ? "Read-only mirror" : "Connected"}</span>}>
+        <div className="card p-4 text-sm">
+          <p className="text-[var(--mute)]">
+            {SNAPSHOT
+              ? "This copy shows a snapshot of the data. To scan sheets and sign in, enter the address of a running Late Ice server."
+              : API_BASE
+                ? `Talking to ${API_BASE}.`
+                : "Talking to the server this page was loaded from."}
+          </p>
+          <form className="flex gap-2 mt-3" onSubmit={(e) => { e.preventDefault(); setServerBase(serverInput); }}>
+            <input className="input flex-1" placeholder="https://late-ice.onrender.com" value={serverInput} onChange={(e) => setServerInput(e.target.value)} data-testid="input-server" />
+            <button className="btn btn-ghost" type="submit" data-testid="button-server-save">Save</button>
+          </form>
+        </div>
+      </Section>
 
       <Section title="Seasons" action={<span className="label">{seasons.filter((s: any) => season && s.starts_on.slice(0, 4) === season.starts_on.slice(0, 4)).length} a year</span>}>
         <div className="flex gap-2 overflow-x-auto scrollbar-none">
