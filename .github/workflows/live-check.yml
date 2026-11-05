@@ -1,0 +1,26 @@
+name: Live check
+
+# Hits the deployed app's public API and pages and prints status plus the start of each response.
+on:
+  workflow_dispatch:
+  push:
+    branches: [nextjs-supabase]
+    paths: [".github/workflows/live-check.yml"]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      BASE: https://late-ice-ground-truth7.vercel.app
+    steps:
+      - name: Wait for the deploy of this commit
+        run: sleep 90
+      - name: Check endpoints
+        run: |
+          fail=0
+          for p in /api/bootstrap /api/feed /api/rink /api/players /api/leagues/3 /api/rinks /api/samples / /leagues /join; do
+            code=$(curl -s -o /tmp/body -w '%{http_code}' "$BASE$p")
+            echo "== $p -> $code"; head -c 400 /tmp/body | tr '\n' ' '; echo
+            [ "$code" = "200" ] || fail=1
+          done
+          exit $fail
