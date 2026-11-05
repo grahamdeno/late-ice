@@ -106,6 +106,13 @@ export function PlayerPage({ id }: { id: string }) {
         </div>
       </div>
 
+      {data.badges?.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-3" data-testid="player-badges">
+          {data.badges.map((b: any, i: number) => (
+            <span key={i} className="chip h-8 text-xs" title={b.detail}><span className="font-black text-[var(--amber)] uppercase tracking-wide">{b.label}</span><span className="text-[var(--mute)] truncate max-w-[160px]">{b.detail}</span></span>
+          ))}
+        </div>
+      )}
       {data.archetypes?.some((x: any) => x.won || x.canVote) && (
         <div className="card mt-3 divide-y divide-[var(--line)]" data-testid="card-player-archetypes">
           {data.archetypes.filter((x: any) => x.won || x.canVote).map((x: any) => (

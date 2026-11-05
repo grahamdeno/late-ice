@@ -304,7 +304,8 @@ export async function gameCard(db: Tx, g: any) {
   const a = await one<any>(db, "SELECT id,name,color,logo FROM teams WHERE id=$1", [g.away_team_id]);
   const l = await one<any>(db, "SELECT id,level,name FROM leagues WHERE id=$1", [g.league_id]);
   const s = g.season_id ? await one<any>(db, "SELECT id,name FROM seasons WHERE id=$1", [g.season_id]) : null;
-  return { id: g.id, season: s, playedOn: g.played_on, startTime: g.start_time, home: h, away: a, homeScore: g.home_score, awayScore: g.away_score, league: l, sheetId: g.sheet_id, source: g.source ?? "sheet" };
+  const ev = g.event_id ? await one<any>(db, "SELECT id, name FROM events WHERE id=$1", [g.event_id]) : null;
+  return { event: ev, id: g.id, season: s, playedOn: g.played_on, startTime: g.start_time, home: h, away: a, homeScore: g.home_score, awayScore: g.away_score, league: l, sheetId: g.sheet_id, source: g.source ?? "sheet" };
 }
 export async function gameCards(db: Tx, games: any[]) {
   const out = [];

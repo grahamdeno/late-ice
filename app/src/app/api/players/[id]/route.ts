@@ -1,4 +1,5 @@
 import { teamArchetypes } from "@/server/archetypes";
+import { eventMvp } from "@/server/events";
 import { handle, body, num } from "@/server/http";
 import { sql, q, one } from "@/server/db";
 import { gameCard, HttpError } from "@/server/services";
@@ -35,5 +36,22 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
     const ta = await teamArchetypes(sql, t.id, me?.id ?? null);
     archetypes.push({ teamId: t.id, teamName: t.name, won: ta.won[raw.id] ?? null, mine: ta.mine[raw.id] ?? null, canVote: ta.voter && !ta.own.includes(raw.id), minVotes: ta.minVotes });
   }
-  return { player: p, teams, archetypes, history, importedGames, totals, imported: imp.gp ? imp : null, lines, ranks, reliability: Math.min(100, raw.games_rated * 10) };
+  // Badges: Passport (games at 3+ rinks), Road Trip (a tournament away from home), Tournament MVP.
+  const rinks = (await one<any>(sql, `SELECT COUNT(DISTINCT l.rink_id)::int n FROM (
+      SELECT game_id FROM player_game_stats WHERE player_id=$1 UNION SELECT game_id FROM imported_game_lines WHERE player_id=$1) x
+      JOIN games g ON g.id=x.game_id JOIN leagues l ON l.id=g.league_id WHERE l.level NOT IN ('DEMO')`, [raw.id]))!.n;
+  const home = uid ? (await one<any>(sql, "SELECT home_rink_id FROM users WHERE id=$1", [uid]))?.home_rink_id ?? null : null;
+  const road = await q<any>(sql, `SELECT DISTINCT e.id, e.name FROM player_game_stats s JOIN games g ON g.id=s.game_id JOIN events e ON e.id=g.event_id
+      JOIN leagues l ON l.id=g.league_id WHERE s.player_id=$1 AND COALESCE(e.host_rink_id, -1) <> COALESCE($2, -2)`, [raw.id, home]);
+  const mvps = [];
+  for (const e of await q<any>(sql, "SELECT DISTINCT e.id, e.name FROM event_mvp_votes v JOIN events e ON e.id=v.event_id WHERE v.player_id=$1", [raw.id])) {
+    const w = await eventMvp(sql, e.id);
+    if (w?.playerId === raw.id) mvps.push(e);
+  }
+  const badges = [
+    ...(rinks >= 3 ? [{ key: "passport", label: "Passport", detail: `Played at ${rinks} rinks` }] : []),
+    ...(road.length ? [{ key: "road_trip", label: "Road Trip", detail: road.map((e: any) => e.name).join(", ") }] : []),
+    ...mvps.map((e: any) => ({ key: "mvp", label: "Tournament MVP", detail: e.name, eventId: e.id })),
+  ];
+  return { player: p, teams, archetypes, badges, history, importedGames, totals, imported: imp.gp ? imp : null, lines, ranks, reliability: Math.min(100, raw.games_rated * 10) };
 });

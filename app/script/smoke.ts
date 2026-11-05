@@ -651,6 +651,64 @@ async function main() {
   console.log("status and sign-out");
   ok((await call("PATCH", "/api/me", { status: "ir", statusUntil: "2026-12-01" }, sam)).json.user.status === "ir", "set injured reserve");
 
+  console.log("one rating per person");
+  const ivId = (await db`SELECT id FROM users WHERE email='invited@example.com'`)[0]?.id ?? (await db`SELECT id FROM users WHERE email='fan@example.com'`)[0].id;
+  for (const tm of [hh, blId]) {
+    const [pr] = await db`INSERT INTO players (name,name_key,position,rating,start_rating,display_name,user_id,claimed) VALUES ('Ivan Invited','ivaninvited','D',3.8,3.8,'Ivan I.',${ivId},1) RETURNING id`;
+    await db`INSERT INTO roster_entries (team_id,player_id,source) VALUES (${tm},${pr.id},'claim')`;
+  }
+  ok((await db`SELECT COUNT(*)::int c FROM players WHERE user_id=${ivId}`)[0].c >= 2, "set up: one person with a record on two teams");
+  const rc3 = await (await fetch(`${BASE}/api/cron/recompute`, { headers: { Authorization: `Bearer ${env.CRON_SECRET}` } })).json();
+  ok(rc3.people >= 1 && (await db`SELECT COUNT(*)::int c FROM players WHERE user_id=${ivId}`)[0].c === 1, "the nightly run folds them into one player, one rating");
+  ok((await db`SELECT COUNT(DISTINCT re.team_id)::int c FROM roster_entries re JOIN players p ON p.id=re.player_id WHERE p.user_id=${ivId}`)[0].c === 2, "still on both teams");
+
+  console.log("subs");
+  const ivSlot = (await db`SELECT p.id FROM players p WHERE p.user_id=${ivId}`)[0].id;
+  ok((await call("PATCH", `/api/teams/${blId}/slots/${ivSlot}/sub`, { sub: true }, sam)).status === 403, "only that team's captains mark subs");
+  ok((await call("PATCH", `/api/teams/${hh}/slots/${ivSlot}/sub`, { sub: true }, graham)).status === 200, "captain marks Ivan as a sub");
+  ok((await call("GET", `/api/teams/${hh}`)).json.roster.find((r: any) => r.id === ivSlot).is_sub === true, "the roster shows him as a sub");
+  await call("PATCH", "/api/me", { willSub: true }, fan);
+  const subDay = ymd(6);
+  const sg = await call("POST", `/api/teams/${hh}/schedule`, { date: `${subDay.slice(0, 4)}-${subDay.slice(4, 6)}-${subDay.slice(6)}`, time: "21:15", opponentTeamId: blId, kind: "league" }, graham);
+  ok(sg.status === 200, "a game to fill");
+  const finder = await call("GET", `/api/schedule/${sg.json.id}/subs`, undefined, graham);
+  ok(finder.status === 200 && finder.json.candidates.some((c: any) => c.name === "Fran Fan") && !finder.json.candidates.some((c: any) => c.name === "Sam Okafor"), "Find a sub lists Will sub players not already on the team");
+  ok((await call("GET", `/api/schedule/${sg.json.id}/subs`, undefined, fan)).status === 403, "players can't browse it");
+  const franId = finder.json.candidates.find((c: any) => c.name === "Fran Fan").id;
+  ok((await call("POST", `/api/schedule/${sg.json.id}/subs`, { userId: franId }, graham)).status === 200, "captain asks Fran");
+  const ask = (await call("GET", "/api/me", undefined, fan)).json.subRequests.find((r: any) => r.game_id === sg.json.id);
+  ok(ask && ask.status === "asked", "Fran sees the ask");
+  ok((await call("PUT", `/api/sub-requests/${ask.id}`, { answer: "yes" }, sam)).status === 404, "only Fran answers it");
+  ok((await call("PUT", `/api/sub-requests/${ask.id}`, { answer: "yes" }, fan)).status === 200, "Fran says yes");
+  const subGame = (await call("GET", `/api/teams/${hh}/schedule`, undefined, graham)).json.games.find((g: any) => g.id === sg.json.id);
+  ok(subGame.rsvp.names.in.includes("Fran Fan (sub)"), "she counts as in, marked sub");
+  ok(!subGame.rsvp.names.in.concat(subGame.rsvp.names.none, subGame.rsvp.names.out).some((n: string) => n.startsWith("Ivan")), "a sub isn't asked In/Out as a team member");
+
+  console.log("tournaments");
+  const tv = await call("POST", "/api/events", { name: "Port City Classic", startsOn: "2026-10-17", endsOn: "2026-10-18", location: "Wake Competition Center", teamId: hh }, graham);
+  ok(tv.status === 200 && tv.json.id, "captain sets up a tournament with the team entered");
+  ok((await call("POST", "/api/events", { name: "Nope", startsOn: "2026-10-17", teamId: hh }, fan)).status === 403, "only the team's captains can enter it");
+  const hhRec = (await call("GET", `/api/teams/${hh}`)).json.record;
+  const tdata = JSON.parse(JSON.stringify(real));
+  tdata.date = "2026-10-18"; tdata.away.name = "Raleigh Rebels";
+  const [tsh] = await db`INSERT INTO sheets (image_path,mime,status,source,extracted_json) VALUES ('test/none.jpg','image/jpeg','review','upload',${JSON.stringify(tdata)}) RETURNING id`;
+  const tc = await call("POST", `/api/sheets/${tsh.id}/confirm`, { leagueId: lg, homeTeamId: hh, awayTeamId: null, data: tdata, eventId: tv.json.id }, graham);
+  ok(tc.status === 200, "a tournament game goes in, opponent from outside the app");
+  const ev = (await call("GET", `/api/events/${tv.json.id}`, undefined, graham)).json;
+  ok(ev.teams.length === 2 && ev.teams.find((t: any) => t.id === hh).w === 1 && ev.games.length === 1, "it shows in the tournament's own standings");
+  const hhAfter = (await call("GET", `/api/teams/${hh}`)).json;
+  ok(JSON.stringify(hhAfter.record) === JSON.stringify(hhRec), "league standings don't change");
+  ok(!(await call("GET", "/api/bootstrap")).json.leagues.some((l: any) => l.level === "TOURN"), "the outside team's guest league stays hidden");
+  const th = await db`SELECT reasons_json FROM rating_history WHERE game_id=${tc.json.gameId} LIMIT 1`;
+  ok(th.length && JSON.parse(th[0].reasons_json).some((r: any) => /counts half/.test(r.label)), "ratings move at half weight");
+  ok((await call("PATCH", `/api/events/${tv.json.id}/teams/${hh}`, { place: 1 }, fan)).status === 403, "only the organizer records the finish");
+  ok((await call("PATCH", `/api/events/${tv.json.id}/teams/${hh}`, { place: 1 }, graham)).status === 200, "Hammer'd Heads are champions");
+  ok((await call("GET", `/api/events?team=${hh}`)).json.find((e: any) => e.id === tv.json.id).place === 1, "it's in the trophy case");
+  const adamRow = hhAfter.roster.find((r: any) => r.name === "Adam Y.");
+  ok((await call("GET", `/api/players/${adamRow.id}`)).json.badges.some((b: any) => b.key === "road_trip"), "players who went get the Road Trip badge");
+  const rebel = ev.players.find((p: any) => p.team === "Raleigh Rebels");
+  ok(!!rebel && (await call("PUT", `/api/events/${tv.json.id}/mvp`, { playerId: rebel.id }, fan)).status === 403, "only players in the tournament vote MVP");
+
   console.log("sample sheets and Demo: admins only");
   ok((await call("GET", "/api/samples", undefined, sam)).json.length === 0 && (await call("GET", "/api/samples", undefined, boss)).json.length > 0, "only admins see the sample sheets");
   ok((await call("POST", "/api/sheets/sample/demo-flyers-owls", undefined, sam)).status === 403, "players can't run them");

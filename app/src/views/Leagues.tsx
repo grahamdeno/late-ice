@@ -6,6 +6,7 @@ import { Schedule } from "@/components/Schedule";
 import { AddButton, AddTeamForm } from "@/components/ManageForms";
 import { ArchetypeChip, ArchetypeVotes } from "@/components/Archetypes";
 import { Bobble } from "@/components/Bobble";
+import { TeamTournaments } from "@/views/Event";
 import { act } from "@/lib/auth";
 import { useLocation } from "@/lib/router";
 import { Link } from "@/lib/router";
@@ -193,6 +194,7 @@ export function TeamPage({ id }: { id: string }) {
         )}
       </Section>
       <ArchetypeVotes teamId={team.id} roster={roster} data={data.archetypes} />
+      <TeamTournaments teamId={team.id} canManage={!!data.can?.manageRoster} />
       <ShotMap teamId={team.id} />
       <Section title="Games">
         {games.length ? <div className="space-y-3">{games.map((g: any) => <GameRow key={g.id} g={g} />)}</div> : <Empty title="No games yet" body="Snap the sheet after this team's next game." />}
