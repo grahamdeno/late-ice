@@ -54,7 +54,7 @@ async function widthCheck(page, label) {
 }
 async function api(page, method, url, body) {
   return page.evaluate(async ([method, url, body]) => {
-    const k = Object.keys(localStorage).find((x) => x.startsWith("sb-") && x.endsWith("-auth-token"));
+    const k = Object.keys(localStorage).find((x) => x === "lateice.auth" || (x.startsWith("sb-") && x.endsWith("-auth-token")));
     const tok = k ? JSON.parse(localStorage.getItem(k)).access_token : "";
     const r = await fetch(url, { method, headers: { "content-type": "application/json", authorization: `Bearer ${tok}` }, body: body ? JSON.stringify(body) : undefined });
     return { status: r.status, json: await r.json().catch(() => null) };
