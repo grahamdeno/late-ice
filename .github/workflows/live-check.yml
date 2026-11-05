@@ -11,10 +11,10 @@ jobs:
   check:
     runs-on: ubuntu-latest
     env:
-      BASE: https://late-ice-ground-truth7.vercel.app
+      BASE: https://late-ice.vercel.app
     steps:
       - name: Wait for the deploy of this commit
-        run: sleep 90
+        run: sleep 150
       - name: Check endpoints
         run: |
           fail=0
