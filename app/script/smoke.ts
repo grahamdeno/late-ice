@@ -714,11 +714,11 @@ async function main() {
   ok(lu.status === 200 && !lu.saved && lu.json.lineup.f.length === 3 && lu.json.players.length > 0, "anyone can see the lineup; it starts as a guess from who's In");
   ok(lu.json.can.edit === false, "a visitor can't edit it");
   const firstTwo = lu.json.players.slice(0, 2).map((p: any) => p.id);
-  const mine = { f: [[firstTwo[0], null, null], [null, null, null], [null, null, null]], d: [[firstTwo[1], null], [null, null], [null, null]], g: [null], extras: [] };
-  ok((await call("PUT", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, mine, mt)).status === 403, "only the team's captains set it");
+  const lineupBody = { f: [[firstTwo[0], null, null], [null, null, null], [null, null, null]], d: [[firstTwo[1], null], [null, null], [null, null]], g: [null], extras: [] };
+  ok((await call("PUT", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, lineupBody, mt)).status === 403, "only the team's captains set it");
   ok((await call("PUT", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, { ...mine, d: [[firstTwo[0], null], [null, null], [null, null]] }, graham)).status === 400, "a player in two spots is refused");
   ok((await call("PUT", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, { ...mine, g: [999999] }, graham)).status === 400, "someone not on the roster is refused");
-  ok((await call("PUT", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, mine, graham)).status === 200, "captain saves the lines");
+  ok((await call("PUT", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, lineupBody, graham)).status === 200, "captain saves the lines");
   const lu2 = (await call("GET", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, undefined, graham)).json;
   ok(lu2.saved && lu2.lineup.f[0][0] === firstTwo[0] && lu2.can.edit === true, "and it comes back as set");
 
