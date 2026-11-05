@@ -6,7 +6,10 @@ export const metadata: Metadata = {
   title: "Late Ice · Wilmington",
   description: "Beer league hockey, counted. Snap the scoresheet, get your rating.",
   manifest: "/manifest.webmanifest",
-  icons: { icon: "/favicon.svg", apple: "/icon-192.png" },
+  icons: {
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }, { url: "/favicon-32.png", sizes: "32x32", type: "image/png" }],
+    apple: "/apple-touch-icon.png",
+  },
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Late Ice" },
 };
 

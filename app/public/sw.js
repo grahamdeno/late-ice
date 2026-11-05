@@ -1,6 +1,6 @@
 // Minimal offline shell. API calls always go to the network.
 // Bumping CACHE discards every older cache on activation.
-const CACHE = "late-ice-v3";
+const CACHE = "late-ice-v4";
 self.addEventListener("install", () => { self.skipWaiting(); });
 self.addEventListener("activate", (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
