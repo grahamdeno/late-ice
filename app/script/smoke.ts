@@ -717,7 +717,7 @@ async function main() {
   const lineupBody = { f: [[firstTwo[0], null, null], [null, null, null], [null, null, null]], d: [[firstTwo[1], null], [null, null], [null, null]], g: [null], extras: [] };
   ok((await call("PUT", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, lineupBody, nobody)).status === 403, "only the team's captains set it");
   ok((await call("PUT", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, { ...lineupBody, d: [[firstTwo[0], null], [null, null], [null, null]] }, graham)).status === 400, "a player in two spots is refused");
-  ok((await call("PUT", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, { ...mine, g: [999999] }, graham)).status === 400, "someone not on the roster is refused");
+  ok((await call("PUT", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, { ...lineupBody, g: [999999] }, graham)).status === 400, "someone not on the roster is refused");
   ok((await call("PUT", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, lineupBody, graham)).status === 200, "captain saves the lines");
   const lu2 = (await call("GET", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, undefined, graham)).json;
   ok(lu2.saved && lu2.lineup.f[0][0] === firstTwo[0] && lu2.can.edit === true, "and it comes back as set");
