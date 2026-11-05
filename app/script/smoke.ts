@@ -682,7 +682,7 @@ async function main() {
   const mtBefore = (await call("GET", `/api/teams/${hh}/manage`, undefined, graham)).json;
   ok(mtBefore.counts && mtBefore.counts.rosterMax === 15 && mtBefore.counts.goalieMax === 2, "a league starts at 15 skaters and 2 goalies");
   const added = await call("POST", `/api/teams/${hh}/slots`, { name: "Pat Newguy", number: "71", position: "D" }, graham);
-  ok(added.status === 200 && added.json.playerId, "captain adds a player by hand");
+  ok(added.status === 200 && added.json.playerId, "captain adds a player by hand " + added.status + " " + JSON.stringify(added.json));
   ok((await call("POST", `/api/teams/${hh}/slots`, { name: "Pat Newguy", number: "45", position: "D" }, graham)).status === 409, "the same name twice is refused");
   ok((await call("POST", `/api/teams/${hh}/slots`, { name: "Pat", number: "46", position: "D" }, graham)).status === 400, "a first name alone is refused");
   ok((await call("POST", `/api/teams/${hh}/slots`, { name: "Other Guy", number: "71", position: "W" }, graham)).status === 409, "a taken number is refused");
