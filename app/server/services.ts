@@ -281,10 +281,10 @@ export function leaders(leagueId: number | null, limit = 10, seasonId: number | 
        UNION ALL
        SELECT pi.player_id, pi.team_id, pi.g, pi.a, pi.season_id FROM player_imports pi JOIN teams t ON t.id=pi.team_id JOIN leagues l ON l.id=t.league_id WHERE ${scope}
      )
-     SELECT p.id, p.name, p.rating, p.position, SUM(x.g) g, SUM(x.a) a, SUM(x.g+x.a) pts,
+     SELECT p.id, p.display_name name, p.rating, p.position, SUM(x.g) g, SUM(x.a) a, SUM(x.g+x.a) pts,
        (SELECT t.name FROM teams t WHERE t.id=x.team_id) team, x.team_id
      FROM lines x JOIN players p ON p.id=x.player_id
-     GROUP BY p.id, x.team_id HAVING pts > 0 ORDER BY pts DESC, g DESC, p.name LIMIT ${limit}`,
+     GROUP BY p.id, x.team_id HAVING pts > 0 ORDER BY pts DESC, g DESC, p.display_name LIMIT ${limit}`,
     ...params,
   );
 }

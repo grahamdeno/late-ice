@@ -17,7 +17,17 @@ Done in the pilot:
 - Seasons per rink (one to four a year), sheet date picks the season, standings per season, ratings carry over
 - Test scoresheets live in a Demo league so they never touch real standings
 
-Up next: registration and the draft pool, captain roster builder (draft, match, claim), obfuscated slot names, then push notifications.
+Added (Nov 2026, branch `registration-roster`):
+- Phone sign-in with a six-digit text code (Twilio when configured; test mode shows the code on screen until then)
+- Registration: name, number, position, home rink. Registering puts you in the draft pool
+- "Is this you?" suggestions from scanned or imported slots, and player self-claim with the captain notified
+- Captain role (first registered player on the roster takes it; teammates can contest; captain can step down)
+- Roster builder: draft from the pool, match a registered player to a sheet slot, release a wrong claim, remove, merge spelling variants, rename and recolor the team, roster history
+- In-app notifications for drafts, claims, matches, releases and declines
+- Name privacy: unclaimed players show first name and last initial; anyone can hide a name without an account; players can hide themselves
+- Availability status: available, injured reserve, away, resting
+
+Up next: rink directory seed and rink detection from the sheet, scan attribution and disputes, the shareable recap card, then push notifications.
 
 ---
 

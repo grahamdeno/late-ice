@@ -21,6 +21,7 @@ Late Ice is a national rating and competition layer for adult rec ("beer league"
 
 - **GitHub Pages** (static): https://grahamdeno.github.io/late-ice/ is built by `.github/workflows/pages.yml` on every push. With no server configured it is a read-only mirror: the build runs the server once, snapshots every read endpoint into `data/*.json`, and the UI reads those. Set a repository variable `LATE_ICE_API` to a running server's address and the same site becomes the full app. Anyone can also type a server address on the Rink page of the mirror.
 - **Server** (scanner, database, sign-in): `app/Dockerfile` runs anywhere that runs containers. `render.yaml` and `fly.toml` are ready for Render and Fly.io; both need `ANTHROPIC_API_KEY` and a persistent disk mounted at `/data`. Set `ALLOWED_ORIGINS` to the Pages origin (or `*`).
+- **Sign-in texts:** set `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` and either `TWILIO_FROM` (a number) or `TWILIO_MESSAGING_SERVICE_SID`. Without them the server runs in **test mode** and shows the six-digit code on screen, which means anyone can sign in as any number. Set `SMS_TEST_MODE=0` to turn test mode off.
 
 ## The app (Wilmington pilot)
 

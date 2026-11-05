@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches-ignore: [master, ci-shots]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - name: Type check
+        run: npm run check
+      - name: Build
+        run: npm run build
+      - name: Smoke test (API end to end)
+        run: if [ -f script/smoke.ts ]; then npx tsx script/smoke.ts; else echo "no smoke test yet"; fi
+      - name: UI walkthrough screenshots
+        run: |
+          npm i --no-save playwright@1
+          npx playwright install --with-deps chromium
+          node script/ui-shots.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ui-shots
+          path: app/shots/
+          if-no-files-found: ignore
+      - name: Publish screenshots to the ci-shots branch
+        if: always() && github.event_name == 'push'
+        working-directory: .
+        run: |
+          [ -d app/shots ] || exit 0
+          mkdir -p /tmp/s && cp app/shots/*.png /tmp/s/
+          git config user.name "ci" && git config user.email "ci@users.noreply.github.com"
+          git checkout --orphan ci-shots && git rm -rfq . && rm -rf app
+          cp /tmp/s/*.png . && git add *.png && git commit -qm "UI shots for ${GITHUB_SHA::7}"
+          git push -f origin ci-shots

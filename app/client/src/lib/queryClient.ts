@@ -22,6 +22,20 @@ export function setServerBase(url: string) {
   try { url ? localStorage.setItem(SAVED_KEY, url.trim()) : localStorage.removeItem(SAVED_KEY); } catch {}
   location.reload();
 }
+// Sign-in token. Sent as a bearer header so it works when the UI and the
+// server live on different origins (GitHub Pages + a hosted server).
+const TOKEN_KEY = "lateice.token";
+export function getToken(): string {
+  try { return localStorage.getItem(TOKEN_KEY) || ""; } catch { return ""; }
+}
+export function setToken(token: string | null) {
+  try { token ? localStorage.setItem(TOKEN_KEY, token) : localStorage.removeItem(TOKEN_KEY); } catch {}
+}
+function authHeaders(): Record<string, string> {
+  const t = getToken();
+  return t ? { Authorization: `Bearer ${t}` } : {};
+}
+
 export function apiUrl(path: string) {
   if (SNAPSHOT) return `./data/${snapshotFile(path)}`;
   return `${API_BASE}${path}`;
@@ -30,7 +44,9 @@ export function apiUrl(path: string) {
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    let message = text;
+    try { message = JSON.parse(text).message || text; } catch {}
+    throw Object.assign(new Error(message), { status: res.status, body: text });
   }
 }
 
@@ -40,7 +56,7 @@ export async function apiRequest(method: string, url: string, data?: unknown | u
   }
   const res = await fetch(apiUrl(url), {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers: { ...(data ? { "Content-Type": "application/json" } : {}), ...authHeaders() },
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -52,7 +68,7 @@ type UnauthorizedBehavior = "returnNull" | "throw";
 export const getQueryFn: <T>(options: { on401: UnauthorizedBehavior }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(apiUrl(queryKey.join("/")), { credentials: "include" });
+    const res = await fetch(apiUrl(queryKey.join("/")), { credentials: "include", headers: SNAPSHOT ? {} : authHeaders() });
     if (unauthorizedBehavior === "returnNull" && res.status === 401) return null;
     await throwIfResNotOk(res);
     return await res.json();

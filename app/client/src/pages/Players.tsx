@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
+import { useMe, act } from "@/lib/auth";
+import { SNAPSHOT } from "@/lib/queryClient";
 import { BackBar, Delta, Empty, LevelPill, Loading, TeamBadge, fmtDate, fmtRating, useFilter } from "@/lib/ui";
 
 export function Players() {
@@ -76,7 +78,7 @@ export function PlayerPage({ id }: { id: string }) {
               ))}
             </div>
           </div>
-          {!player.claimed && <span className="chip h-7 text-[11px] text-[var(--mute)] shrink-0">Unclaimed</span>}
+          {!player.registered && <span className="chip h-7 text-[11px] text-[var(--mute)] shrink-0">Unclaimed</span>}
         </div>
         <div className="mt-5 flex items-end gap-3">
           <div>
@@ -139,12 +141,63 @@ export function PlayerPage({ id }: { id: string }) {
         </div>
       )}
 
-      {!player.claimed && (
-        <div className="card mt-6 p-4 flex items-center gap-3">
-          <div className="flex-1"><div className="font-bold">Is this you?</div><div className="text-xs text-[var(--mute)]">Claiming profiles arrives with sign-in.</div></div>
-          <button className="btn btn-ghost h-10" disabled data-testid="button-claim">Claim</button>
+      <ClaimCard player={player} />
+    </div>
+  );
+}
+
+function ClaimCard({ player }: { player: any }) {
+  const { me } = useMe();
+  const [, nav] = useLocation();
+  const [err, setErr] = useState<string | null>(null);
+  const [hideOpen, setHideOpen] = useState(false);
+  const [contact, setContact] = useState("");
+  const [hidden, setHidden] = useState(false);
+  if (SNAPSHOT) return null;
+  if (player.mine) {
+    return (
+      <div className="card mt-6 p-4 flex items-center gap-3" data-testid="card-mine">
+        <div className="flex-1"><div className="font-bold">This is you</div><div className="text-xs text-[var(--mute)]">Hide your name or set your availability from your profile.</div></div>
+        <Link href="/me" className="btn btn-ghost h-10">Profile</Link>
+      </div>
+    );
+  }
+  return (
+    <div className="mt-6 space-y-3">
+      {!player.registered && (
+        <div className="card p-4 flex items-center gap-3" data-testid="card-claim">
+          <div className="flex-1"><div className="font-bold">Is this you?</div><div className="text-xs text-[var(--mute)]">{me ? "Claim it and these stats and this rating become yours. Your captain can see the claim." : "Join with your phone number, then claim it."}</div></div>
+          <button
+            className="btn btn-red h-10"
+            onClick={async () => {
+              if (!me) return nav("/join");
+              if (!me.user.profileComplete) return nav("/join");
+              const e = await act("POST", `/api/players/${player.id}/claim`);
+              setErr(e);
+              if (!e) nav("/me");
+            }}
+            data-testid="button-claim"
+          >
+            {me ? "Claim" : "Join"}
+          </button>
         </div>
       )}
+      {err && <p className="text-sm down px-1">{err}</p>}
+      {!player.registered && !player.hidden && !hidden && (
+        <div className="px-1">
+          {!hideOpen ? (
+            <button className="text-xs text-[var(--mute)] underline" onClick={() => setHideOpen(true)} data-testid="button-hide-open">Don't want your name here? Hide it.</button>
+          ) : (
+            <form className="card p-4 space-y-2" onSubmit={async (e) => { e.preventDefault(); const r = await act("POST", `/api/players/${player.id}/hide`, { contact }); setErr(r); if (!r) setHidden(true); }}>
+              <div className="text-sm font-bold">Hide this name</div>
+              <p className="text-xs text-[var(--mute)]">The name is replaced with the jersey number everywhere. Games still count for the team. No account needed.</p>
+              <input className="input w-full" placeholder="Phone or email (optional, so we can reach you)" value={contact} onChange={(e) => setContact(e.target.value)} data-testid="input-hide-contact" />
+              <button className="btn btn-red h-10 w-full" data-testid="button-hide">Hide name</button>
+            </form>
+          )}
+        </div>
+      )}
+      {hidden && <p className="text-xs text-[var(--mute)] px-1" data-testid="text-hidden">Done. The name is hidden.</p>}
     </div>
   );
 }

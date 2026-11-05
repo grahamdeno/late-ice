@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { sqlite, seed } from "./db";
 import { readScoresheet, checkSheet, type OcrResult } from "./ocr";
+import { registerAccountRoutes, refreshAllDisplay, captainOf, userFromRequest } from "./accounts";
 import { suggest, confirmSheet, standings, leaders, gameCard, teamRecord, teamRating, currentSeason, seasonsWithData } from "./services";
 
 const q = <T = any>(sql: string, ...p: any[]) => sqlite.prepare(sql).all(...p) as T[];
@@ -48,6 +49,7 @@ function sheetView(s: any) {
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
   seed();
+  registerAccountRoutes(app);
 
   app.get("/api/bootstrap", (_req, res) => {
     const region = one("SELECT * FROM regions LIMIT 1");
@@ -72,7 +74,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
       ...(lid ? [lid] : []),
     ).map(gameCard);
     const movers = q(
-      `SELECT rh.player_id id, p.name, rh.before, rh.after, (rh.after-rh.before) delta, rh.game_id
+      `SELECT rh.player_id id, p.display_name name, rh.before, rh.after, (rh.after-rh.before) delta, rh.game_id
        FROM rating_history rh JOIN players p ON p.id=rh.player_id JOIN games g ON g.id=rh.game_id
        JOIN leagues l ON l.id=g.league_id ${lid ? "WHERE g.league_id=?" : "WHERE l.level<>'DEMO'"} ORDER BY rh.id DESC LIMIT 200`, ...(lid ? [lid] : []),
     ).sort((a: any, b: any) => b.delta - a.delta).slice(0, 5);
@@ -97,7 +99,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     if (!t) return res.status(404).json({ message: "Team not found" });
     const league = one("SELECT * FROM leagues WHERE id=?", t.league_id);
     const roster = q(
-      `SELECT p.id, p.name, p.position, p.rating, p.games_rated, re.number,
+      `SELECT p.id, p.display_name name, p.position, p.rating, p.games_rated, p.user_id IS NOT NULL registered, re.number,
         COALESCE((SELECT SUM(goals) FROM player_game_stats s WHERE s.player_id=p.id AND s.team_id=re.team_id),0) + COALESCE((SELECT SUM(g) FROM player_imports i WHERE i.player_id=p.id AND i.team_id=re.team_id),0) g,
         COALESCE((SELECT SUM(assists) FROM player_game_stats s WHERE s.player_id=p.id AND s.team_id=re.team_id),0) + COALESCE((SELECT SUM(a) FROM player_imports i WHERE i.player_id=p.id AND i.team_id=re.team_id),0) a,
         COALESCE((SELECT SUM(pim) FROM player_game_stats s WHERE s.player_id=p.id AND s.team_id=re.team_id),0) + COALESCE((SELECT SUM(pim) FROM player_imports i WHERE i.player_id=p.id AND i.team_id=re.team_id),0) pim,
@@ -107,13 +109,13 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const games = q("SELECT * FROM games WHERE home_team_id=? OR away_team_id=? ORDER BY played_on DESC, id DESC", t.id, t.id).map(gameCard);
     const season = currentSeason(league.rink_id);
     const imported = one<any>("SELECT MAX(as_of) as_of, MAX(source) source, SUM(gp) gp FROM team_imports WHERE team_id=?", t.id);
-    res.json({ team: t, league, season, record: teamRecord(t.id, season?.id ?? null), career: teamRecord(t.id), rating: teamRating(t.id), roster, games, imported: imported?.gp ? imported : null });
+    res.json({ team: t, league, season, captain: captainOf(t.id), record: teamRecord(t.id, season?.id ?? null), career: teamRecord(t.id), rating: teamRating(t.id), roster, games, imported: imported?.gp ? imported : null });
   });
 
   app.get("/api/players", (req, res) => {
     const lid = req.query.league ? Number(req.query.league) : null;
     const rows = q(
-      `SELECT p.id, p.name, p.position, p.rating, p.games_rated,
+      `SELECT p.id, p.display_name name, p.position, p.rating, p.games_rated, p.user_id IS NOT NULL registered,
         GROUP_CONCAT(DISTINCT t.name) teams, GROUP_CONCAT(DISTINCT l.level) levels,
         COALESCE((SELECT SUM(goals+assists) FROM player_game_stats s WHERE s.player_id=p.id),0) + COALESCE((SELECT SUM(g+a) FROM player_imports i WHERE i.player_id=p.id),0) pts,
         (SELECT after-before FROM rating_history rh WHERE rh.player_id=p.id ORDER BY rh.id DESC LIMIT 1) last_delta
@@ -124,8 +126,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   app.get("/api/players/:id", (req, res) => {
-    const p = one<any>("SELECT * FROM players WHERE id=?", Number(req.params.id));
-    if (!p) return res.status(404).json({ message: "Player not found" });
+    const raw = one<any>("SELECT * FROM players WHERE id=?", Number(req.params.id));
+    if (!raw) return res.status(404).json({ message: "Player not found" });
+    const me = userFromRequest(req);
+    const { name_key: _k, user_id: uid, display_name, ...rest } = raw;
+    const p = { ...rest, name: display_name, registered: !!uid, mine: !!me && me.id === uid };
     const teams = q(
       `SELECT t.id, t.name, t.color, t.logo, re.number, l.level, l.id league_id FROM roster_entries re JOIN teams t ON t.id=re.team_id JOIN leagues l ON l.id=t.league_id WHERE re.player_id=?`, p.id,
     );
@@ -153,8 +158,8 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     const g = one<any>("SELECT * FROM games WHERE id=?", Number(req.params.id));
     if (!g) return res.status(404).json({ message: "Game not found" });
     const lines = q(
-      `SELECT s.*, p.name, (SELECT after-before FROM rating_history rh WHERE rh.player_id=s.player_id AND rh.game_id=s.game_id) delta
-       FROM player_game_stats s JOIN players p ON p.id=s.player_id WHERE s.game_id=? ORDER BY (s.goals+s.assists) DESC, p.name`, g.id,
+      `SELECT s.*, p.display_name name, (SELECT after-before FROM rating_history rh WHERE rh.player_id=s.player_id AND rh.game_id=s.game_id) delta
+       FROM player_game_stats s JOIN players p ON p.id=s.player_id WHERE s.game_id=? ORDER BY (s.goals+s.assists) DESC, p.display_name`, g.id,
     );
     res.json({
       ...gameCard(g),
@@ -176,7 +181,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         leader: st[0] ?? null,
       };
     });
-    const top = q("SELECT p.id,p.name,p.rating,p.position FROM players p WHERE p.games_rated>0 AND EXISTS (SELECT 1 FROM roster_entries re JOIN teams t ON t.id=re.team_id JOIN leagues l ON l.id=t.league_id WHERE re.player_id=p.id AND l.level<>'DEMO') ORDER BY p.rating DESC LIMIT 5");
+    const top = q("SELECT p.id,p.display_name name,p.rating,p.position FROM players p WHERE p.games_rated>0 AND EXISTS (SELECT 1 FROM roster_entries re JOIN teams t ON t.id=re.team_id JOIN leagues l ON l.id=t.league_id WHERE re.player_id=p.id AND l.level<>'DEMO') ORDER BY p.rating DESC LIMIT 5");
     const seasons = q("SELECT * FROM seasons WHERE rink_id=? ORDER BY starts_on", rink.id);
     res.json({ rink, region, season, seasons, leagues, top });
   });
@@ -241,6 +246,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post("/api/sheets/:id/confirm", (req, res) => {
     try {
       const gameId = confirmSheet(Number(req.params.id), req.body);
+      refreshAllDisplay();
       res.json({ gameId });
     } catch (e: any) {
       res.status(e.status || 500).json({ message: e.message, gameId: e.gameId });
