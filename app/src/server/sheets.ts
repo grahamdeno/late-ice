@@ -11,8 +11,15 @@ export const SAMPLES = [
   { id: "demo-salts-dadbods", title: "Demo · Old Salts vs Dad Bod Squad", file: "demo-salts-dadbods.jpg" },
 ];
 
-export async function samplePhoto(file: string) {
-  return fs.readFile(path.join(process.cwd(), "public", "samples", file));
+/** The sample photo. On Vercel the public folder isn't in the function, so fetch it from the site itself. */
+export async function samplePhoto(file: string, origin?: string) {
+  try { return await fs.readFile(path.join(process.cwd(), "public", "samples", file)); }
+  catch {
+    if (!origin) throw new Error("Sample photo not found");
+    const r = await fetch(new URL(`/samples/${file}`, origin));
+    if (!r.ok) throw new Error(`Sample photo not found (${r.status})`);
+    return Buffer.from(await r.arrayBuffer());
+  }
 }
 
 /** Store the photo in the private bucket and record the sheet. OCR runs after the response. */

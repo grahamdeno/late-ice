@@ -651,6 +651,11 @@ async function main() {
   console.log("status and sign-out");
   ok((await call("PATCH", "/api/me", { status: "ir", statusUntil: "2026-12-01" }, sam)).json.user.status === "ir", "set injured reserve");
 
+  console.log("sample sheets and Demo: admins only");
+  ok((await call("GET", "/api/samples", undefined, sam)).json.length === 0 && (await call("GET", "/api/samples", undefined, boss)).json.length > 0, "only admins see the sample sheets");
+  ok((await call("POST", "/api/sheets/sample/flyers-owls", undefined, sam)).status === 403, "players can't run them");
+  ok(!(await call("GET", "/api/bootstrap", undefined, sam)).json.leagues.some((l: any) => l.level === "DEMO") && (await call("GET", "/api/bootstrap", undefined, boss)).json.leagues.some((l: any) => l.level === "DEMO"), "the Demo league is hidden from everyone but admins");
+
   console.log("sign-up gate");
   const newbie = await signUp("newbie@example.com", { name: "Nora Newbie", number: "71", position: "W" }, { waitlist: true });
   ok((await call("GET", "/api/me", undefined, newbie)).json.user.access === "waiting", "a new account waits");
