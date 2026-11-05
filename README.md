@@ -21,6 +21,8 @@ Late Ice is a national rating and competition layer for adult rec ("beer league"
 
 `app/` is the working pilot for Polar Ice Wilmington. Snap a photo of the scoresheet and the app reads every goal, assist and penalty, then updates standings and each player's Late Ice Rating. There is no manual score entry.
 
+The C league is loaded with the real Fall 2026 teams, standings and one team's player totals as posted on the rink's league site, so the app is useful before the first sheet is scanned. Seasons are per rink (Wilmington runs four a year, other rinks one to three); a sheet's date drops the game into the right season, standings reset per season and ratings carry over. Test scoresheets live in a separate Demo league so they never touch real standings.
+
 ```bash
 cd app
 npm ci

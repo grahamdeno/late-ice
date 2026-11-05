@@ -4,13 +4,15 @@ import { API_BASE } from "./queryClient";
 
 export const img = (p: string) => `${API_BASE}${p}`;
 
-export interface Team { id: number; name: string; color: string; is_sample?: number }
+export interface Team { id: number; name: string; color: string; is_sample?: number; logo?: string | null }
 export interface League { id: number; level: string; name: string; blurb: string; season: string; teams: Team[] }
 export interface Boot {
   region: { id: number; name: string; state: string };
   rink: any;
   leagues: League[];
   counts: { games: number; players: number; sheets: number };
+  season: { id: number; name: string; starts_on: string; ends_on: string } | null;
+  seasons: { id: number; name: string; starts_on: string; ends_on: string }[];
 }
 export interface GameCard {
   id: number; playedOn: string | null; startTime: string | null; home: Team; away: Team;
@@ -53,6 +55,16 @@ export function Wordmark({ className = "" }: { className?: string }) {
 }
 
 export function TeamBadge({ team, size = 32 }: { team: Team; size?: number }) {
+  if (team.logo) {
+    return (
+      <img
+        src={team.logo.startsWith("/") ? `.${team.logo}` : team.logo}
+        alt={team.name}
+        className="rounded-full shrink-0 object-cover"
+        style={{ width: size, height: size, border: `1.5px solid ${team.color}`, background: "#000" }}
+      />
+    );
+  }
   const initials = team.name.split(/\s+/).filter((w) => /[A-Za-z]/.test(w[0])).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
   return (
     <span
@@ -83,7 +95,7 @@ export function GameRow({ g }: { g: GameCard }) {
     <Link href={`/game/${g.id}`} className="card block p-4 hover:border-[#2a3446] transition-colors" data-testid={`card-game-${g.id}`}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 text-xs text-[var(--mute)]">
-          <LevelPill level={g.league.level} /> <span>{fmtDate(g.playedOn)}</span>{g.startTime && <span>· {g.startTime}</span>}
+          <LevelPill level={g.league.level === "DEMO" ? "Demo" : g.league.level} /> <span>{fmtDate(g.playedOn)}</span>{g.startTime && <span>· {g.startTime}</span>}
         </div>
         <span className="label">Final</span>
       </div>

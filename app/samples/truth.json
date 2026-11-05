@@ -1,7 +1,7 @@
 [
  {
-  "id": "c-league-flyers-owls",
-  "league": "C",
+  "id": "demo-flyers-owls",
+  "league": "Demo",
   "date": "11/01/2026",
   "time": "8:45 PM",
   "home": "Front Street Flyers",
@@ -198,8 +198,8 @@
   ]
  },
  {
-  "id": "40-plus-salts-dadbods",
-  "league": "40+",
+  "id": "demo-salts-dadbods",
+  "league": "Demo",
   "date": "11/02/2026",
   "time": "9:30 PM",
   "home": "Old Salts",

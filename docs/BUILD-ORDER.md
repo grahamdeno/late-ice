@@ -13,8 +13,11 @@ Done in the pilot:
 - Standings, scoring leaders, game pages with three stars, rating moves per player
 - LIR engine with provisional K, opponent-strength expectation, small point and save-percentage nudges, and a "why it moved" breakdown
 - Installable PWA (manifest and offline shell)
+- Real C league: the eight Fall 2026 teams, standings and the Hammer'd Heads roster and totals imported from the rink's league site as the season baseline, with source and as-of date shown
+- Seasons per rink (one to four a year), sheet date picks the season, standings per season, ratings carry over
+- Test scoresheets live in a Demo league so they never touch real standings
 
-Up next: sign-in and profile claiming, real Wilmington team names (from the first real sheets), captain confirmation, then push notifications.
+Up next: registration and the draft pool, captain roster builder (draft, match, claim), obfuscated slot names, then push notifications.
 
 ---
 

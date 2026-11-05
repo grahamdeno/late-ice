@@ -53,7 +53,11 @@ Rules that make this hold together:
 **From the sheet, with a rink admin able to correct it.**
 
 - **League and level** come off the sheet ("League / Div: C"). Division variants (C1, C2) roll up to the level for rating and stay separate for standings.
-- **Seasons** default to fixed windows (Fall: Sep–Dec, Winter: Jan–Mar, Spring: Apr–Jun, Summer: Jul–Aug). Standings reset per season; ratings never reset. A verified rink admin can set real season dates and playoff flags.
+- **Seasons belong to the rink, not the app.** Wilmington runs four a year; plenty of rinks run one, two or three. Each rink has its own season calendar (name, start, end), seeded with sensible defaults (Winter: Jan–Mar, Spring: Apr–Jun, Summer: Jul–Aug, Fall: Sep–Dec) that a verified rink admin trims to the real dates. A rink with a single September-to-March season just has one row.
+- **The sheet's date picks the season.** Nobody selects a season when scanning. A sheet dated Nov 1 at Polar Ice lands in Fall 2026 because that is the season covering Nov 1 at that rink. A game dated in a gap between seasons attaches to the nearest one and gets flagged for the admin.
+- **Standings and point totals are per season. Ratings are not.** Every league page shows the current season by default with chips to flip back to past seasons that have games. The Late Ice Rating carries across seasons and across rinks because a player's level does not reset in January.
+- **Season so far, imported.** When a rink already posts standings and player totals on its website, those get imported as a per-season baseline (`team_imports`, `player_imports`) with a source and as-of date shown in the app, so the app is useful on day one. Imported games carry no goal times, rosters or rating movement; those start with the first scanned sheet.
+- **Playoffs** are a flag on games inside a season (the sheet usually says "Playoff" or "Championship"), kept in the season's standings view as a separate bracket block.
 - **Nights** are inferred from game timestamps (the C league plays Sundays because that's when the sheets are dated).
 
 ## 5. Who scans, and why should anyone trust it?
@@ -169,7 +173,8 @@ Per-game availability: **In**, **Out**, **Maybe**, with an optional one-tap reas
 | `player_aliases` | Spelling variants and merges |
 | `rink_directory` (seeded, with `live_at`) | Every rink listed, live when scanned |
 | `regions` computed from rink geo | No region picker |
-| `seasons` per league with default windows | Standings reset, ratings don't |
+| `seasons` per rink (name, starts_on, ends_on), one to four a year | Sheet date picks the season; standings reset, ratings don't |
+| `team_imports` / `player_imports` (per season, with source and as_of) | Day-one standings from what the rink already posts |
 | `scans` audit (who, when, device) and `disputes` | Trust without gatekeeping |
 | `privacy` flags on players (hidden, display_name_mode) | Names of people who haven't opted in |
 | `rink_admins` with verification | The hockey director as final word |
@@ -180,7 +185,7 @@ Per-game availability: **In**, **Out**, **Maybe**, with an optional one-tap reas
 2. Captain claim, roster builder: draft, match a registered player to a sheet slot, player self-claim with captain notice
 3. Obfuscated slot names, alias collapse, self-hide
 4. Rink directory seed, live/listed states, rink detection from the sheet
-5. Seasons and standings reset
+5. ~~Seasons and standings reset~~ Done in the pilot: per-rink season calendar, sheet date picks the season, standings per season, imports as the season baseline
 6. Scan attribution, duplicate comparison, dispute flow
 7. Shareable recap card
 8. Rink admin and scorekeeper roles, inbound text-a-photo number, Polar Ice outreach

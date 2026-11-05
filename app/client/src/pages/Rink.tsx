@@ -5,7 +5,7 @@ import { FaceoffDot, LevelPill, Loading, Section, TeamBadge, fmtRating } from "@
 export default function Rink() {
   const { data } = useQuery<any>({ queryKey: ["/api/rink"] });
   if (!data) return <Loading />;
-  const { rink, region, leagues, top } = data;
+  const { rink, region, leagues, top, season, seasons } = data;
   const totalGames = leagues.reduce((s: number, l: any) => s + l.games, 0);
   const totalTeams = leagues.reduce((s: number, l: any) => s + l.teams, 0);
   return (
@@ -42,6 +42,15 @@ export default function Rink() {
         <div className="p-3.5 flex gap-3"><span className="label w-16 pt-0.5">Ice</span><span>One {rink.surface}</span></div>
         <a href={rink.website} target="_blank" rel="noreferrer" className="p-3.5 flex gap-3 items-center" data-testid="link-rink-website"><span className="label w-16">League</span><span className="text-[var(--blue)] flex-1">Adult hockey league page</span><span>›</span></a>
       </div>
+
+      <Section title="Seasons" action={<span className="label">{seasons.filter((s: any) => season && s.starts_on.slice(0, 4) === season.starts_on.slice(0, 4)).length} a year</span>}>
+        <div className="flex gap-2 overflow-x-auto scrollbar-none">
+          {seasons.map((s: any) => (
+            <span key={s.id} className="chip" data-active={season?.id === s.id}>{s.name}</span>
+          ))}
+        </div>
+        <p className="text-[11px] text-[var(--mute)] mt-2 px-1">Every rink sets its own calendar, from one season a year to four. A scanned sheet's date puts the game in the right one.</p>
+      </Section>
 
       <Section title="Leagues at this rink">
         <div className="space-y-2">

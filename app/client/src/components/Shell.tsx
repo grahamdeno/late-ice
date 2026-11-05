@@ -48,7 +48,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
               data-testid="button-league-switcher"
               aria-expanded={open}
             >
-              {current ? <><LevelPill level={current.level} /> {current.name}</> : <>All Wilmington</>}
+              {current ? <><LevelPill level={current.level === "DEMO" ? "Demo" : current.level} /> {current.name}</> : <>All Wilmington</>}
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" style={{ transform: open ? "rotate(180deg)" : "", transition: "transform .2s" }}><path d="M6 9l6 6 6-6" /></svg>
             </button>
           </div>
@@ -65,7 +65,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 <div>
                   <div className="label">Region · Rink</div>
                   <div className="font-black text-lg mt-0.5">Wilmington, NC</div>
-                  <div className="text-sm text-[var(--mute)]">{boot?.rink?.name} · 1 sheet</div>
+                  <div className="text-sm text-[var(--mute)]">{boot?.rink?.name}{boot?.season ? ` · ${boot.season.name}` : ""}</div>
                 </div>
                 <button onClick={() => setOpen(false)} className="h-9 w-9 rounded-full bg-[var(--ice-3)] flex items-center justify-center" aria-label="Close" data-testid="button-close-switcher">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
@@ -87,7 +87,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                     onClick={() => { setLeagueId(l.id); setOpen(false); }}
                     data-testid={`button-filter-${l.level}`}
                   >
-                    <div className="font-black">{l.level === "40+" ? "40+" : `${l.level} League`}</div>
+                    <div className="font-black">{l.level === "40+" ? "40+" : l.level === "DEMO" ? "Demo" : `${l.level} League`}</div>
                     <div className="text-xs text-[var(--mute)]">{l.teams.length} teams</div>
                   </button>
                 ))}

@@ -1,6 +1,6 @@
 import json, random
 G=[
- dict(id="c-league-flyers-owls", league="C", date="11/01/2026", time="8:45 PM",
+ dict(id="demo-flyers-owls", league="Demo", date="11/01/2026", time="8:45 PM",
   home="Front Street Flyers", away="Ogden Owls",
   home_roster=[(1,"Mike Tolliver","G"),(4,"Dan Reyes",""),(7,"Chris Hales",""),(9,"Sam Okafor",""),(12,"Jake Brandt",""),(17,"Tom Kuehn",""),(19,"Ryan Pell",""),(22,"Nick Ferraro",""),(27,"Ben Ashby",""),(44,"Luke Marsh","")],
   away_roster=[(30,"Paul Grady","G"),(3,"Eric Lunde",""),(5,"Matt Cho",""),(8,"Kyle Brennan",""),(11,"Josh Weller",""),(14,"Drew Fisk",""),(16,"Alex Novak",""),(21,"Pete Simms",""),(88,"Tyler Voss","")],
@@ -9,7 +9,7 @@ G=[
   home_pen=[(2,22,"Tripping",2,"11:30","9:30")],
   away_pen=[(1,5,"Hooking",2,"9:12","7:12"),(3,3,"Slashing",2,"5:01","3:01")],
   home_shots=(9,11,12), away_shots=(8,10,9)),
- dict(id="40-plus-salts-dadbods", league="40+", date="11/02/2026", time="9:30 PM",
+ dict(id="demo-salts-dadbods", league="Demo", date="11/02/2026", time="9:30 PM",
   home="Old Salts", away="Dad Bod Squad",
   home_roster=[(31,"Gary Pruitt","G"),(2,"Bill Hanlon",""),(6,"Steve Mraz",""),(10,"Rich Castellano",""),(15,"Don Whitley",""),(18,"Mark Iverson",""),(23,"Jeff Albrecht",""),(77,"Kevin Doyle","")],
   away_roster=[(35,"Phil Barone","G"),(4,"Greg Lutz",""),(7,"Tim Sorensen",""),(13,"Rob Delgado",""),(20,"Jim Kowalski",""),(24,"Scott Raines",""),(29,"Dave Pickett",""),(91,"Carl Benning","")],

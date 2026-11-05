@@ -57,7 +57,7 @@ export function PlayerPage({ id }: { id: string }) {
   const { data } = useQuery<any>({ queryKey: [`/api/players/${id}`] });
   const [openRow, setOpenRow] = useState<number | null>(null);
   if (!data) return <Loading />;
-  const { player, teams, history, totals, ranks, reliability } = data;
+  const { player, teams, history, totals, ranks, reliability, imported } = data;
   const series = history.length ? [history[0].before, ...history.map((h: any) => h.after)] : [];
   const start = series[0] ?? player.rating;
   const provisional = player.games_rated < 5;
@@ -71,7 +71,7 @@ export function PlayerPage({ id }: { id: string }) {
             <div className="flex flex-wrap gap-1.5 mt-2">
               {teams.map((t: any) => (
                 <Link key={t.id} href={`/team/${t.id}`} className="chip h-7 text-xs" data-testid={`link-player-team-${t.id}`}>
-                  <span className="h-2 w-2 rounded-full" style={{ background: t.color }} /> {t.name} <span className="text-[var(--mute)]">#{t.number}</span>
+                  <TeamBadge team={t} size={16} /> {t.name} {t.number && <span className="text-[var(--mute)]">#{t.number}</span>}
                 </Link>
               ))}
             </div>
@@ -98,10 +98,13 @@ export function PlayerPage({ id }: { id: string }) {
           <div key={k} className="card py-3"><div className="font-display text-2xl tnum">{v}</div><div className="label text-[10px]">{k}</div></div>
         ))}
       </div>
+      {imported && (
+        <p className="text-[11px] text-[var(--mute)] mt-2 px-1" data-testid="text-imported-player">Totals include {imported.gp} games imported from the {imported.source} as of {fmtDate(imported.as_of)}.</p>
+      )}
       {ranks.length > 0 && (
         <div className="flex gap-2 mt-3 flex-wrap">
           {ranks.map((r: any) => (
-            <span key={r.level} className="chip"><LevelPill level={r.level} /> #{r.rank} of {r.of}</span>
+            <span key={r.level} className="chip"><LevelPill level={r.level} /> {r.tied ? "T-" : ""}#{r.rank} of {r.of}</span>
           ))}
         </div>
       )}

@@ -12,7 +12,7 @@ export default function Home() {
   return (
     <div>
       <div className="rise">
-        <div className="label">{league ? `${league.name} · ${league.season}` : "Wilmington, NC · Polar Ice"}</div>
+        <div className="label">{league ? `${league.name} · ${boot?.season?.name ?? ""}` : `Wilmington, NC · Polar Ice${boot?.season ? ` · ${boot.season.name}` : ""}`}</div>
         <h1 className="font-display text-[44px] leading-[0.95] font-black uppercase mt-1">Every game counts.<br /><span className="text-[var(--red)]">Even the 11:15.</span></h1>
       </div>
 
@@ -43,7 +43,11 @@ export default function Home() {
             {data!.games.length ? (
               <div className="space-y-3">{data!.games.slice(0, 6).map((g) => <GameRow key={g.id} g={g} />)}</div>
             ) : (
-              <Empty title="No games on the books yet" body="The first person to scan a sheet puts this league on the board." action={<Link href="/scan" className="btn btn-red" data-testid="button-empty-scan">Scan a sheet</Link>} />
+              <Empty
+                title={data!.leaders.length ? "No sheets scanned yet" : "No games on the books yet"}
+                body={data!.leaders.length ? "Standings and point totals so far are imported from the rink's stats page. The first scanned sheet adds goals, times and ratings." : "The first person to scan a sheet puts this league on the board."}
+                action={<Link href="/scan" className="btn btn-red" data-testid="button-empty-scan">Scan a sheet</Link>}
+              />
             )}
           </Section>
 

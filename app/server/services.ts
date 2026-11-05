@@ -4,6 +4,24 @@ import type { OcrResult, OcrTeam } from "./ocr";
 const q = <T = any>(sql: string, ...p: any[]) => sqlite.prepare(sql).all(...p) as T[];
 const one = <T = any>(sql: string, ...p: any[]) => sqlite.prepare(sql).get(...p) as T | undefined;
 
+/** The season a date falls in at a rink. Falls back to the season containing today, then the latest season. */
+export function seasonFor(rinkId: number, date: string | null) {
+  const d = date || new Date().toISOString().slice(0, 10);
+  return (
+    one<any>("SELECT * FROM seasons WHERE rink_id=? AND starts_on<=? AND ends_on>=? ORDER BY starts_on DESC LIMIT 1", rinkId, d, d) ||
+    one<any>("SELECT * FROM seasons WHERE rink_id=? ORDER BY ends_on DESC LIMIT 1", rinkId)
+  );
+}
+export function currentSeason(rinkId: number) { return seasonFor(rinkId, null); }
+/** Seasons at a rink that have anything in them, newest first. */
+export function seasonsWithData(leagueId: number) {
+  return q<any>(
+    `SELECT s.*, (SELECT COUNT(*) FROM games g WHERE g.season_id=s.id AND g.league_id=?) +
+       (SELECT COUNT(*) FROM team_imports ti JOIN teams t ON t.id=ti.team_id WHERE ti.season_id=s.id AND t.league_id=?) n
+     FROM seasons s WHERE s.rink_id=(SELECT rink_id FROM leagues WHERE id=?) ORDER BY s.starts_on DESC`, leagueId, leagueId, leagueId,
+  ).filter((x: any) => x.n > 0);
+}
+
 export const nameKey = (s: string) => s.toLowerCase().replace(/[^a-z]/g, "");
 
 function bigrams(s: string) {
@@ -25,6 +43,7 @@ export function similarity(a: string, b: string) {
 export function detectLevel(text: string | null): string | null {
   if (!text) return null;
   const t = text.toUpperCase();
+  if (/DEMO|TEST|SAMPLE/.test(t)) return "DEMO";
   if (/40|OVER|OLD|MASTER/.test(t)) return "40+";
   const m = t.match(/\b([ABCD])\d?\b/) || t.match(/([ABCD])/);
   return m ? m[1] : null;
@@ -135,12 +154,13 @@ export function confirmSheet(sheetId: number, input: ConfirmInput) {
 
     const hs = d.home.total ?? d.home.goals.length;
     const as = d.away.total ?? d.away.goals.length;
+    const season = seasonFor(league.rink_id, d.date);
     const gameId = Number(
       sqlite.prepare(
-        `INSERT INTO games (league_id,home_team_id,away_team_id,played_on,start_time,home_score,away_score,periods_json,goals_json,penalties_json,shots_json,sheet_id)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+        `INSERT INTO games (league_id,season_id,home_team_id,away_team_id,played_on,start_time,home_score,away_score,periods_json,goals_json,penalties_json,shots_json,sheet_id)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       ).run(
-        league.id, homeId, awayId, d.date, d.time, hs, as,
+        league.id, season?.id ?? null, homeId, awayId, d.date, d.time, hs, as,
         JSON.stringify({ home: d.home.score_by_period, away: d.away.score_by_period }),
         JSON.stringify({ home: d.home.goals, away: d.away.goals }),
         JSON.stringify({ home: d.home.penalties, away: d.away.penalties }),
@@ -223,16 +243,19 @@ function rateGame(gameId: number, lines: any[], homeId: number, awayId: number, 
 
 /* ---------- read models ---------- */
 
-export function teamRecord(teamId: number) {
-  const gs = q<any>("SELECT * FROM games WHERE home_team_id=? OR away_team_id=?", teamId, teamId);
-  let w = 0, l = 0, t = 0, gf = 0, ga = 0;
+export function teamRecord(teamId: number, seasonId: number | null = null) {
+  const sq = seasonId ? " AND season_id=?" : "";
+  const sp = seasonId ? [seasonId] : [];
+  const gs = q<any>(`SELECT * FROM games WHERE (home_team_id=? OR away_team_id=?)${sq}`, teamId, teamId, ...sp);
+  const imp = one<any>(`SELECT SUM(gp) gp, SUM(w) w, SUM(l) l, SUM(t) t FROM team_imports WHERE team_id=?${sq}`, teamId, ...sp);
+  let w = imp?.w ?? 0, l = imp?.l ?? 0, t = imp?.t ?? 0, gf = 0, ga = 0;
   for (const g of gs) {
     const mine = g.home_team_id === teamId ? g.home_score : g.away_score;
     const theirs = g.home_team_id === teamId ? g.away_score : g.home_score;
     gf += mine; ga += theirs;
     if (mine > theirs) w++; else if (mine < theirs) l++; else t++;
   }
-  return { gp: gs.length, w, l, t, pts: w * 2 + t, gf, ga, diff: gf - ga };
+  return { gp: gs.length + (imp?.gp ?? 0), scanned: gs.length, imported: imp?.gp ?? 0, w, l, t, pts: w * 2 + t, gf, ga, diff: gf - ga };
 }
 
 export function teamRating(teamId: number) {
@@ -242,26 +265,34 @@ export function teamRating(teamId: number) {
   return r?.r ?? null;
 }
 
-export function standings(leagueId: number) {
+export function standings(leagueId: number, seasonId: number | null = null) {
   return q<any>("SELECT * FROM teams WHERE league_id=?", leagueId)
-    .map((t) => ({ ...t, ...teamRecord(t.id), rating: teamRating(t.id) }))
+    .map((t) => ({ ...t, ...teamRecord(t.id, seasonId), rating: teamRating(t.id) }))
     .sort((a, b) => b.pts - a.pts || b.diff - a.diff || b.gf - a.gf || a.name.localeCompare(b.name));
 }
 
-export function leaders(leagueId: number | null, limit = 10) {
-  const where = leagueId ? "WHERE g.league_id=?" : "";
+export function leaders(leagueId: number | null, limit = 10, seasonId: number | null = null) {
+  const scope = (leagueId ? "l.id=?" : "l.level<>'DEMO'") + (seasonId ? " AND season_id=?" : "");
+  const one_ = [...(leagueId ? [leagueId] : []), ...(seasonId ? [seasonId] : [])];
+  const params = [...one_, ...one_];
   return q<any>(
-    `SELECT p.id, p.name, p.rating, p.position, SUM(s.goals) g, SUM(s.assists) a, SUM(s.goals+s.assists) pts, COUNT(DISTINCT s.game_id) gp,
-      (SELECT t.name FROM teams t WHERE t.id = s.team_id) team, s.team_id
-     FROM player_game_stats s JOIN players p ON p.id=s.player_id JOIN games g ON g.id=s.game_id ${where}
-     GROUP BY p.id, s.team_id HAVING pts > 0 ORDER BY pts DESC, g DESC, p.name LIMIT ${limit}`,
-    ...(leagueId ? [leagueId] : []),
+    `WITH lines AS (
+       SELECT s.player_id, s.team_id, s.goals g, s.assists a, gm.season_id season_id FROM player_game_stats s JOIN games gm ON gm.id=s.game_id JOIN leagues l ON l.id=gm.league_id WHERE ${scope}
+       UNION ALL
+       SELECT pi.player_id, pi.team_id, pi.g, pi.a, pi.season_id FROM player_imports pi JOIN teams t ON t.id=pi.team_id JOIN leagues l ON l.id=t.league_id WHERE ${scope}
+     )
+     SELECT p.id, p.name, p.rating, p.position, SUM(x.g) g, SUM(x.a) a, SUM(x.g+x.a) pts,
+       (SELECT t.name FROM teams t WHERE t.id=x.team_id) team, x.team_id
+     FROM lines x JOIN players p ON p.id=x.player_id
+     GROUP BY p.id, x.team_id HAVING pts > 0 ORDER BY pts DESC, g DESC, p.name LIMIT ${limit}`,
+    ...params,
   );
 }
 
 export function gameCard(g: any) {
-  const h = one<any>("SELECT id,name,color FROM teams WHERE id=?", g.home_team_id);
-  const a = one<any>("SELECT id,name,color FROM teams WHERE id=?", g.away_team_id);
+  const h = one<any>("SELECT id,name,color,logo FROM teams WHERE id=?", g.home_team_id);
+  const a = one<any>("SELECT id,name,color,logo FROM teams WHERE id=?", g.away_team_id);
   const l = one<any>("SELECT id,level,name FROM leagues WHERE id=?", g.league_id);
-  return { id: g.id, playedOn: g.played_on, startTime: g.start_time, home: h, away: a, homeScore: g.home_score, awayScore: g.away_score, league: l, sheetId: g.sheet_id };
+  const s = g.season_id ? one<any>("SELECT id,name FROM seasons WHERE id=?", g.season_id) : null;
+  return { id: g.id, season: s, playedOn: g.played_on, startTime: g.start_time, home: h, away: a, homeScore: g.home_score, awayScore: g.away_score, league: l, sheetId: g.sheet_id };
 }
