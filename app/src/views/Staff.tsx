@@ -375,39 +375,58 @@ function ImportSection({ rinks }: { rinks: any[] }) {
   const [text, setText] = useState("");
   const [file, setFile] = useState<string | null>(null);
   const [res, setRes] = useState<any>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<null | "preview" | "apply">(null);
   const [err, setErr] = useState<string | null>(null);
   const [level, setLevel] = useState("");
+  const [done, setDone] = useState<any[]>([]);
+  const [pick, setPick] = useState(0); // remounts the file input so the same file can be chosen again
+  const reset = () => { setText(""); setFile(null); setRes(null); setLevel(""); setErr(null); setPick((n) => n + 1); };
   const send = async (apply: boolean, lv: string = level) => {
-    setBusy(true); setErr(null);
+    setBusy(apply ? "apply" : "preview"); setErr(null);
     try {
       const r = await apiRequest("POST", "/api/staff/import", { text, rinkId, apply, level: lv || null });
-      setRes(await r.json());
-      if (apply) await queryClient.invalidateQueries();
+      const out = await r.json();
+      if (apply) {
+        if (!out.applied) throw new Error("Nothing was saved. Check the preview and try again.");
+        await queryClient.invalidateQueries();
+        setDone((d) => [out.summary, ...d]);
+        reset();
+      } else setRes(out);
     } catch (e: any) { setErr(e.message); }
-    setBusy(false);
+    setBusy(null);
   };
   const s = res?.summary;
+  const ready = !!s && !s.needsLevel;
   return (
     <Section title="Import from DaySmart">
       <div className="card p-4 space-y-3" data-testid="card-import">
-        <p className="text-xs text-[var(--mute)]">Upload the report Grok collected, one league at a time. You'll see a preview before anything is saved. Leagues and teams that aren't here yet are added, rosters become unclaimed spots, and standings and season totals come from the league's own pages.</p>
+        <p className="text-xs text-[var(--mute)]">One league per file. Choose the file, check the preview, then import. Nothing is saved until you press Import.</p>
+        {done.length > 0 && (
+          <div className="rounded-xl p-3 text-sm space-y-1" style={{ background: "rgba(56,217,150,.12)", border: "1px solid var(--up)" }} data-testid="import-done">
+            {done.map((d, i) => (
+              <div key={i} className={i ? "text-xs text-[var(--mute)]" : ""}>
+                <span className="font-bold up">{i ? "Saved earlier" : "Saved"}: {d.league}</span>
+                {i === 0 && <div className="text-xs mt-0.5">{d.gamesAdded} new games, {d.gamesUpdated} updated · {d.rosterAdded} new roster spots · {d.standingsRows ?? 0} standings rows. Ready for the next file.</div>}
+              </div>
+            ))}
+          </div>
+        )}
         {rinks.length > 1 && (
           <select className="input w-full text-sm" value={rinkId} onChange={(e) => setRinkId(Number(e.target.value))}>
             {rinks.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
           </select>
         )}
         <label className="btn btn-ghost h-11 w-full cursor-pointer">
-          {file ? `File: ${file}` : "Choose the report file"}
-          <input type="file" accept=".txt,text/plain" className="hidden" data-testid="input-import-file"
-            onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; setFile(f.name); setText(await f.text()); setRes(null); }} />
+          {file ? `File: ${file}` : done.length ? "Choose the next file" : "Choose the report file"}
+          <input key={pick} type="file" accept=".txt,text/plain" className="hidden" data-testid="input-import-file"
+            onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; setFile(f.name); setLevel(""); setRes(null); const t = await f.text(); setText(t); }} />
         </label>
         <textarea className="input w-full h-24 py-2 text-xs" placeholder="Or paste the report here" value={text} onChange={(e) => { setText(e.target.value); setFile(null); setRes(null); }} data-testid="input-import-text" />
         {err && <p className="text-sm down">{err}</p>}
-        <button className="btn btn-ghost h-11 w-full" disabled={busy || text.length < 50} onClick={() => send(false)} data-testid="button-import-preview">{busy && !res ? "Reading…" : "Preview"}</button>
+        {!s && <button className="btn btn-ghost h-11 w-full" disabled={!!busy || text.length < 50} onClick={() => send(false)} data-testid="button-import-preview">{busy === "preview" ? "Reading…" : "Preview"}</button>}
         {s && (
           <div className="rounded-xl border border-[var(--line)] p-3 text-xs space-y-1.5" data-testid="import-summary">
-            <div className="font-bold text-sm">{res.applied ? "Imported" : "Preview"} · {s.league}{s.leagueCreated ? " (new league)" : ""}</div>
+            <div className="font-bold text-sm">Preview · {s.league}{s.leagueCreated ? " (new league)" : ""}</div>
             {s.teamsCreated?.length > 0 && <div className="text-[var(--amber)]">New teams: {s.teamsCreated.join(", ")}. Check the spelling before importing.</div>}
             {(s.standingsRows > 0 || s.playerTotals > 0) && <div>{s.standingsRows} standings rows · {s.playerTotals} player season totals</div>}
             <div>{s.gamesAdded} new games, {s.gamesUpdated} updated{s.gamesSkipped.length ? `, ${s.gamesSkipped.length} skipped` : ""} · {s.lines} player lines</div>
@@ -418,17 +437,24 @@ function ImportSection({ rinks }: { rinks: any[] }) {
             {s.warnings.map((w: string, i: number) => <div key={i} className="text-[var(--amber)]">{w}</div>)}
           </div>
         )}
-        {s && !res.applied && (s.needsLevel || s.leagueCreated) && (
+        {s && (s.needsLevel || s.leagueCreated) && (
           <label className="block" data-testid="field-import-level">
-            <span className="label">Skill level for {s.league}{s.tag ? ` (${s.tag})` : ""}</span>
-            <select className="input w-full mt-1" value={level || (s.needsLevel ? "" : s.level ?? "")} onChange={(e) => { setLevel(e.target.value); send(false, e.target.value); }} data-testid="select-import-level">
+            <span className="label">Step 2 · Skill level for {s.league}{s.tag ? ` (${s.tag})` : ""}</span>
+            <select className="input w-full mt-1" value={level || (s.needsLevel ? "" : s.level ?? "")} disabled={!!busy} onChange={(e) => { setLevel(e.target.value); if (e.target.value) send(false, e.target.value); }} data-testid="select-import-level">
               <option value="">Pick one</option>
               <option value="A">A: top level</option><option value="B">B</option><option value="C">C</option><option value="D">D: newest players</option>
             </select>
-            <span className="block text-[11px] text-[var(--mute)] mt-1">One scale for every rink, so standings and ratings compare fairly.</span>
+            <span className="block text-[11px] text-[var(--mute)] mt-1">Picking a level only updates the preview. Nothing is saved yet.</span>
           </label>
         )}
-        {s && !res.applied && <button className="btn btn-red h-11 w-full" disabled={busy || s.needsLevel} onClick={() => send(true)} data-testid="button-import-apply">{busy ? "Importing…" : s.needsLevel ? "Pick a level, then Preview" : "Import it"}</button>}
+        {s && (
+          <div className="flex gap-2">
+            <button className="btn btn-ghost h-11 px-4" disabled={!!busy} onClick={reset} data-testid="button-import-cancel">Cancel</button>
+            <button className="btn btn-red h-11 flex-1" disabled={!!busy || !ready} onClick={() => send(true)} data-testid="button-import-apply">
+              {busy === "apply" ? "Saving…" : busy === "preview" ? "Updating preview…" : !ready ? "Pick a level first" : `Import ${s.league}`}
+            </button>
+          </div>
+        )}
       </div>
     </Section>
   );

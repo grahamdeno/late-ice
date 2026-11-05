@@ -3,7 +3,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "Late Ice · Wilmington",
+  title: "Late Ice",
   description: "Beer league hockey, counted. Snap the scoresheet, get your rating.",
   manifest: "/manifest.webmanifest",
   // Closed pilot: stay out of search results. People find it through an invite.

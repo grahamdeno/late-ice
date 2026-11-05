@@ -98,7 +98,7 @@ export default function Rink() {
         <div className="card p-4 flex items-center gap-3">
           <FaceoffDot size={36} />
           <div className="flex-1">
-            <div className="font-bold">Wilmington, NC</div>
+            <div className="font-bold">{region ? `${region.name}, ${region.state}` : rink.name}</div>
             <div className="text-xs text-[var(--mute)]">Is your rink missing? Add it and an admin checks it's real.</div>
           </div>
           {data.signedIn ? (open !== "newrink" && <button className="btn btn-ghost h-9 text-sm shrink-0" onClick={() => setOpen("newrink")} data-testid="button-add-missing-rink">Add a rink</button>) : <Link href="/join" className="btn btn-ghost h-9 text-sm shrink-0">Join to add</Link>}
