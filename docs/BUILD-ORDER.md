@@ -29,7 +29,7 @@ Added (Nov 2026, branch `registration-roster`):
 
 Migrated (Nov 2026, branch `nextjs-supabase`): the pilot now runs on Next.js and Supabase, the planned stack. Ratings replay nightly from stored stat lines. Sheets reuse only unclaimed records by name, so stats reach a registered player only by claim or captain match.
 
-Up next: rink directory seed and rink detection from the sheet, scan attribution and disputes, the shareable recap card, then push notifications.
+Next: roles and permissions (see `docs/ROLES.md`), then schedule import and manual games, then game-night features, then shot maps. After that: rink directory seed and rink detection from the sheet, scan attribution and disputes, the shareable recap card, then push notifications.
 
 ---
 
