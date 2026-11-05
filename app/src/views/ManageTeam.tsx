@@ -209,7 +209,7 @@ function AddSpot({ teamId, full, run }: { teamId: number; full: { skaters: boole
   return (
     <form className="card p-4 space-y-2.5" onSubmit={async (e) => {
       e.preventDefault(); setBusy(true); setDone(null);
-      if (await run("POST", `/api/teams/${teamId}/slots`, v)) { setDone(`${v.name} is on the roster. They claim the spot when they sign up.`); setV({ name: "", number: "", position: v.position, sub: false }); }
+      if (await run("POST", `/api/teams/${teamId}/slots`, { ...v, sub: v.sub || isFull })) { setDone(`${v.name} is on the roster. They claim the spot when they sign up.`); setV({ name: "", number: "", position: v.position, sub: false }); }
       setBusy(false);
     }} data-testid="form-add-spot">
       <p className="text-xs text-[var(--mute)]">For a teammate who isn't in the app yet. Their stats start collecting now; they claim the spot when they join.</p>
