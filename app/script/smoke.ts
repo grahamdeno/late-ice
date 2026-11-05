@@ -730,7 +730,7 @@ async function main() {
   ok(pat.number === "72" && pat.position === "G", "the edit stuck");
   ok(mtAfter.counts.goalies === mtBefore.counts.goalies + 1 && mtAfter.counts.skaters === mtBefore.counts.skaters, "he now counts as a goalie, not a skater");
   const lgOf = (await db`SELECT league_id FROM teams WHERE id=${hh}`)[0].league_id;
-  ok((await call("PATCH", `/api/leagues/${lgOf}`, { rosterMax: 3 }, boss)).status === 200, "staff set a smaller roster");
+  ok((await call("PATCH", `/api/leagues/${lgOf}`, { rosterMax: 5 }, boss)).status === 200, "staff set a smaller roster");
   ok((await call("POST", `/api/teams/${hh}/slots`, { name: "One Too Many", number: "49", position: "W" }, graham)).status === 409, "a full roster refuses another skater");
   ok((await call("POST", `/api/teams/${hh}/slots`, { name: "Spare Guy", number: "49", position: "W", sub: true }, graham)).status === 200, "but takes him as a sub");
   await call("PATCH", "/api/me", { status: "ir", statusUntil: "2027-01-01" }, sam);
