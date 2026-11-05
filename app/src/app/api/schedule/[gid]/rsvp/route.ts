@@ -1,13 +1,13 @@
 import { handle, body, num } from "@/server/http";
 import { sql, q, one } from "@/server/db";
 import { HttpError } from "@/server/services";
-import { requireUser } from "@/server/accounts";
+import { requireApproved } from "@/server/accounts";
 
 export const dynamic = "force-dynamic";
 
 /** In, Out or Late for one game. Only players on that team's roster can answer. Null clears it. */
 export const PUT = handle<{ gid: string }>(async (req, { gid }) => {
-  const u = await requireUser(req);
+  const u = await requireApproved(req);
   const b = await body(req);
   const answer = b?.answer ?? null;
   if (answer !== null && !["in", "out", "late"].includes(answer)) throw new HttpError(400, "Pick in, out or late.");

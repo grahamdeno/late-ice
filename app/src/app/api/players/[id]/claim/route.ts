@@ -6,7 +6,7 @@ import * as A from "@/server/accounts";
 export const dynamic = "force-dynamic";
 
 export const POST = handle<{ id: string }>(async (req, { id }) => {
-  const u = await A.requireUser(req);
+  const u = await A.requireApproved(req);
   if (!u.name) throw new HttpError(400, "Finish your profile first.");
   await sql.begin(async (tx) => {
     const p = await one<any>(tx, "SELECT * FROM players WHERE id=$1 FOR UPDATE", [num(id)]);

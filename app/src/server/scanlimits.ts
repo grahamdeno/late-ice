@@ -4,7 +4,7 @@ import "server-only";
 import { one, q, sql } from "./db";
 import { HttpError } from "./services";
 import { can } from "./permissions";
-import { notify } from "./accounts";
+import { isApproved, notify, WAITLIST } from "./accounts";
 
 export const monthlyCap = () => Number(process.env.SCAN_MONTHLY_CAP || 400);
 export const dailyCap = () => Number(process.env.SCAN_DAILY_PER_USER || 15);
@@ -17,6 +17,7 @@ export async function scanUsage() {
 /** Throws if this person may not start a scan right now. */
 export async function checkScan(user: any) {
   if (!user) throw new HttpError(401, "Sign in to scan a sheet. It's free and takes a minute.");
+  if (!(await isApproved(sql, user))) throw new HttpError(403, WAITLIST);
   const { month, cap } = await scanUsage();
   if (month >= cap) {
     const told = await one(sql, "SELECT 1 FROM notifications WHERE kind='scan_cap' AND created_at >= date_trunc('month', now())");

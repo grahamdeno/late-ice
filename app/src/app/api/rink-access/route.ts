@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 // "Run this rink? Request access." Lands in the admin queue; an admin verifies by phone.
 export const POST = handle(async (req) => {
-  const u = await A.requireUser(req);
+  const u = await A.requireApproved(req);
   const b = await body(req);
   const rinkId = Number(b?.rinkId) || 0;
   const rink = await one<any>(sql, "SELECT id, name FROM rinks WHERE id=$1", [rinkId]);

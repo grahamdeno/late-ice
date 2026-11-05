@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@/lib/router";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, authHeaders, queryClient } from "@/lib/queryClient";
 import { BackBar, FaceoffDot, Loading, TeamBadge, img, useFilter } from "@/lib/ui";
 
 type Side = "home" | "away";
@@ -28,10 +28,11 @@ export default function Sheet({ id }: { id: string }) {
   const [tab, setTab] = useState<"goals" | "rosters" | "penalties">("goals");
   const [zoom, setZoom] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [sent, setSent] = useState(false);
   const [err, setErr] = useState<{ message: string; gameId?: number } | null>(null);
 
   useEffect(() => {
-    if (s?.status === "review" && !d) {
+    if ((s?.status === "review" || s?.status === "awaiting") && !d) {
       setD(structuredClone(s.data));
       setLeagueId(s.suggestion?.leagueId ?? null);
       setTeamIds({ home: s.suggestion?.home.teamId ?? null, away: s.suggestion?.away.teamId ?? null });
@@ -141,13 +142,24 @@ export default function Sheet({ id }: { id: string }) {
     if (!leagueId) return setErr({ message: "Pick the league this game was in." });
     setSaving(true); setErr(null);
     const res = await fetch(img(`/api/sheets/${id}/confirm`), {
-      method: "POST", headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({ leagueId, homeTeamId: teamIds.home, awayTeamId: teamIds.away, data: d }),
     });
     const j = await res.json();
     if (!res.ok) { setErr(j); setSaving(false); return; }
     await queryClient.invalidateQueries();
     nav(`/game/${j.gameId}/new`);
+  };
+
+  const submit = async () => {
+    if (!leagueId) return setErr({ message: "Pick the league this game was in." });
+    setSaving(true); setErr(null);
+    try {
+      await apiRequest("POST", `/api/sheets/${id}/submit`, { leagueId, homeTeamId: teamIds.home, awayTeamId: teamIds.away, data: d });
+      await queryClient.invalidateQueries();
+      setSent(true);
+    } catch (e: any) { setErr({ message: e.message }); }
+    setSaving(false);
   };
 
   const discard = async () => {
@@ -157,6 +169,8 @@ export default function Sheet({ id }: { id: string }) {
   };
 
   const conf = Math.round((d.confidence ?? 0) * 100);
+  const r = s.rights ?? { leagues: [], teams: [], sample: false, approved: false };
+  const canConfirm = r.approved && ((r.sample && league?.level === "DEMO") || (leagueId != null && r.leagues.includes(leagueId)) || [teamIds.home, teamIds.away].some((t) => t != null && r.teams.includes(t)));
 
   return (
     <div className="pb-40">
@@ -291,9 +305,20 @@ export default function Sheet({ id }: { id: string }) {
               {err.message} {err.gameId && <Link href={`/game/${err.gameId}`} className="font-bold text-[var(--blue)]">See the game</Link>}
             </div>
           )}
-          <button className="btn btn-red w-full h-14 text-base shadow-[0_10px_30px_rgba(255,59,59,.35)]" onClick={confirm} disabled={saving || !!s.suggestion?.duplicateGameId} data-testid="button-confirm-final">
-            {saving ? "Putting it in the books…" : <>Confirm final · {league ? `${league.level} · ` : ""}{totals!.home}–{totals!.away}</>}
-          </button>
+          {(sent || (s.status === "awaiting" && !canConfirm)) && (
+            <div className="card p-3 mb-2 text-sm" data-testid="text-sent-to-captains">
+              {sent ? "Sent. The captains have a notice to check it and tap Confirm." : `${s.submitted?.by ?? "A player"} sent this to the captains. It counts once one of them confirms.`}
+            </div>
+          )}
+          {canConfirm ? (
+            <button className="btn btn-red w-full h-14 text-base shadow-[0_10px_30px_rgba(255,59,59,.35)]" onClick={confirm} disabled={saving || !!s.suggestion?.duplicateGameId} data-testid="button-confirm-final">
+              {saving ? "Putting it in the books…" : <>Confirm final · {league ? `${league.level} · ` : ""}{totals!.home}–{totals!.away}</>}
+            </button>
+          ) : !sent && (
+            <button className="btn btn-red w-full h-14 text-base" onClick={submit} disabled={saving || !!s.suggestion?.duplicateGameId || !s.rights?.approved} data-testid="button-send-to-captains">
+              {saving ? "Sending…" : !s.rights?.approved ? "On the waitlist: can't send yet" : s.status === "awaiting" ? "Send my corrections" : "Send to the captains to confirm"}
+            </button>
+          )}
         </div>
       </div>
 

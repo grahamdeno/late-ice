@@ -6,7 +6,7 @@ import { supabase } from "./supabase";
 
 export interface MeUser {
   id: number; email: string | null; phone: string | null; name: string | null; number: string | null; position: "C" | "W" | "F" | "D" | "G" | null;
-  homeRink: { id: number; name: string } | null; status: "active" | "ir" | "away"; lookingForTeam: boolean; willSub: boolean; avatar: any | null;
+  homeRink: { id: number; name: string } | null; access: "approved" | "waiting" | "removed"; status: "active" | "ir" | "away"; lookingForTeam: boolean; willSub: boolean; avatar: any | null;
   statusUntil: string | null; hidden: boolean; profileComplete: boolean;
 }
 export interface MeSlot {
@@ -26,6 +26,7 @@ export interface Me {
   suggestions: { id: number; name: string; rating: number; number: string | null; team_id: number; team_name: string; color: string; logo: string | null; level: string; score: number }[];
 }
 
+export const INVITE_KEY = "lateice.invite";
 const AuthCtx = createContext<{ ready: boolean; token: string }>({ ready: false, token: "" });
 
 /** Keeps the Supabase session token in sync with the API client. */
@@ -50,6 +51,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     return () => { alive = false; sub.subscription.unsubscribe(); };
   }, []);
+  // Signed in after opening a team's invite link: use it once, then forget it.
+  useEffect(() => {
+    if (!state.token) return;
+    let invite: string | null = null;
+    try { invite = localStorage.getItem(INVITE_KEY); } catch { /* storage off */ }
+    if (!invite) return;
+    apiRequest("POST", "/api/invites/accept", { token: invite })
+      .then(() => queryClient.invalidateQueries())
+      .catch(() => {})
+      .finally(() => { try { localStorage.removeItem(INVITE_KEY); } catch { /* storage off */ } });
+  }, [state.token]);
   return <AuthCtx.Provider value={state}>{children}</AuthCtx.Provider>;
 }
 

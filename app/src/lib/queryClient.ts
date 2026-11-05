@@ -11,7 +11,7 @@ let token = "";
 export function getToken() { return token; }
 export function setToken(t: string | null) { token = t || ""; }
 
-function authHeaders(): Record<string, string> {
+export function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 

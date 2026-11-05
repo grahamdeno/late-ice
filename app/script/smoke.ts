@@ -51,7 +51,7 @@ async function call(method: string, url: string, body?: unknown, token?: string)
 }
 
 /** Sign in by emailed code (read from the local mail catcher) and register. */
-async function signUp(email: string, profile: { name: string; number: string; position: string }) {
+async function signUp(email: string, profile: { name: string; number: string; position: string }, opts: { waitlist?: boolean; blocked?: boolean } = {}) {
   const sb = createClient(env.NEXT_PUBLIC_SUPABASE_URL!, env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false } });
   const inbox = email.toLowerCase();
   const before = await lastMailId(inbox);
@@ -67,10 +67,14 @@ async function signUp(email: string, profile: { name: string; number: string; po
   ok(!!again.error, "a used code can't be reused");
   const token = v.data.session!.access_token;
   const me = await call("GET", "/api/me", undefined, token);
+  if (opts.blocked) { ok(me.status === 403 && /paused/i.test(me.json?.message ?? ""), `${email} can't make an account while sign-ups are paused`); return token; }
   ok(me.status === 200 && me.json.user.profileComplete === false && me.json.user.email === email.toLowerCase() && me.json.user.phone === null, `${email} gets a new account keyed on email, no phone`);
   const rinks = await call("GET", "/api/rinks");
   const p = await call("PATCH", "/api/me", { ...profile, homeRinkId: rinks.json[0].id }, token);
   ok(p.status === 200 && p.json.user.profileComplete, `${profile.name} profile complete`);
+  ok(p.json.user.access === (inbox === "boss@example.com" ? "approved" : "waiting"), `${email} starts ${inbox === "boss@example.com" ? "let in (bootstrap admin)" : "on the waitlist"}`);
+  // Most test players are let in straight away; the gate has its own checks below.
+  if (!opts.waitlist) await db`UPDATE users SET access='approved' WHERE email=${inbox}`;
   return token;
 }
 
@@ -232,9 +236,10 @@ async function main() {
   await db`UPDATE sheets SET extracted_json=${JSON.stringify(data)} WHERE id=${sheet.id}`;
   const sv = await call("GET", `/api/sheets/${sheet.id}`);
   ok(sv.json.suggestion?.home?.teamId && sv.json.suggestion?.away?.teamId, "reader result is matched to the Demo teams");
-  const conf = await call("POST", `/api/sheets/${sheet.id}/confirm`, { leagueId: demo, homeTeamId: sv.json.suggestion.home.teamId, awayTeamId: sv.json.suggestion.away.teamId, data });
+  ok((await call("POST", `/api/sheets/${sheet.id}/confirm`, { leagueId: demo, homeTeamId: sv.json.suggestion.home.teamId, awayTeamId: sv.json.suggestion.away.teamId, data })).status === 401, "confirming needs sign-in");
+  const conf = await call("POST", `/api/sheets/${sheet.id}/confirm`, { leagueId: demo, homeTeamId: sv.json.suggestion.home.teamId, awayTeamId: sv.json.suggestion.away.teamId, data }, sam);
   ok(conf.status === 200 && conf.json.gameId, "confirming the sheet creates the game");
-  const again = await call("POST", `/api/sheets/${sheet.id}/confirm`, { leagueId: demo, homeTeamId: sv.json.suggestion.home.teamId, awayTeamId: sv.json.suggestion.away.teamId, data });
+  const again = await call("POST", `/api/sheets/${sheet.id}/confirm`, { leagueId: demo, homeTeamId: sv.json.suggestion.home.teamId, awayTeamId: sv.json.suggestion.away.teamId, data }, sam);
   ok(again.status === 409, "the same sheet can't be confirmed twice");
   const game = await call("GET", `/api/games/${conf.json.gameId}`);
   ok(game.json.homeScore === 4 && game.json.awayScore === 3, "final score 4-3 from the sheet");
@@ -473,7 +478,13 @@ async function main() {
   await db`UPDATE sheets SET extracted_json=${JSON.stringify(real)} WHERE id=${sh2.id}`;
   const sv2 = (await call("GET", `/api/sheets/${sh2.id}`)).json;
   ok(sv2.suggestion.duplicateGameId === null, "an imported game isn't flagged as already scanned");
-  const c2 = await call("POST", `/api/sheets/${sh2.id}/confirm`, { leagueId: lg, homeTeamId: hh, awayTeamId: blId, data: real });
+  ok((await call("POST", `/api/sheets/${sh2.id}/confirm`, { leagueId: lg, homeTeamId: hh, awayTeamId: blId, data: real }, outsider)).status === 403, "a player who isn't a captain of either team can't confirm");
+  const sub2 = await call("POST", `/api/sheets/${sh2.id}/submit`, { leagueId: lg, homeTeamId: hh, awayTeamId: blId, data: real }, outsider);
+  ok(sub2.status === 200 && sub2.json.told >= 1, "they send it to the captains instead");
+  const aw = (await call("GET", `/api/sheets/${sh2.id}`, undefined, graham)).json;
+  ok(aw.status === "awaiting" && aw.submitted?.by === "Otto Side" && aw.suggestion.home.teamId === hh && aw.rights.teams.includes(hh), "the captain sees it waiting, with the sender's picks, and can confirm");
+  ok((await call("GET", "/api/me", undefined, graham)).json.notifications.some((n: any) => n.kind === "sheet" && n.link === `/sheet/${sh2.id}`), "and got a notice");
+  const c2 = await call("POST", `/api/sheets/${sh2.id}/confirm`, { leagueId: lg, homeTeamId: hh, awayTeamId: blId, data: real }, graham);
   ok(c2.status === 200, "the real sheet goes in");
   after = (await call("GET", `/api/teams/${hh}`)).json;
   ok(!after.games.some((g: any) => g.source === "daysmart" && g.playedOn === "2026-09-06") && after.games.some((g: any) => g.id === c2.json.gameId), "it replaced the imported game");
@@ -639,6 +650,40 @@ async function main() {
 
   console.log("status and sign-out");
   ok((await call("PATCH", "/api/me", { status: "ir", statusUntil: "2026-12-01" }, sam)).json.user.status === "ir", "set injured reserve");
+
+  console.log("sign-up gate");
+  const newbie = await signUp("newbie@example.com", { name: "Nora Newbie", number: "71", position: "W" }, { waitlist: true });
+  ok((await call("GET", "/api/me", undefined, newbie)).json.user.access === "waiting", "a new account waits");
+  const openSlot = (await call("GET", `/api/teams/${hh}`)).json.roster.find((r: any) => !r.registered);
+  const blockedClaim = await call("POST", `/api/players/${openSlot.id}/claim`, undefined, newbie);
+  ok(blockedClaim.status === 403 && /waitlist/i.test(blockedClaim.json.message), "it can't claim a spot");
+  ok((await call("POST", "/api/sheets", { image: tiny }, newbie)).status === 403, "or scan");
+  ok((await call("GET", "/api/staff/signups", undefined, boss)).json.some((u: any) => u.email === "newbie@example.com"), "the admin sees it waiting");
+  ok((await call("GET", "/api/staff/signups", undefined, sam)).status === 200 && !(await call("GET", "/api/staff/signups", undefined, sam)).json.length, "a player sees nobody to let in");
+  const nbId = (await db`SELECT id FROM users WHERE email='newbie@example.com'`)[0].id;
+  ok((await call("POST", `/api/staff/signups/${nbId}`, { decision: "approve" }, sam)).status === 403, "a player can't let people in");
+  ok((await call("POST", `/api/staff/signups/${nbId}`, { decision: "approve" }, boss)).status === 200, "admin lets Nora in");
+  ok((await call("GET", "/api/me", undefined, newbie)).json.user.access === "approved", "and she's in");
+  const inv = await call("POST", `/api/teams/${hh}/invite`, undefined, graham);
+  ok(inv.status === 200 && inv.json.invite.token && inv.json.invite.uses === 0, "captain makes an invite link");
+  ok((await call("POST", `/api/teams/${hh}/invite`, undefined, fan)).status === 403, "only the team's captains and staff can");
+  ok((await call("GET", `/api/invites/${inv.json.invite.token}`)).json.team === "Hammer'd Heads", "the link says which team");
+  const invited = await signUp("invited@example.com", { name: "Ivan Invited", number: "5", position: "D" }, { waitlist: true });
+  const acc = await call("POST", "/api/invites/accept", { token: inv.json.invite.token }, invited);
+  ok(acc.status === 200 && acc.json.newlyApproved && acc.json.teamId === hh, "signing in through the link lets you in");
+  ok((await call("GET", "/api/me", undefined, invited)).json.user.access === "approved", "no waiting");
+  ok((await call("GET", `/api/teams/${hh}/invite`, undefined, graham)).json.invite.uses === 1, "the link counts the use");
+  ok((await call("DELETE", `/api/teams/${hh}/invite`, undefined, graham)).status === 200 && !(await call("GET", `/api/invites/${inv.json.invite.token}`)).json.valid, "turning the link off stops it");
+  for (let i = 0; i < 2; i++) { await call("POST", `/api/teams/${hh}/invite`, undefined, graham); await call("DELETE", `/api/teams/${hh}/invite`, undefined, graham); }
+  ok((await call("POST", `/api/teams/${hh}/invite`, undefined, graham)).status === 429, "three new links a week per team, then it waits");
+  ok((await call("PUT", "/api/staff/settings", { signupsPaused: true }, sam)).status === 403, "only an admin can pause sign-ups");
+  ok((await call("PUT", "/api/staff/settings", { signupsPaused: true }, boss)).json.signupsPaused === true, "admin pauses sign-ups");
+  ok((await call("GET", "/api/signup-status")).json.paused === true, "the join page knows");
+  await signUp("toolate@example.com", { name: "Too Late", number: "0", position: "F" }, { blocked: true });
+  ok((await call("GET", "/api/me", undefined, sam)).status === 200, "existing players still sign in");
+  ok((await call("PUT", "/api/staff/settings", { signupsPaused: false }, boss)).json.signupsPaused === false, "and back open");
+  const robots = await (await fetch(`${BASE}/robots.txt`)).text();
+  ok(/Disallow: \//.test(robots) && /noindex/.test(await (await fetch(`${BASE}/`)).text()), "search engines are told to stay out");
 
   console.log("pages render");
   for (const path of ["/", "/leagues", `/team/${hh}`, `/player/${mike}`, "/players", "/rink", "/scan", "/join", "/privacy", `/game/${conf.json.gameId}`, `/league/${lg}`]) {

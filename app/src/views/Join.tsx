@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@/lib/router";
 import { apiRequest, queryClient, setToken } from "@/lib/queryClient";
-import { useMe, normEmail, POSITION_LABEL } from "@/lib/auth";
+import { useMe, normEmail, POSITION_LABEL, INVITE_KEY } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { FaceoffDot, Loading } from "@/lib/ui";
 
@@ -25,9 +25,24 @@ function codeError(message: string, sentAt: number | null) {
   return "Something went wrong. Try again.";
 }
 
+/** A team's invite link: remember it through sign-in, and say which team it's for. */
+function useInvite() {
+  const [token, setTok] = useState<string | null>(null);
+  useEffect(() => {
+    let t: string | null = null;
+    try { t = new URLSearchParams(window.location.search).get("invite"); } catch { /* no window */ }
+    try { if (t) localStorage.setItem(INVITE_KEY, t); else t = localStorage.getItem(INVITE_KEY); } catch { /* storage off */ }
+    setTok(t);
+  }, []);
+  const { data } = useQuery<any>({ queryKey: [`/api/invites/${token}`], enabled: !!token });
+  return data?.valid ? data : null;
+}
+
 export default function Join() {
   const [, nav] = useLocation();
   const { me, loading } = useMe();
+  const invite = useInvite();
+  const { data: gate } = useQuery<{ paused: boolean }>({ queryKey: ["/api/signup-status"] });
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -95,6 +110,16 @@ export default function Join() {
           : "Sign in with your email. We send a six-digit code. No password."}
       </p>
 
+      {invite && (
+        <div className="card mt-4 p-3.5 text-sm border-[var(--up)]/40" data-testid="card-invite-banner">
+          You're invited to join <b>{invite.team}</b> ({invite.league}, {invite.rink}). Sign in and you're in.
+        </div>
+      )}
+      {!invite && step === "email" && (
+        <div className="card mt-4 p-3.5 text-xs text-[var(--mute)]" data-testid="card-gate-note">
+          {gate?.paused ? "New sign-ups are paused right now. Players who already have an account can still sign in." : "Late Ice is invite-only for now. Without your captain's link you'll be on the waitlist until staff let you in."}
+        </div>
+      )}
       {step === "email" && (
         <form onSubmit={send} className="card-hi p-5 mt-5 space-y-3">
           <label className="block">

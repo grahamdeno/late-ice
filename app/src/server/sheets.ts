@@ -47,10 +47,27 @@ export async function runOcr(sheetId: number) {
 }
 
 export async function sheetView(s: any) {
-  const data: OcrResult | null = s.extracted_json ? JSON.parse(s.extracted_json) : null;
+  // A sheet a player sent to the captains shows their corrections and team picks.
+  const proposal = s.status === "awaiting" && s.proposed_json ? JSON.parse(s.proposed_json) : null;
+  const data: OcrResult | null = proposal?.data ?? (s.extracted_json ? JSON.parse(s.extracted_json) : null);
+  let suggestion: any = data && (s.status === "review" || s.status === "awaiting") ? await suggest(sql, data) : null;
+  if (suggestion && proposal) {
+    suggestion = { ...suggestion, leagueId: proposal.leagueId ?? suggestion.leagueId,
+      home: { ...suggestion.home, teamId: proposal.homeTeamId ?? suggestion.home?.teamId }, away: { ...suggestion.away, teamId: proposal.awayTeamId ?? suggestion.away?.teamId } };
+  }
+  const by = s.submitted_by ? await one<any>(sql, "SELECT name FROM users WHERE id=$1", [s.submitted_by]) : null;
   return {
     id: s.id, status: s.status, source: s.source, error: s.error, model: s.model, ms: s.ms, gameId: s.game_id, createdAt: s.created_at,
-    data, warnings: s.warnings_json ? JSON.parse(s.warnings_json) : [],
-    suggestion: data && s.status === "review" ? await suggest(sql, data) : null,
+    data, warnings: s.warnings_json ? JSON.parse(s.warnings_json) : [], suggestion,
+    submitted: proposal ? { by: by?.name ?? "A player", at: s.submitted_at } : null,
   };
+}
+
+/** Who may confirm: leagues where this person is staff, and teams they captain or assist. Samples: anyone let in. */
+export async function confirmRights(user: any) {
+  const { can } = await import("./permissions");
+  const leagues: number[] = [];
+  if (user) for (const l of await q<any>(sql, "SELECT id, rink_id FROM leagues")) if (await can(sql, user, "sheet.confirm", { leagueId: l.id, rinkId: l.rink_id })) leagues.push(l.id);
+  const teams = user ? (await q<any>(sql, "SELECT scope_id FROM role_grants WHERE user_id=$1 AND scope_type='team' AND role IN ('captain','assistant_captain') AND revoked_at IS NULL", [user.id])).map((r) => r.scope_id as number) : [];
+  return { leagues, teams };
 }

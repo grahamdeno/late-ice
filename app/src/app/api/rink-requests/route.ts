@@ -15,7 +15,7 @@ const ROLES = new Set(["owner", "hockey_director", "league_coordinator", "front_
  * the map lookup. Asking to manage it adds the official-capacity checks. Admins add rinks directly.
  */
 export const POST = handle(async (req) => {
-  const u = await A.requireUser(req);
+  const u = await A.requireApproved(req);
   const b = await body(req);
   const d = { name: clean(b.name), city: clean(b.city, 60), state: clean(b.state, 2).toUpperCase(), address: clean(b.address, 120), website: clean(b.website, 120), phone: clean(b.phone, 30) };
   if (!d.name || !d.city || !/^[A-Z]{2}$/.test(d.state)) throw new HttpError(400, "Rink name, city and two-letter state, please.");

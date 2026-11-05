@@ -24,6 +24,8 @@ export const MATRIX = {
   "schedule.feed": ["assistant_captain", "captain", "admin"],
   "schedule.manual": ["assistant_captain", "captain", "commissioner", "rink_manager", "admin"],
   "game.resolve": ["commissioner", "rink_manager", "admin"],
+  "sheet.confirm": ["assistant_captain", "captain", "scorekeeper", "commissioner", "rink_manager", "admin"],
+  "signup.approve": ["rink_manager", "admin"],
   "team.private": ["assistant_captain", "captain", "rink_manager", "admin"],
   "name.unhide": ["assistant_captain", "captain", "support", "admin"],
   "pool.view": ["assistant_captain", "captain", "rink_manager", "admin"],

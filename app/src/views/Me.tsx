@@ -49,6 +49,12 @@ export default function MePage() {
 
   return (
     <div>
+      {u.access === "waiting" && (
+        <div className="card mb-3 p-4 border-[var(--amber)]/50" data-testid="card-waitlist">
+          <div className="font-bold text-sm">You're on the waitlist</div>
+          <p className="text-xs text-[var(--mute)] mt-0.5">You can look around. To claim your spot, scan sheets and vote, open your captain's invite link, or wait for staff to let you in.</p>
+        </div>
+      )}
       <div className="card-hi p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">

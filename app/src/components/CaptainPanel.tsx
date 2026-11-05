@@ -40,6 +40,7 @@ export function CaptainPanel({ team, captain, assistants = [] }: { team: any; ca
         </div>
       )}
       {me && !onRoster && !runsTeam && <p className="text-[11px] text-[var(--mute)] mt-2 px-1">On this team? Tap your name in the roster and claim it.</p>}
+      {runsTeam && <InviteLink teamId={team.id} teamName={team.name} />}
       {err && <p className="text-sm down mt-2 px-1" data-testid="text-error">{err}</p>}
       {runsTeam && <RosterBuilder teamId={team.id} isCaptain={isCap} assistants={assistants} />}
     </>
@@ -168,5 +169,39 @@ function RosterBuilder({ teamId, isCaptain, assistants }: { teamId: number; isCa
 
       {isCaptain && <button className="text-xs text-[var(--mute)] mt-3 px-1" onClick={() => confirm(assistants.length ? `Step down? ${assistants[0].name} becomes captain.` : "Step down as captain? Anyone on the roster can take the role.") && run("POST", `/api/teams/${teamId}/captain/step-down`)} data-testid="button-step-down">Step down as captain</button>}
     </Section>
+  );
+}
+
+/** The team's invite link: whoever joins through it is let in and pointed at this roster. */
+function InviteLink({ teamId, teamName }: { teamId: number; teamName: string }) {
+  const { data } = useQuery<any>({ queryKey: [`/api/teams/${teamId}/invite`] });
+  const [err, setErr] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const inv = data?.invite;
+  const url = inv && typeof window !== "undefined" ? `${window.location.origin}${inv.path}` : "";
+  const share = async () => {
+    try {
+      if (navigator.share) await navigator.share({ title: `Join ${teamName} on Late Ice`, url });
+      else { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); }
+    } catch { /* closed the share sheet */ }
+  };
+  return (
+    <div className="card mt-3 p-4" data-testid="card-invite">
+      <div className="label mb-1">Invite players</div>
+      <p className="text-xs text-[var(--mute)]">New players need an invite to get in. Send this link to your teammates only; anyone who joins through it lands on your roster.</p>
+      {inv ? (
+        <>
+          <div className="mt-2 rounded-xl bg-[var(--ice-3)] px-3 py-2 text-xs break-all tnum" data-testid="text-invite-url">{url}</div>
+          <div className="text-[11px] text-[var(--mute)] mt-1">{inv.uses} of {inv.maxUses} uses</div>
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <button className="btn btn-red h-10 text-sm" onClick={share} data-testid="button-share-invite">{copied ? "Copied" : "Share link"}</button>
+            <button className="btn btn-ghost h-10 text-sm" onClick={async () => { if (!confirm("Turn this link off? Anyone who has it won't get in.")) return; setErr(await act("DELETE", `/api/teams/${teamId}/invite`)); }} data-testid="button-revoke-invite">Turn off link</button>
+          </div>
+        </>
+      ) : (
+        <button className="btn btn-red h-10 text-sm mt-2" onClick={async () => setErr(await act("POST", `/api/teams/${teamId}/invite`))} data-testid="button-make-invite">Make an invite link</button>
+      )}
+      {err && <p className="text-xs down mt-2">{err}</p>}
+    </div>
   );
 }

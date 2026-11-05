@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 /** "Start a team." Rink staff add it straight away; anyone else asks, and rink staff (or an admin) decide. */
 export const POST = handle(async (req) => {
-  const u = await A.requireUser(req);
+  const u = await A.requireApproved(req);
   const b = await body(req);
   const l = await one<any>(sql, "SELECT * FROM leagues WHERE id=$1", [num(b.leagueId)]);
   if (!l) throw new HttpError(400, "Pick a league.");

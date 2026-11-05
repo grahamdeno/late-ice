@@ -34,6 +34,7 @@ export default function Staff() {
       {err && <p className="text-sm down mt-3" data-testid="text-error">{err}</p>}
 
       <Requests run={run} />
+      <Signups run={run} />
       {data.isSupport || data.isAdmin ? <SupportDesk run={run} isAdmin={data.isAdmin} /> : null}
       {data.rinks.map((r: any) => <RinkSection key={r.id} rink={r} run={run} />)}
       {data.rinks.some((r: any) => r.manage) && <ImportSection rinks={data.rinks.filter((r: any) => r.manage)} />}
@@ -67,6 +68,28 @@ function Requests({ run }: { run: Run }) {
             </div>
           </div>
           )
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+/** New accounts waiting to be let in. */
+function Signups({ run }: { run: Run }) {
+  const { data } = useQuery<any[]>({ queryKey: ["/api/staff/signups"] });
+  if (!data?.length) return null;
+  return (
+    <Section title="New sign-ups" action={<span className="label text-[var(--red)]">{data.length}</span>}>
+      <div className="card divide-y divide-[var(--line)]">
+        {data.map((u) => (
+          <div key={u.id} className="p-3.5 flex items-center gap-3" data-testid={`row-signup-${u.id}`}>
+            <span className="flex-1 min-w-0">
+              <span className="block font-bold text-sm truncate">{u.name ?? "No name yet"}{u.number ? ` #${u.number}` : ""}</span>
+              <span className="block text-xs text-[var(--mute)] truncate">{u.email}{u.rink ? ` · ${u.rink}` : ""}{u.teams ? ` · ${u.teams}` : ""}</span>
+            </span>
+            <button className="btn btn-ghost h-9 text-xs" onClick={() => confirm(`Remove ${u.name ?? u.email}? They can't get in after this.`) && run("POST", `/api/staff/signups/${u.id}`, { decision: "remove" })} data-testid={`button-remove-signup-${u.id}`}>Remove</button>
+            <button className="btn btn-red h-9 text-xs" onClick={() => run("POST", `/api/staff/signups/${u.id}`, { decision: "approve" })} data-testid={`button-approve-signup-${u.id}`}>Let in</button>
+          </div>
         ))}
       </div>
     </Section>
@@ -279,8 +302,15 @@ function AdminSection({ data, run }: { data: any; run: Run }) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [addRink, setAddRink] = useState(false);
+  const { data: settings } = useQuery<{ signupsPaused: boolean }>({ queryKey: ["/api/staff/settings"] });
   return (
     <Section title="Admin">
+      <div className="card p-4 mb-3 flex items-center gap-3" data-testid="card-signup-switch">
+        <span className="flex-1"><span className="block font-bold text-sm">Pause new sign-ups</span><span className="block text-xs text-[var(--mute)]">{settings?.signupsPaused ? "Paused. Nobody new can make an account. Existing players still sign in." : "Open. New accounts wait for an invite or your OK."}</span></span>
+        <button role="switch" aria-checked={!!settings?.signupsPaused} aria-label="Pause new sign-ups" onClick={() => run("PUT", "/api/staff/settings", { signupsPaused: !settings?.signupsPaused })} className={`h-7 w-12 shrink-0 rounded-full relative transition-colors ${settings?.signupsPaused ? "bg-[var(--red-btn)]" : "bg-[var(--ice-3)] border border-[var(--line)]"}`} data-testid="switch-pause-signups">
+          <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${settings?.signupsPaused ? "left-[22px]" : "left-0.5"}`} />
+        </button>
+      </div>
       <div className="mb-3">{addRink ? <RinkRequestForm admin onDone={() => setAddRink(false)} /> : <AddButton label="Rink" onClick={() => setAddRink(true)} testid="button-add-rink" />}</div>
       <div className="card p-4">
         <div className="label mb-2">System staff</div>
