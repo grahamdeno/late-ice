@@ -26,3 +26,14 @@ jobs:
         run: npm run build
       - name: Smoke test (API end to end)
         run: if [ -f script/smoke.ts ]; then npx tsx script/smoke.ts; else echo "no smoke test yet"; fi
+      - name: UI walkthrough screenshots
+        run: |
+          npm i --no-save playwright@1
+          npx playwright install --with-deps chromium
+          node script/ui-shots.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ui-shots
+          path: app/shots/
+          if-no-files-found: ignore
