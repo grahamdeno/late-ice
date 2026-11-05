@@ -2,11 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { one } = vi.hoisted(() => ({ one: vi.fn() }));
 
-vi.mock("@/server/db", () => ({
-  sql: {},
-  one: (...args: unknown[]) => one(...args),
-  q: vi.fn(),
-}));
+// Keep every other db export. The release branch's handle() calls runWithQueryCount.
+vi.mock("@/server/db", async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return {
+    ...actual,
+    one: (...args: unknown[]) => one(...args),
+  };
+});
 
 import { GET } from "@/app/api/health/route";
 
