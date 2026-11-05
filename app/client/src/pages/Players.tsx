@@ -1,0 +1,147 @@
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
+import { BackBar, Delta, Empty, LevelPill, Loading, TeamBadge, fmtDate, fmtRating, useFilter } from "@/lib/ui";
+
+export function Players() {
+  const { leagueId, boot } = useFilter();
+  const [qs, setQs] = useState("");
+  const { data } = useQuery<any[]>({ queryKey: [leagueId ? `/api/players?league=${leagueId}` : "/api/players"] });
+  const league = boot?.leagues.find((l) => l.id === leagueId);
+  const rows = (data ?? []).filter((p) => p.name.toLowerCase().includes(qs.toLowerCase()));
+  return (
+    <div>
+      <div className="label">{league ? league.name : "All Wilmington"} · Late Ice Rating</div>
+      <h1 className="font-display text-[40px] leading-none font-black uppercase mt-1">Players</h1>
+      <p className="text-sm text-[var(--mute)] mt-2">Every player on a scanned sheet gets a rating. Win against better teams and it climbs.</p>
+      <input value={qs} onChange={(e) => setQs(e.target.value)} placeholder="Find a player" className="mt-4 w-full h-11 rounded-xl bg-[var(--ice-2)] border border-[var(--line)] px-4 focus:outline-none focus:border-[var(--red)]" data-testid="input-player-search" />
+      {!data ? <Loading /> : rows.length === 0 ? (
+        <div className="mt-4"><Empty title={qs ? "No match" : "No players yet"} body={qs ? "Try another spelling." : "Players appear the moment their first scoresheet is scanned."} /></div>
+      ) : (
+        <div className="card divide-y divide-[var(--line)] mt-4">
+          {rows.map((p, i) => (
+            <Link key={p.id} href={`/player/${p.id}`} className="flex items-center gap-3 px-4 py-3" data-testid={`row-player-${p.id}`}>
+              <span className="w-6 text-center font-display text-lg text-[var(--mute)]">{i + 1}</span>
+              <span className="flex-1 min-w-0">
+                <span className="block font-bold truncate">{p.name}{p.position === "G" && <span className="text-[var(--mute)] font-medium"> · G</span>}</span>
+                <span className="block text-xs text-[var(--mute)] truncate">{p.teams} · {p.levels}</span>
+              </span>
+              <span className="text-right">
+                <span className="block font-display text-xl tnum">{fmtRating(p.rating)}</span>
+                <Delta d={p.last_delta} className="text-[11px]" />
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Spark({ pts }: { pts: number[] }) {
+  if (pts.length < 2) return null;
+  const min = Math.min(...pts) - 0.02, max = Math.max(...pts) + 0.02;
+  const W = 300, H = 70;
+  const xy = pts.map((v, i) => [(i / (pts.length - 1)) * W, H - ((v - min) / (max - min)) * H]);
+  const d = xy.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`).join(" ");
+  return (
+    <svg viewBox={`0 0 ${W} ${H + 6}`} className="w-full h-20 mt-3" preserveAspectRatio="none" aria-label="Rating over time">
+      <path d={`${d} L${W} ${H + 6} L0 ${H + 6}Z`} fill="rgba(255,59,59,.12)" />
+      <path d={d} fill="none" stroke="#FF3B3B" strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
+      {xy.map(([x, y], i) => <circle key={i} cx={x} cy={y} r="3.5" fill="#05070B" stroke="#FF3B3B" strokeWidth="2" vectorEffect="non-scaling-stroke" />)}
+    </svg>
+  );
+}
+
+export function PlayerPage({ id }: { id: string }) {
+  const { data } = useQuery<any>({ queryKey: [`/api/players/${id}`] });
+  const [openRow, setOpenRow] = useState<number | null>(null);
+  if (!data) return <Loading />;
+  const { player, teams, history, totals, ranks, reliability } = data;
+  const series = history.length ? [history[0].before, ...history.map((h: any) => h.after)] : [];
+  const start = series[0] ?? player.rating;
+  const provisional = player.games_rated < 5;
+  return (
+    <div>
+      <BackBar href="/players" title="Player" />
+      <div className="card-hi p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="font-black text-[26px] leading-tight" data-testid="text-player-name">{player.name}</h1>
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {teams.map((t: any) => (
+                <Link key={t.id} href={`/team/${t.id}`} className="chip h-7 text-xs" data-testid={`link-player-team-${t.id}`}>
+                  <span className="h-2 w-2 rounded-full" style={{ background: t.color }} /> {t.name} <span className="text-[var(--mute)]">#{t.number}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+          {!player.claimed && <span className="chip h-7 text-[11px] text-[var(--mute)] shrink-0">Unclaimed</span>}
+        </div>
+        <div className="mt-5 flex items-end gap-3">
+          <div>
+            <div className="label">Late Ice Rating</div>
+            <div className="font-display text-[64px] leading-none tnum" data-testid="text-player-rating">{fmtRating(player.rating)}</div>
+          </div>
+          {history.length > 0 && <div className="pb-2"><Delta d={player.rating - start} className="text-lg" /><div className="text-[11px] text-[var(--mute)]">since first game</div></div>}
+        </div>
+        <Spark pts={series} />
+        <div className="mt-4">
+          <div className="flex justify-between text-xs"><span className="label">Reliability</span><span className="text-[var(--mute)]">{reliability}%{provisional ? " · provisional" : ""}</span></div>
+          <div className="h-1.5 rounded-full bg-[var(--ice-3)] mt-1.5 overflow-hidden"><div className="h-full rounded-full bg-[var(--red)]" style={{ width: `${reliability}%` }} /></div>
+          <div className="text-[11px] text-[var(--mute)] mt-1.5">{provisional ? `Moves fast for the first 5 games. ${5 - player.games_rated} to go.` : "Settled. Each game nudges it."}</div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-4 gap-2 mt-3 text-center">
+        {[["GP", totals.gp], ["G", totals.g], ["A", totals.a], ["PIM", totals.pim]].map(([k, v]) => (
+          <div key={k} className="card py-3"><div className="font-display text-2xl tnum">{v}</div><div className="label text-[10px]">{k}</div></div>
+        ))}
+      </div>
+      {ranks.length > 0 && (
+        <div className="flex gap-2 mt-3 flex-wrap">
+          {ranks.map((r: any) => (
+            <span key={r.level} className="chip"><LevelPill level={r.level} /> #{r.rank} of {r.of}</span>
+          ))}
+        </div>
+      )}
+
+      <h2 className="font-black text-[17px] mt-7 mb-3 px-1">Why it moved</h2>
+      {history.length === 0 ? <Empty title="No rated games yet" body="Ratings start after the first scanned game." /> : (
+        <div className="space-y-2">
+          {[...history].reverse().map((h: any) => {
+            const opp = teams.find((t: any) => t.id === h.game.home.id) ? h.game.away : h.game.home;
+            const mine = teams.find((t: any) => t.id === h.game.home.id) ? [h.game.homeScore, h.game.awayScore] : [h.game.awayScore, h.game.homeScore];
+            const res = mine[0] > mine[1] ? "W" : mine[0] < mine[1] ? "L" : "T";
+            const open = openRow === h.id;
+            return (
+              <div key={h.id} className="card overflow-hidden">
+                <button onClick={() => setOpenRow(open ? null : h.id)} className="w-full flex items-center gap-3 p-3.5 text-left" data-testid={`button-history-${h.id}`}>
+                  <span className={`h-8 w-8 rounded-lg flex items-center justify-center font-black text-sm ${res === "W" ? "bg-[rgba(56,217,150,.15)] up" : res === "L" ? "bg-[rgba(255,107,107,.15)] down" : "bg-[var(--ice-3)]"}`}>{res}</span>
+                  <TeamBadge team={opp} size={24} />
+                  <span className="flex-1 min-w-0"><span className="block text-sm font-bold truncate">{mine[0]}–{mine[1]} vs {opp.name}</span><span className="block text-xs text-[var(--mute)]">{fmtDate(h.game.playedOn)}</span></span>
+                  <Delta d={h.after - h.before} className="text-sm" />
+                </button>
+                {open && (
+                  <div className="px-4 pb-3 space-y-1.5 text-sm border-t border-[var(--line)] pt-3">
+                    {h.reasons.map((r: any, i: number) => (
+                      <div key={i} className="flex justify-between gap-3"><span className="text-[var(--mute)]">{r.label}</span>{r.value !== 0 && <Delta d={r.value} />}</div>
+                    ))}
+                    <div className="flex justify-between pt-1.5 border-t border-[var(--line)] font-bold"><span>{fmtRating(h.before)} → {fmtRating(h.after)}</span><Link href={`/game/${h.game_id}`} className="text-[var(--blue)] text-xs">Game ›</Link></div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {!player.claimed && (
+        <div className="card mt-6 p-4 flex items-center gap-3">
+          <div className="flex-1"><div className="font-bold">Is this you?</div><div className="text-xs text-[var(--mute)]">Claiming profiles arrives with sign-in.</div></div>
+          <button className="btn btn-ghost h-10" disabled data-testid="button-claim">Claim</button>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,5 +1,25 @@
 # Late Ice — Build Order
 
+## Status (Nov 2026): Wilmington, NC pilot is live in `app/`
+
+Launch market changed to **Wilmington, NC**: one rink (Polar Ice Wilmington), with A, B, C, D and Over 40 leagues of 3 to 5 teams each.
+The decision: **scoresheet OCR from day one, no manual score entry.** Nobody types in beer league stats, so the photo is the only input.
+
+Done in the pilot:
+- Region, rink, league, team and player profiles (players are created automatically from scanned rosters)
+- Scoresheet scan: photo, then a vision model reads rosters, goals, assists, penalties, shots and the period box
+- Self-checks: goal list vs. score box, period sum vs. total, scorer numbers vs. roster, a goalie is marked
+- Review screen to fix misreads (correct only, no blank-form entry), auto team and league matching, duplicate-scan detection
+- Standings, scoring leaders, game pages with three stars, rating moves per player
+- LIR engine with provisional K, opponent-strength expectation, small point and save-percentage nudges, and a "why it moved" breakdown
+- Installable PWA (manifest and offline shell)
+
+Up next: sign-in and profile claiming, real Wilmington team names (from the first real sheets), captain confirmation, then push notifications.
+
+---
+
+Original plan:
+
 Brand: **Faceoff Dot** (direction #9). Stack: Next.js PWA + Supabase, with a Python rating worker. iOS and Android come later via Capacitor.
 
 ## Phase 0: Foundation

@@ -17,10 +17,26 @@ Late Ice is a national rating and competition layer for adult rec ("beer league"
 | 11:52 PM | Confirm the final | The captain scans the scoresheet. Players confirm their line and vote three stars. |
 | 11:53 PM | Your rating moves | The goal light goes on, your new LIR shows up with a breakdown of why it moved, and badges and standings update. |
 
+## The app (Wilmington pilot)
+
+`app/` is the working pilot for Polar Ice Wilmington. Snap a photo of the scoresheet and the app reads every goal, assist and penalty, then updates standings and each player's Late Ice Rating. There is no manual score entry.
+
+```bash
+cd app
+npm ci
+npm run dev            # http://localhost:5000, needs Anthropic API credentials in the environment
+```
+
+- Stack for the pilot: React + Vite + Tailwind PWA, Express API, SQLite, and a Claude vision model for scoresheet OCR.
+- `app/server/ocr.ts` is the scoresheet reader and its self-checks. `app/server/services.ts` has team matching, game confirmation and the LIR engine.
+- `app/samples/` has synthetic test scoresheets (`make_sheets.py`) with their ground truth (`truth.json`).
+- Team names are placeholders until real sheets are scanned.
+
 ## What's here
 
 | Path | What it is |
 | --- | --- |
+| `app/` | Wilmington pilot app: scoresheet OCR, standings, ratings |
 | `mockup/index.html` | Interactive mockup of the game-night flow. It's a single file: open it in any browser. |
 | `docs/game-night-flow.png` | Storyboard of the six steps |
 | `docs/MVP-PLAN.md` | MVP plan: market context, competitors, rating design, phased features, go-to-market, business model, tech stack |
