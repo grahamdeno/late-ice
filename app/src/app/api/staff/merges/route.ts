@@ -20,6 +20,16 @@ export const POST = handle(async (req) => {
   const u = await A.requireUser(req);
   const b = await body(req);
   const now = !!b?.now;
+  // Admin: run a waiting merge now instead of after the hold.
+  if (b?.runId) {
+    await sql.begin(async (tx) => {
+      await P.require_(tx, u, "system.grant");
+      const m = await one<any>(tx, "SELECT * FROM account_merges WHERE id=$1 AND status='pending' FOR UPDATE", [Number(b.runId) || 0]);
+      if (!m) throw new HttpError(404, "That move is no longer waiting.");
+      await S.runMerge(tx, m, u.id);
+    });
+    return { ok: true, ran: true };
+  }
   const result = await sql.begin(async (tx) => {
     await P.require_(tx, u, "support.merge");
     if (now) await P.require_(tx, u, "system.grant");
