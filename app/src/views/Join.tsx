@@ -3,27 +3,31 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@/lib/router";
 import { apiRequest, queryClient, setToken } from "@/lib/queryClient";
-import { useMe, toE164, POSITION_LABEL } from "@/lib/auth";
+import { useMe, normEmail, POSITION_LABEL } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { FaceoffDot, Loading } from "@/lib/ui";
 
-type Step = "phone" | "code" | "profile";
+type Step = "email" | "code" | "profile";
+const COOLDOWN = 60;
 
-const fmtPhone = (s: string) => {
-  const d = s.replace(/\D/g, "").replace(/^1(?=\d{10})/, "").slice(0, 10);
-  if (d.length < 4) return d;
-  if (d.length < 7) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
-  return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
-};
+/** Plain-language message for whatever Supabase returned. */
+function codeError(message: string) {
+  const m = message.toLowerCase();
+  if (m.includes("expired")) return "That code has expired. Send a new one.";
+  if (m.includes("invalid") || m.includes("token")) return "That code doesn't match. Check the latest email and try again.";
+  if (m.includes("rate") || m.includes("seconds") || m.includes("too many")) return "Too many codes requested. Wait a minute and try again.";
+  return "Something went wrong. Try again.";
+}
 
 export default function Join() {
   const [, nav] = useLocation();
   const { me, loading } = useMe();
-  const [step, setStep] = useState<Step>("phone");
-  const [phone, setPhone] = useState("");
+  const [step, setStep] = useState<Step>("email");
+  const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [wait, setWait] = useState(0);
 
   // Already signed in: finish the profile or go to it.
   useEffect(() => {
@@ -32,28 +36,37 @@ export default function Join() {
     else setStep("profile");
   }, [me, nav]);
 
+  // Resend cooldown ticker.
+  useEffect(() => {
+    if (wait <= 0) return;
+    const t = setTimeout(() => setWait((w) => w - 1), 1000);
+    return () => clearTimeout(t);
+  }, [wait]);
+
   if (loading) return <Loading />;
 
-  const start = async (e?: React.FormEvent) => {
+  const send = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    const e164 = toE164(phone);
-    if (!e164) return setErr("Enter a 10-digit US mobile number.");
+    const addr = normEmail(email);
+    if (!addr) return setErr("Enter a valid email address.");
+    if (wait > 0) return;
     setBusy(true); setErr(null);
-    const { error } = await supabase().auth.signInWithOtp({ phone: e164 });
-    if (error) setErr(error.message.includes("rate") ? "Too many codes for this number. Try again in a bit." : "Couldn't send the text. Check the number and try again.");
-    else { setCode(""); setStep("code"); }
+    // A typed code, not a magic link: no emailRedirectTo.
+    const { error } = await supabase().auth.signInWithOtp({ email: addr, options: { shouldCreateUser: true } });
+    if (error) setErr(codeError(error.message));
+    else { setCode(""); setStep("code"); setWait(COOLDOWN); }
     setBusy(false);
   };
 
   const verify = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    const e164 = toE164(phone);
-    if (!e164) return;
+    const addr = normEmail(email);
+    if (!addr || code.length !== 6) return;
     setBusy(true); setErr(null);
-    const { data, error } = await supabase().auth.verifyOtp({ phone: e164, token: code, type: "sms" });
-    if (error || !data.session) { setErr("That code doesn't match or has expired."); setBusy(false); return; }
+    const { data, error } = await supabase().auth.verifyOtp({ email: addr, token: code, type: "email" });
+    if (error || !data.session) { setErr(codeError(error?.message ?? "invalid")); setBusy(false); return; }
     setToken(data.session.access_token);
-    // AuthProvider picks up the session; load the profile to decide where to go.
+    // AuthProvider also picks up the session; load the profile to decide where to go.
     try {
       const res = await apiRequest("GET", "/api/me");
       const j = await res.json();
@@ -72,30 +85,33 @@ export default function Join() {
       <p className="text-sm text-[var(--mute)] mt-3">
         {step === "profile"
           ? "Registering puts you in the draft pool at your home rink. Your captain pulls you onto the team, or you claim the spot the scoresheet already made for you."
-          : "Sign in with your phone. We text a six-digit code. No password."}
+          : "Sign in with your email. We send a six-digit code. No password."}
       </p>
 
-      {step === "phone" && (
-        <form onSubmit={start} className="card-hi p-5 mt-5 space-y-3">
+      {step === "email" && (
+        <form onSubmit={send} className="card-hi p-5 mt-5 space-y-3">
           <label className="block">
-            <span className="label">Mobile number</span>
-            <input className="input w-full mt-1.5" inputMode="tel" autoComplete="tel" placeholder="(910) 555-0123" value={fmtPhone(phone)} onChange={(e) => setPhone(e.target.value)} data-testid="input-phone" autoFocus />
+            <span className="label">Email</span>
+            <input className="input w-full mt-1.5" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} data-testid="input-email" autoFocus />
           </label>
           {err && <p className="text-sm down" data-testid="text-error">{err}</p>}
-          <button className="btn btn-red w-full h-12" disabled={busy || phone.replace(/\D/g, "").length < 10} data-testid="button-send-code">{busy ? "Sending…" : "Text me a code"}</button>
+          <button className="btn btn-red w-full h-12" disabled={busy || !normEmail(email)} data-testid="button-send-code">{busy ? "Sending…" : "Email me a code"}</button>
         </form>
       )}
 
       {step === "code" && (
         <form onSubmit={verify} className="card-hi p-5 mt-5 space-y-3">
-          <div className="text-sm">Code sent to <b>{fmtPhone(phone)}</b>. <button type="button" className="text-[var(--blue)]" onClick={() => setStep("phone")} data-testid="button-change-phone">Change</button></div>
+          <div className="text-sm">Code sent to <b className="break-all">{normEmail(email)}</b>. <button type="button" className="text-[var(--blue)]" onClick={() => { setStep("email"); setErr(null); }} data-testid="button-change-email">Change</button></div>
+          <p className="text-xs text-[var(--mute)]">Check your inbox and spam folder. The code expires in 10 minutes.</p>
           <label className="block">
             <span className="label">Six-digit code</span>
-            <input className="input w-full mt-1.5 tnum tracking-[0.4em] text-center text-xl" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} data-testid="input-code" autoFocus />
+            <input className="input w-full mt-1.5 tnum tracking-[0.4em] text-center text-xl" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} data-testid="input-code" autoFocus />
           </label>
           {err && <p className="text-sm down" data-testid="text-error">{err}</p>}
           <button className="btn btn-red w-full h-12" disabled={busy || code.length !== 6} data-testid="button-verify">{busy ? "Checking…" : "Sign in"}</button>
-          <button type="button" className="btn btn-ghost w-full h-10" onClick={() => start()} disabled={busy} data-testid="button-resend">Send a new code</button>
+          <button type="button" className="btn btn-ghost w-full h-10" onClick={() => send()} disabled={busy || wait > 0} data-testid="button-resend">
+            {wait > 0 ? `Send a new code in ${wait}s` : "Send a new code"}
+          </button>
         </form>
       )}
 

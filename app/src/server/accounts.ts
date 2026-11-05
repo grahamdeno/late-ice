@@ -50,13 +50,12 @@ export async function refreshDisplays(db: Tx, all = false) {
 
 /* ---------- sign-in ---------- */
 
-const tokenCache = new Map<string, { authId: string; phone: string | null; exp: number }>();
+const tokenCache = new Map<string, { authId: string; email: string | null; exp: number }>();
 
-/** "+19105550101" from whatever Supabase stores ("19105550101"). */
-export function e164(phone: string | null | undefined) {
-  const d = String(phone || "").replace(/\D/g, "");
-  if (!d) return null;
-  return d.length === 10 ? `+1${d}` : `+${d}`;
+/** Emails are stored and matched lowercase. */
+export function normEmail(email: string | null | undefined) {
+  const e = String(email || "").trim().toLowerCase();
+  return e && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) ? e : null;
 }
 
 async function authUser(req: Request) {
@@ -67,24 +66,25 @@ async function authUser(req: Request) {
   if (hit && hit.exp > Date.now()) return hit;
   const { data, error } = await supabaseAdmin().auth.getUser(token);
   if (error || !data?.user) return null;
-  const v = { authId: data.user.id, phone: e164(data.user.phone), exp: Date.now() + 60_000 };
+  const v = { authId: data.user.id, email: normEmail(data.user.email), exp: Date.now() + 60_000 };
   if (tokenCache.size > 5000) tokenCache.clear();
   tokenCache.set(token, v);
   return v;
 }
 
-/** The signed-in Late Ice user, created on first sight of a verified Supabase phone sign-in. */
+/** The signed-in Late Ice user, created on first sight of a verified Supabase email sign-in. */
 export async function userFromRequest(req: Request) {
   const a = await authUser(req);
   if (!a) return null;
   let u = await one<any>(sql, "SELECT * FROM users WHERE auth_id=$1", [a.authId]);
   if (u) return u;
-  if (!a.phone) return null;
+  if (!a.email) return null;
+  // Supabase verified this address, so its owner owns the matching Late Ice account.
   u = await one<any>(
     sql,
-    `INSERT INTO users (auth_id, phone) VALUES ($1,$2)
-     ON CONFLICT (phone) DO UPDATE SET auth_id=EXCLUDED.auth_id RETURNING *`,
-    [a.authId, a.phone],
+    `INSERT INTO users (auth_id, email) VALUES ($1,$2)
+     ON CONFLICT (email) DO UPDATE SET auth_id=EXCLUDED.auth_id RETURNING *`,
+    [a.authId, a.email],
   );
   return u ?? null;
 }
@@ -146,7 +146,7 @@ export async function publicUser(db: Tx, u: any) {
   if (!u) return null;
   const rink = u.home_rink_id ? await one<any>(db, "SELECT id,name FROM rinks WHERE id=$1", [u.home_rink_id]) : null;
   return {
-    id: u.id, phone: u.phone, name: u.name, number: u.number, position: u.position, homeRink: rink,
+    id: u.id, email: u.email, phone: u.phone, name: u.name, number: u.number, position: u.position, homeRink: rink,
     status: u.status, statusUntil: u.status_until, hidden: !!u.hidden, profileComplete: !!(u.name && u.position && u.home_rink_id),
   };
 }

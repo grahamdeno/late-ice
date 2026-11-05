@@ -1,7 +1,7 @@
 "use client";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-// Browser client. Used only for phone sign-in; all data goes through /api.
+// Browser client. Used only for email-code sign-in; all data goes through /api.
 let client: SupabaseClient | null = null;
 export function supabase() {
   if (!client) {

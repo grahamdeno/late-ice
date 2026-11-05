@@ -157,7 +157,7 @@ export default function MePage() {
       </Section>
 
       <div className="mt-8 flex justify-between items-center px-1">
-        <span className="text-xs text-[var(--mute)]">Signed in as {u.phone}</span>
+        <span className="text-xs text-[var(--mute)]">Signed in as {u.email ?? u.phone}</span>
         <button className="btn btn-ghost h-9 text-sm" onClick={async () => { await signOut(); nav("/"); }} data-testid="button-sign-out">Sign out</button>
       </div>
     </div>
