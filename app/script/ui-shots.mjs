@@ -53,6 +53,11 @@ try {
   await page.getByTestId("button-verify").click();
   await page.getByTestId("text-error").waitFor();
   await shoot(page, "join-code-wrong");
+  if (!/doesn't match/.test(await page.getByTestId("text-error").innerText())) errors.push("wrong code should say it doesn't match");
+  const t1 = await page.getByTestId("button-resend").innerText();
+  await page.waitForTimeout(2500);
+  const t2 = await page.getByTestId("button-resend").innerText();
+  if (t1 === t2) errors.push(`resend countdown is not ticking (${t1})`);
   if (!(await page.getByTestId("button-resend").isDisabled())) errors.push("resend should be on cooldown");
   // Start over with a fresh page; the server allows a new code after 1 second locally.
   await page.waitForTimeout(1500);

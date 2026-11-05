@@ -10,12 +10,18 @@ import { FaceoffDot, Loading } from "@/lib/ui";
 type Step = "email" | "code" | "profile";
 const COOLDOWN = 60;
 
-/** Plain-language message for whatever Supabase returned. */
-function codeError(message: string) {
+const CODE_TTL_MS = 10 * 60 * 1000;
+
+/** Plain-language message. Supabase reports wrong and expired codes the same way,
+ *  so the time since the code was sent decides which one to show. */
+function codeError(message: string, sentAt: number | null) {
   const m = message.toLowerCase();
-  if (m.includes("expired")) return "That code has expired. Send a new one.";
-  if (m.includes("invalid") || m.includes("token")) return "That code doesn't match. Check the latest email and try again.";
   if (m.includes("rate") || m.includes("seconds") || m.includes("too many")) return "Too many codes requested. Wait a minute and try again.";
+  if (m.includes("expired") || m.includes("invalid") || m.includes("token")) {
+    return sentAt && Date.now() - sentAt > CODE_TTL_MS
+      ? "That code has expired. Send a new one."
+      : "That code doesn't match. Check the latest email and try again.";
+  }
   return "Something went wrong. Try again.";
 }
 
@@ -28,6 +34,7 @@ export default function Join() {
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [wait, setWait] = useState(0);
+  const [sentAt, setSentAt] = useState<number | null>(null);
 
   // Already signed in: finish the profile or go to it.
   useEffect(() => {
@@ -53,8 +60,8 @@ export default function Join() {
     setBusy(true); setErr(null);
     // A typed code, not a magic link: no emailRedirectTo.
     const { error } = await supabase().auth.signInWithOtp({ email: addr, options: { shouldCreateUser: true } });
-    if (error) setErr(codeError(error.message));
-    else { setCode(""); setStep("code"); setWait(COOLDOWN); }
+    if (error) setErr(codeError(error.message, null));
+    else { setCode(""); setStep("code"); setWait(COOLDOWN); setSentAt(Date.now()); }
     setBusy(false);
   };
 
@@ -64,7 +71,7 @@ export default function Join() {
     if (!addr || code.length !== 6) return;
     setBusy(true); setErr(null);
     const { data, error } = await supabase().auth.verifyOtp({ email: addr, token: code, type: "email" });
-    if (error || !data.session) { setErr(codeError(error?.message ?? "invalid")); setBusy(false); return; }
+    if (error || !data.session) { setErr(codeError(error?.message ?? "invalid", sentAt)); setBusy(false); return; }
     setToken(data.session.access_token);
     // AuthProvider also picks up the session; load the profile to decide where to go.
     try {
