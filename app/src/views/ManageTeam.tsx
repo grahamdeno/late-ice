@@ -172,7 +172,7 @@ function Group({ title, rows, teamId, me, isCaptain, run }: { title: string; row
                 {mergeFrom && mergeFrom !== s.id ? (
                   <button className="btn btn-red h-8 text-xs" onClick={async () => { await run("POST", `/api/teams/${teamId}/merge`, { fromId: mergeFrom, intoId: s.id }); setMergeFrom(null); }} data-testid={`button-merge-into-${s.id}`}>Same person</button>
                 ) : edit?.id === s.id ? (
-                  <form className="flex flex-wrap gap-1.5 items-center" onSubmit={async (e) => { e.preventDefault(); const cur = edit; if (await run("PATCH", `/api/teams/${teamId}/slots/${s.id}`, { number: cur.number, ...(s.registered ? {} : { position: cur.position }) })) setEdit(null); }}>
+                  <form className="flex flex-wrap gap-1.5 items-center" onSubmit={async (e) => { e.preventDefault(); const cur = edit; if (!cur) return; if (await run("PATCH", `/api/teams/${teamId}/slots/${s.id}`, { number: cur.number, ...(s.registered ? {} : { position: cur.position }) })) setEdit(null); }}>
                     <input className="input h-9 w-16 text-center tnum" inputMode="numeric" maxLength={2} value={edit.number} onChange={(e) => setEdit({ ...edit, number: e.target.value.replace(/\D/g, "").slice(0, 2) })} aria-label="Number" data-testid={`input-edit-number-${s.id}`} />
                     {!s.registered && (
                       <select className="input h-9 text-sm" value={edit.position} onChange={(e) => setEdit({ ...edit, position: e.target.value })} aria-label="Position" data-testid={`select-edit-position-${s.id}`}>
