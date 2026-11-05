@@ -1,6 +1,5 @@
 import { handle, body, num } from "@/server/http";
 import { sql, q, one } from "@/server/db";
-import { currentSeason } from "@/server/services";
 import { userFromRequest } from "@/server/accounts";
 import { can } from "@/server/permissions";
 
@@ -24,7 +23,16 @@ export const GET = handle(async (req) => {
     teamsByLeague.set(t.league_id, list);
   }
   const leagues = leagueRows.map((l) => ({ ...l, teams: teamsByLeague.get(l.id) ?? [] }));
-  const season = await currentSeason(sql, rink.id);
+  // One query either way: the season that covers today, or else the latest one. Two lookups here
+  // pushed a signed-in bootstrap over 10 queries when nothing covered today.
+  const today = new Date().toISOString().slice(0, 10);
+  const season = (await one(sql, `
+    SELECT * FROM seasons WHERE rink_id=$1
+    ORDER BY (starts_on <= $2 AND ends_on >= $2) DESC,
+             CASE WHEN starts_on <= $2 AND ends_on >= $2 THEN starts_on END DESC NULLS LAST,
+             ends_on DESC
+    LIMIT 1
+  `, [rink.id, today])) ?? null;
   const seasons = await q(sql, "SELECT * FROM seasons WHERE rink_id=$1 ORDER BY starts_on", [rink.id]);
   const tallies = await one<any>(sql, `
     SELECT

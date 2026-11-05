@@ -56,6 +56,13 @@ function okFast(url: string, r: { status: number; headers: Headers }) {
   ok(r.status === 200 && Number.isFinite(n) && n <= 10, `${url} uses ${n} queries`);
 }
 
+/** Null stays null. A number matches only the same number. */
+function numSame(a: unknown, b: unknown) {
+  if (a == null && b == null) return true;
+  if (a == null || b == null) return false;
+  return Number(a) === Number(b);
+}
+
 /** Sign in by emailed code (read from the local mail catcher) and register. */
 async function signUp(email: string, profile: { name: string; number: string; position: string }, opts: { waitlist?: boolean; blocked?: boolean } = {}) {
   const sb = createClient(env.NEXT_PUBLIC_SUPABASE_URL!, env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false } });
@@ -185,6 +192,27 @@ async function main() {
   okFast(`/api/leagues/${lg} signed in`, await call("GET", `/api/leagues/${lg}`, undefined, graham));
   okFast("/api/rink signed in", await call("GET", "/api/rink", undefined, graham));
   okFast("/api/bootstrap signed in", await call("GET", "/api/bootstrap", undefined, graham));
+  {
+    console.log("bootstrap with no current season");
+    const region = (await db`SELECT region_id FROM rinks WHERE id=${rid}`)[0].region_id as number;
+    const [gapRink] = await db`INSERT INTO rinks (region_id, slug, name) VALUES (${region}, 'no-current-season', 'No Current Season') RETURNING id`;
+    const [older] = await db`INSERT INTO seasons (rink_id, name, starts_on, ends_on) VALUES (${gapRink.id}, 'Ancient', '2000-01-01', '2000-03-31') RETURNING id`;
+    const [newer] = await db`INSERT INTO seasons (rink_id, name, starts_on, ends_on) VALUES (${gapRink.id}, 'Past', '2020-01-01', '2020-06-30') RETURNING id`;
+    const [gapLeague] = await db`INSERT INTO leagues (rink_id, level, name, blurb, season, sort) VALUES (${gapRink.id}, 'C', 'Old C', 'A past season', 'Past', 0) RETURNING id`;
+    await db`INSERT INTO teams (league_id, name, color) VALUES (${gapLeague.id}, 'Old Timers', '#112233')`;
+    const gapUrl = `/api/bootstrap?rink=${gapRink.id} signed in, no current season`;
+    const gapIn = await call("GET", `/api/bootstrap?rink=${gapRink.id}`, undefined, graham);
+    okFast(gapUrl, gapIn);
+    ok(gapIn.json.season?.id === newer.id && gapIn.json.season.name === "Past", `no season covers today, so bootstrap uses the latest one (expected Past ${newer.id}, actual ${gapIn.json.season?.name} ${gapIn.json.season?.id})`);
+    ok(gapIn.json.season?.id !== older.id, "an older season is not the fallback");
+    ok(gapIn.json.rink.id === gapRink.id && gapIn.json.leagues.length === 1 && gapIn.json.leagues[0].teams.length === 1 && gapIn.json.counts.games === 0, "that rink still returns its league, team and counts");
+    const gapOut = await call("GET", `/api/bootstrap?rink=${gapRink.id}`);
+    okFast(`/api/bootstrap?rink=${gapRink.id} signed out, no current season`, gapOut);
+    await db`DELETE FROM teams WHERE league_id=${gapLeague.id}`;
+    await db`DELETE FROM leagues WHERE id=${gapLeague.id}`;
+    await db`DELETE FROM seasons WHERE rink_id=${gapRink.id}`;
+    await db`DELETE FROM rinks WHERE id=${gapRink.id}`;
+  }
   {
     const sb = createClient(env.NEXT_PUBLIC_SUPABASE_URL!, env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false } });
     const before = await lastMailId("graham@example.com");
@@ -886,6 +914,59 @@ async function main() {
   ok((await call("PUT", "/api/staff/settings", { signupsPaused: false }, boss)).json.signupsPaused === false, "and back open");
   const robots = await (await fetch(`${BASE}/robots.txt`)).text();
   ok(/Disallow: \//.test(robots) && /noindex/.test(await (await fetch(`${BASE}/`)).text()), "search engines are told to stay out");
+
+  console.log("standings numbers agree");
+  {
+    const fields = ["gp", "w", "l", "t", "pts", "diff"] as const;
+    const board = await call("GET", `/api/rink?id=${rid}`);
+    ok(board.status === 200 && board.json.season?.id, "rink board has a season");
+    const sid = board.json.season.id;
+    const bulkNow = await call("GET", `/api/standings?rink=${rid}&season=${sid}`);
+    ok(bulkNow.status === 200, "bulk standings load for the number check");
+    ok(bulkNow.json.leagues.length === board.json.leagues.length, `league count: rink ${board.json.leagues.length} standings ${bulkNow.json.leagues.length}`);
+    let teamsChecked = 0;
+    let sawPoints = false;
+    let sawUnknownDiff = false;
+    let sawKnownDiff = false;
+    for (const listed of board.json.leagues) {
+      const fromBulk = bulkNow.json.leagues.find((l: any) => l.id === listed.id);
+      ok(fromBulk, `standings is missing league ${listed.id} ${listed.name}`);
+      const page = await call("GET", `/api/leagues/${listed.id}?season=${sid}&games=all`);
+      ok(page.status === 200 && page.json.season?.id === sid, `league ${listed.name} page is for season ${sid}, actual ${page.json?.season?.id}`);
+      const pageRows = page.json.standings as any[];
+      ok(Number(listed.teams) === pageRows.length, `league ${listed.name} team count: rink ${listed.teams} league page ${pageRows.length}`);
+      const oldRows: { id: number; name: string; rec: any }[] = [];
+      for (const row of fromBulk.standings) {
+        const onPage = pageRows.find((t) => t.id === row.id);
+        ok(onPage && onPage.name === row.name, `league ${listed.name} team ${row.id} ${row.name} is missing on the league page`);
+        const teamPage = await call("GET", `/api/teams/${row.id}`);
+        ok(teamPage.status === 200 && teamPage.json.season?.id === sid, `team ${row.name} record is for season ${sid}, actual ${teamPage.json?.season?.id}`);
+        const rec = teamPage.json.record;
+        oldRows.push({ id: row.id, name: row.name, rec });
+        for (const k of fields) {
+          ok(numSame(row[k], onPage[k]), `league ${listed.name} team ${row.name} ${k}: bulk standings ${row[k]} league page ${onPage[k]}`);
+          ok(numSame(row[k], rec[k]), `league ${listed.name} team ${row.name} ${k}: expected ${rec[k]} from the team record, actual ${row[k]} on standings`);
+        }
+        if (Number(rec.pts) > 0) sawPoints = true;
+        if (rec.diff == null) sawUnknownDiff = true;
+        if (typeof rec.diff === "number") sawKnownDiff = true;
+        teamsChecked++;
+      }
+      ok(fromBulk.standings.length === pageRows.length, `league ${listed.name} row count: standings ${fromBulk.standings.length} league page ${pageRows.length}`);
+      const oldGp = oldRows.reduce((sum, t) => sum + Number(t.rec.gp), 0);
+      ok(numSame(listed.games, oldGp / 2), `league ${listed.name} game count: rink ${listed.games} expected ${oldGp / 2} from team records`);
+      const ranked = [...oldRows].sort((a, b) => b.rec.pts - a.rec.pts || (b.rec.diff ?? 0) - (a.rec.diff ?? 0) || (b.rec.gf ?? 0) - (a.rec.gf ?? 0) || String(a.name).localeCompare(String(b.name)));
+      if (!ranked.length) {
+        ok(listed.leader == null, `league ${listed.name} leader: expected none, actual ${listed.leader?.name}`);
+      } else {
+        ok(listed.leader && listed.leader.id === ranked[0].id, `league ${listed.name} leader: expected ${ranked[0].name} (${ranked[0].id}), actual ${listed.leader?.name} (${listed.leader?.id})`);
+        for (const k of fields) {
+          ok(numSame(listed.leader[k], ranked[0].rec[k]), `league ${listed.name} leader ${ranked[0].name} ${k}: expected ${ranked[0].rec[k]} actual ${listed.leader?.[k]}`);
+        }
+      }
+    }
+    ok(teamsChecked > 0 && sawPoints && sawUnknownDiff && sawKnownDiff, `compared ${teamsChecked} teams, with points ${sawPoints}, unknown diff ${sawUnknownDiff}, known diff ${sawKnownDiff}`);
+  }
 
   console.log("home rink time zone");
   ok((await db`SELECT timezone FROM rinks WHERE slug='polar-ice-wilmington'`)[0].timezone === "America/New_York", "a rink starts in Eastern time");
