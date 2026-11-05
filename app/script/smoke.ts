@@ -721,7 +721,9 @@ async function main() {
   ok((await call("POST", `/api/teams/${hh}/slots`, { name: "Pat Newguy", number: "45", position: "D" }, graham)).status === 409, "the same name twice is refused");
   ok((await call("POST", `/api/teams/${hh}/slots`, { name: "Pat", number: "46", position: "D" }, graham)).status === 400, "a first name alone is refused");
   ok((await call("POST", `/api/teams/${hh}/slots`, { name: "Other Guy", number: "71", position: "W" }, graham)).status === 409, "a taken number is refused");
-  ok((await call("POST", `/api/teams/${hh}/slots`, { name: "Not Captain", number: "47", position: "W" }, mt)).status === 403, "only the team's captains add spots");
+  const nobody = await signUp("nobody.slots@example.com", { name: "Nobody Special", number: "98", position: "F" });
+  const nocap = await call("POST", `/api/teams/${hh}/slots`, { name: "Not Captain", number: "47", position: "W" }, nobody);
+  ok(nocap.status === 403, "only the team's captains add spots " + nocap.status);
   ok((await call("PATCH", `/api/teams/${hh}/slots/${added.json.playerId}`, { number: "72", position: "G" }, graham)).status === 200, "captain edits number and position of an unregistered spot");
   const mtAfter = (await call("GET", `/api/teams/${hh}/manage`, undefined, graham)).json;
   const pat = mtAfter.slots.find((s: any) => s.id === added.json.playerId);
