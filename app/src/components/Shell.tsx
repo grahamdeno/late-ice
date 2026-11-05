@@ -50,7 +50,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         }}
       >
         <div className="mx-auto max-w-[560px] px-4">
-          <div className="mt-2 h-14 rounded-2xl flex items-center justify-between gap-2 px-3 overflow-hidden border border-[var(--line)]" style={{ background: "var(--bar)", backdropFilter: "blur(14px)" }}>
+          <div className="mt-2 h-14 rounded-2xl flex items-center justify-between gap-2 px-3 overflow-hidden glass">
             <Link href="/" className="flex items-center gap-2 shrink-0" data-testid="link-home-logo" aria-label="Late Ice home">
               <FaceoffDot size={26} />
               <span className="whitespace-nowrap" style={{ fontWeight: 900, letterSpacing: "-0.03em", fontSize: 19 }}>Late Ice</span>
@@ -81,7 +81,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain" style={{ touchAction: "pan-y" }} onClick={() => setOpen(false)} data-testid="overlay-switcher">
           <div className="fixed inset-0 bg-black/60" style={{ touchAction: "none" }} />
           <div className="relative mx-auto max-w-[560px] px-4" style={{ paddingTop: "calc(env(safe-area-inset-top) + 8px)" }} onClick={(e) => e.stopPropagation()}>
-            <div className="card-hi p-4 drop-in">
+            <div className="glass-sheet rounded-[20px] p-4 drop-in">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="label">Region · Rink</div>
@@ -124,13 +124,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <main className="mx-auto max-w-[560px] min-w-0 px-4 pb-32 break-words" style={{ paddingTop: "calc(env(safe-area-inset-top) + 84px)" }}>{children}</main>
 
       <nav className="fixed bottom-0 inset-x-0 z-40" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-        <div className="absolute inset-x-0 bottom-0 h-28 pointer-events-none" style={{ background: "linear-gradient(transparent, var(--ice) 55%)" }} />
         <div className="relative mx-auto max-w-[560px] px-4 pb-3">
-          <div className="h-16 rounded-2xl grid grid-cols-5 items-center border border-[var(--line)]" style={{ background: "var(--bar-2)", backdropFilter: "blur(14px)" }}>
+          <div className="h-16 rounded-2xl grid grid-cols-5 items-center glass">
             {NAV.map((n) =>
               n.href === "/scan" ? (
                 <Link key={n.href} href="/scan" className="flex justify-center" data-testid="nav-scan" aria-label="Scan scoresheet">
-                  <span className="-mt-7 h-16 w-16 rounded-full flex items-center justify-center border-4 border-[var(--ice)]" style={{ background: "var(--red)", boxShadow: "0 8px 24px rgba(255,59,59,.4)" }}>
+                  <span className="-mt-7 h-16 w-16 rounded-full flex items-center justify-center border-4 border-[var(--ice)]" style={{ background: "var(--red)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.35), 0 8px 24px rgba(255,59,59,.35)" }}>
                     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" /><circle cx="12" cy="12" r="3.2" fill="#fff" stroke="none" /></svg>
                   </span>
                 </Link>
