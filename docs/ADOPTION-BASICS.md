@@ -103,7 +103,56 @@ Not from the sheet, so this is the first thing that needs a different source.
 
 Game-night features (RSVP, lines, check-in) wait for Phase 2. Until then the app doesn't pretend to know when you play.
 
-## 10. What changes in the data model
+## 10. Subs, call-ups, injured reserve and "can't make it"
+
+The scoresheet proves who actually played. That makes availability the one stat the app can verify every single game, and it is the stat captains care about most when drafting.
+
+### Call-ups
+
+A sub appearance is a **call-up**. Framing it that way turns a chore into a stat line.
+
+- **Requested call-up.** The team is short (the app knows the roster and who's marked Out). The captain opens the pool, filtered to position, eligible level and players marked Available, sorted by rating. Pick one, they get the invite, they accept. When the sheet is scanned the call-up is confirmed by their name on it.
+- **Walk-on call-up.** A name on the sheet that isn't on the roster and wasn't requested is still a call-up, recorded after the fact. The captain can match it to a registered player or promote it to the roster.
+- **Goalie call-ups** are their own category. Every rink has an emergency goalie list in someone's phone; this is that list, with a record attached.
+- **Stats:** call-ups received, call-up record (team W-L-T with you in the lineup), call-up points, teams played for. Team side: call-ups used, games played short.
+- **Rating:** a called-up player is rated on the game like anyone else, and their rating counts toward the team's strength for that game only. Playing up a level and winning moves you more; playing down and winning moves you less, which is the expected-result math doing its job.
+- **Level guard.** Leagues usually limit subs to one level up or down and ban them in playoffs. Each league gets a sub rule (default: one level either way, none in playoffs). A call-up that breaks the rule is flagged on the game for the captain and rink admin. The app doesn't block it, since the rink makes the call, but it shows it.
+
+### Injured reserve
+
+A player sets a status: **Available**, **IR** (injured, optional return date), **Away** (travel, work stretch), **Resting** (taking the season off).
+
+- IR shows on the roster card and in the captain's lineup count, so the captain knows to call someone up before Sunday.
+- IR **freezes** the rating: no moves, no provisional clock, no decay. Coming back is not a penalty.
+- IR **pauses** the Iron Man streak instead of breaking it. Away and Resting also pause it. A no-show breaks it. This rewards telling the team the truth over going quiet.
+- **Stats:** IR stints, days on IR, games missed to injury, longest healthy run. Returning from IR and getting a point earns the Comeback badge.
+- The player controls their own status. Captains can see it, not set it.
+
+### "Can't make it"
+
+Per-game availability: **In**, **Out**, **Maybe**, with an optional one-tap reason for Out (Injured, Work, Family, Travel, Resting, Other).
+
+- **Before there's a schedule,** the app infers the league night from sheet dates ("You play Sundays. Next Sunday, in or out?"). Once the schedule exists, the question gets a time attached.
+- **The sheet settles it.** Every RSVP is checked against the sheet after the game:
+
+| Said | Sheet | Recorded as |
+| --- | --- | --- |
+| In | On it | Played |
+| In | Not on it | No-show |
+| Out, 24h+ ahead | Not on it | Out (reason kept) |
+| Out, under 24h | Not on it | Late scratch |
+| Nothing | On it | Played (and a nudge to RSVP next time) |
+| Nothing | Not on it | Ghost |
+
+- **Stats:** attendance rate (games played / team games while on roster), RSVP accuracy (said In and showed), no-shows, late scratches, ghosts, Iron Man streak. Aggregate reasons make good rink-level content ("Work beat Family 3-1 in Wilmington this month").
+- **Attendance stays out of the Late Ice Rating.** LIR measures how you play. Mixing in attendance would punish injured players and make the number mean nothing. Reliability is its own stat, shown right next to the rating on the draft card, because a captain choosing between a 4.1 who shows up 95% and a 4.4 who shows up 60% wants both numbers.
+- **Who sees what.** Games played and the Iron Man streak are public. Attendance rate, no-shows, late scratches and reasons are visible to the player and to their captains, and in the draft pool to captains at the rink. Nobody gets publicly shamed for missing a Tuesday.
+
+### What the captain sees Sunday morning
+
+"Flyers vs Owls, 8:45. 9 skaters In, 1 Maybe, 2 Out (Reyes: work, Hales: IR). Your goalie is In. Call up a defenseman?" One tap opens the pool.
+
+## 11. What changes in the data model
 
 | Add | Why |
 | --- | --- |
@@ -112,6 +161,11 @@ Game-night features (RSVP, lines, check-in) wait for Phase 2. Until then the app
 | `roster_actions` (draft, match, claim, promote, with who/when) | Captain control and an audit trail |
 | `team_roles` (captain, scorekeeper, rink_admin) | Who can do what |
 | `appearances` separate from roster slots | Subs vs. members |
+| `call_ups` (team, player, game, requested_by, status, level_flag) | Requested and walk-on call-ups, level guard |
+| `player_status` (available / ir / away / resting, since, expected_return) | Injured reserve and status history |
+| `availability` (player, team, game or inferred date, status, reason, set_at) | RSVPs and late-scratch timing |
+| `attendance` (derived per game: played / no-show / out / late scratch / ghost) | RSVP checked against the sheet |
+| `league_rules` (sub levels allowed, subs in playoffs) | Level guard per league |
 | `player_aliases` | Spelling variants and merges |
 | `rink_directory` (seeded, with `live_at`) | Every rink listed, live when scanned |
 | `regions` computed from rink geo | No region picker |
