@@ -23,7 +23,7 @@ function ok(cond: unknown, msg: string): asserts cond {
 }
 
 async function start() {
-  srv = spawn("npx", ["next", "start", "-p", String(PORT)], { env: { ...env, NODE_ENV: "production", BOOTSTRAP_ADMIN_EMAIL: "boss@example.com", ALLOW_LOCAL_FEEDS: "1", LATEICE_MAP_LOOKUP: "off" }, stdio: ["ignore", "ignore", "inherit"] });
+  srv = spawn("npx", ["next", "start", "-p", String(PORT)], { env: { ...env, NODE_ENV: "production", BOOTSTRAP_ADMIN_EMAIL: "boss@example.com", ALLOW_LOCAL_FEEDS: "1", LATEICE_MAP_LOOKUP: "off", LATEICE_FAKE_OCR: "1" }, stdio: ["ignore", "ignore", "inherit"] });
   for (let i = 0; i < 200; i++) {
     try { const r = await fetch(`${BASE}/api/bootstrap`); if (r.ok) return; } catch {}
     await new Promise((r) => setTimeout(r, 200));
@@ -842,6 +842,158 @@ async function main() {
   ok((await call("PUT", "/api/staff/settings", { signupsPaused: false }, boss)).json.signupsPaused === false, "and back open");
   const robots = await (await fetch(`${BASE}/robots.txt`)).text();
   ok(/Disallow: \//.test(robots) && /noindex/.test(await (await fetch(`${BASE}/`)).text()), "search engines are told to stay out");
+
+  console.log("scan resilience");
+  const side = (name: string, goalie = true) => ({
+    name,
+    roster: [{ number: "9", name: "Skater", position: null as string | null }, ...(goalie ? [{ number: "1", name: "Goalie", position: "G" }] : [])],
+    goals: [], penalties: [], shots_by_period: [], score_by_period: [], total: 0,
+  });
+  const ocrBody = (over: Record<string, unknown> = {}) => ({
+    is_scoresheet: true, date: "2026-03-01", time: null, league_text: null, rink_text: null, confidence: 0.9, notes: [],
+    home: side("Owls"), away: side("Flyers"), ...over,
+  });
+  const readFake = async (steps: any[]) => {
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
+    const image = `data:image/png;base64,${Buffer.concat([png, Buffer.from("LATEICE_FAKE:" + JSON.stringify(steps))]).toString("base64")}`;
+    const up = await call("POST", "/api/sheets", { image }, boss);
+    ok(up.status === 202 && up.json.id, "fake scan accepted");
+    let st: any;
+    for (let i = 0; i < 50; i++) {
+      st = await call("GET", `/api/sheets/${up.json.id}`);
+      if (st.json.status !== "processing") break;
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    const row = (await db`SELECT input_tokens, output_tokens, model, warnings_json, error FROM sheets WHERE id=${up.json.id}`)[0];
+    const warnings = JSON.parse(row.warnings_json || "[]");
+    return { id: up.json.id as number, status: st.json.status as string, error: String(st.json.error || row.error || ""), warnings, row };
+  };
+  const retried = await readFake([
+    { op: "text", text: "I cannot read it", inputTokens: 5, outputTokens: 1, expectFollowup: false },
+    { op: "json", body: ocrBody({ confidence: 0.91 }), inputTokens: 7, outputTokens: 2, expectFollowup: true },
+  ]);
+  ok(retried.status === "review" && retried.row.model === "claude-sonnet-5-5", "a parse failure retries the same model once");
+  ok(Number(retried.row.input_tokens) === 12 && Number(retried.row.output_tokens) === 3, "token counts from the read and the retry are stored");
+  ok(retried.warnings.length === 0, `the retried read has no warnings (${retried.warnings.join("; ")})`);
+  const twice = await readFake([
+    { op: "text", text: "nope", inputTokens: 3, outputTokens: 1, expectFollowup: false },
+    { op: "text", text: "still nope", inputTokens: 4, outputTokens: 1, expectFollowup: true },
+  ]);
+  ok(twice.status === "failed" && /no JSON/i.test(twice.error) && !/unexpected/i.test(twice.error), "a second parse failure stops, with no fallback model");
+  ok(Number(twice.row.input_tokens) === 7, "only the two parse attempts are counted");
+  const authFail = await readFake([{ op: "error", message: "401 authentication_error", expectFollowup: false }]);
+  ok(authFail.status === "failed" && /401/.test(authFail.error) && !/unexpected/i.test(authFail.error), "an auth failure does not fall back to another model");
+  const netFail = await readFake([{ op: "error", message: "network connection reset", expectFollowup: false }]);
+  ok(netFail.status === "failed" && /network connection reset/.test(netFail.error) && !/unexpected/i.test(netFail.error), "a network failure does not fall back to another model");
+  const fell = await readFake([
+    { op: "json", body: ocrBody({ confidence: 0.4, date: null }), inputTokens: 10, outputTokens: 4, expectFollowup: false },
+    { op: "json", body: ocrBody({ confidence: 0.95 }), inputTokens: 8, outputTokens: 3, expectFollowup: false },
+  ]);
+  ok(fell.status === "review" && fell.row.model === "claude-opus-5-5", "confidence under 0.6 calls the fallback model");
+  ok(fell.warnings.length === 0, `the read with fewer warnings is kept (${fell.warnings.join("; ")})`);
+  ok(Number(fell.row.input_tokens) === 18 && Number(fell.row.output_tokens) === 7, "fallback tokens are added to the sheet");
+  const worse = await readFake([
+    { op: "json", body: ocrBody({ confidence: 0.5 }), inputTokens: 10, outputTokens: 2, expectFollowup: false },
+    { op: "json", body: ocrBody({ confidence: 0.2, date: null, home: side("Owls", false), away: side("Flyers", false) }), inputTokens: 6, outputTokens: 2, expectFollowup: false },
+  ]);
+  ok(worse.row.model === "claude-sonnet-5-5" && worse.warnings.length === 0 && Number(worse.row.input_tokens) === 16, "a fallback with more warnings is dropped");
+  const tie = await readFake([
+    { op: "json", body: ocrBody({ confidence: 0.4, date: null }), inputTokens: 4, outputTokens: 1, expectFollowup: false },
+    { op: "json", body: ocrBody({ confidence: 0.99, date: null }), inputTokens: 4, outputTokens: 1, expectFollowup: false },
+  ]);
+  ok(tie.row.model === "claude-sonnet-5-5" && tie.warnings.length === 1, `equal warnings keep the first read (${tie.warnings.join("; ")})`);
+  const boundary = await readFake([
+    { op: "json", body: ocrBody({ confidence: 0.6, home: side("Owls", false), away: side("Flyers", false) }), inputTokens: 9, outputTokens: 2, expectFollowup: false },
+  ]);
+  ok(boundary.status === "review" && boundary.row.model === "claude-sonnet-5-5" && Number(boundary.row.input_tokens) === 9, "confidence 0.6 with fewer than 3 warnings does not call the fallback");
+  ok(boundary.warnings.length === 2, `those two warnings are the goalies (${boundary.warnings.join("; ")})`);
+  const three = await readFake([
+    { op: "json", body: ocrBody({ confidence: 0.99, date: null, home: side("Owls", false), away: side("Flyers", false) }), inputTokens: 11, outputTokens: 3, expectFollowup: false },
+    { op: "json", body: ocrBody({ confidence: 0.9 }), inputTokens: 5, outputTokens: 1, expectFollowup: false },
+  ]);
+  ok(three.row.model === "claude-opus-5-5" && three.warnings.length === 0, `three warnings call the fallback even when confidence is high (${three.warnings.join("; ")})`);
+
+  console.log("hand entry");
+  const failed = await readFake([{ op: "error", message: "unreadable", expectFollowup: false }]);
+  ok(failed.status === "failed", "a failed read stays failed until someone enters it");
+  const hand = { homeName: "Demo Owls", awayName: "Demo Flyers", homeScore: 4, awayScore: 2, homeNumbers: "81 82", awayNumbers: "83" };
+  ok((await call("POST", `/api/sheets/${failed.id}/manual`, hand)).status === 401, "entering a score by hand needs sign-in");
+  ok((await call("POST", `/api/sheets/${failed.id}/manual`, { ...hand, homeName: " " }, sam)).status === 400, "hand entry needs both team names");
+  ok((await call("POST", `/api/sheets/${failed.id}/manual`, { ...hand, homeNumbers: "" }, sam)).status === 400, "hand entry needs who dressed, by number");
+  const saved = await call("POST", `/api/sheets/${failed.id}/manual`, hand, sam);
+  ok(saved.status === 200 && saved.json.data?.home?.total === 4 && saved.json.data?.away?.total === 2, "hand entry stores the final score");
+  ok(saved.json.data.home.roster.map((p: any) => p.number).join(",") === "81,82" && saved.json.data.is_scoresheet === true, "hand entry stores who dressed and becomes review data");
+  const mid = await call("GET", `/api/sheets/${failed.id}`);
+  ok(mid.json.status === "review" && mid.json.gameId == null, "hand entry does not confirm the game");
+  const demoId = (await db`SELECT id FROM leagues WHERE level='DEMO'`)[0].id;
+  const demoTeams = await db`SELECT t.id FROM teams t WHERE t.league_id=${demoId} ORDER BY t.id LIMIT 2`;
+  const homeTeamId = demoTeams[0].id;
+  const awayTeamId = demoTeams[1].id;
+  ok((await call("POST", `/api/sheets/${failed.id}/confirm`, { leagueId: demoId, homeTeamId, awayTeamId, data: saved.json.data }, fan)).status === 403, "hand entry still needs a captain or staff to confirm");
+  const booked = await call("POST", `/api/sheets/${failed.id}/confirm`, { leagueId: demoId, homeTeamId, awayTeamId, data: saved.json.data }, boss);
+  ok(booked.status === 200 && booked.json.gameId, "staff confirm the hand-entered sheet on the normal path");
+  const bookedGame = await call("GET", `/api/games/${booked.json.gameId}`);
+  ok(bookedGame.json.homeScore === 4 && bookedGame.json.awayScore === 2, "the hand-entered score is the final score");
+  ok(bookedGame.json.lines.some((l: any) => l.number === "81") && bookedGame.json.lines.some((l: any) => l.number === "83"), "the dressed numbers are on the game");
+  ok((await call("POST", `/api/sheets/${failed.id}/manual`, hand, sam)).status === 409, "a confirmed sheet cannot be entered again");
+
+  const failed2 = await readFake([{ op: "error", message: "unreadable", expectFollowup: false }]);
+  const hand2 = { homeName: "Demo Owls", awayName: "Demo Flyers", homeScore: 1, awayScore: 0, homeNumbers: "71", awayNumbers: "72" };
+  const saved2 = await call("POST", `/api/sheets/${failed2.id}/manual`, hand2, sam);
+  ok(saved2.status === 200, "the score for the captain is saved first");
+  const sent = await call("POST", `/api/sheets/${failed2.id}/submit`, { leagueId: demoId, homeTeamId, awayTeamId, data: saved2.json.data }, sam);
+  ok(sent.status === 200, "send to the captain uses the proposal path");
+  const waiting = await call("GET", `/api/sheets/${failed2.id}`, undefined, boss);
+  ok(waiting.json.status === "awaiting" && waiting.json.gameId == null && waiting.json.data.home.total === 1, "the proposal is waiting and is not a game yet");
+  const sentGame = await call("POST", `/api/sheets/${failed2.id}/confirm`, { leagueId: demoId, homeTeamId, awayTeamId, data: waiting.json.data }, boss);
+  ok(sentGame.status === 200, "the normal confirm path accepts what was sent");
+  ok((await call("GET", `/api/games/${sentGame.json.gameId}`)).json.homeScore === 1, "the sent score is the one that is confirmed");
+
+  const notSheet = ocrBody({ is_scoresheet: false });
+  const [ns] = await db`INSERT INTO sheets (image_path, mime, status, source, extracted_json) VALUES ('test/ns.jpg','image/jpeg','review','upload',${JSON.stringify(notSheet)}) RETURNING id`;
+  const nsSaved = await call("POST", `/api/sheets/${ns.id}/manual`, hand, sam);
+  ok(nsSaved.status === 200 && nsSaved.json.data.is_scoresheet === true, "a photo that is not a scoresheet can be entered by hand");
+
+  const opens = Number((await db`SELECT COUNT(*)::int n FROM app_events WHERE user_id=${ids.graham} AND kind='app_open'`)[0].n);
+  ok(opens === 1, "opening the app is logged once per user per day");
+  await call("GET", "/api/me", undefined, graham);
+  ok(Number((await db`SELECT COUNT(*)::int n FROM app_events WHERE user_id=${ids.graham} AND kind='app_open'`)[0].n) === 1, "a second visit the same day does not log another open");
+  ok(Number((await db`SELECT COUNT(*)::int n FROM app_events WHERE user_id=${ids.boss} AND kind='scan'`)[0].n) >= 1, "a scan is logged");
+  ok(Number((await db`SELECT COUNT(*)::int n FROM app_events WHERE user_id=${ids.graham} AND kind='rsvp' AND team_id=${hh} AND game_id=${man.json.id}`)[0].n) >= 1, "an RSVP is logged with the team and the game");
+  ok(Number((await db`SELECT COUNT(*)::int n FROM app_events WHERE user_id=${ids.boss} AND kind='confirm' AND game_id=${booked.json.gameId}`)[0].n) === 1, "confirming a sheet is logged with the game");
+  const eventCols = (await db`SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='app_events'`).map((c) => c.column_name).sort().join(",");
+  ok(eventCols === "created_at,game_id,id,kind,team_id,user_id", "the loop log stores ids only");
+  ok(Number((await db`SELECT COUNT(*)::int n FROM app_events WHERE kind LIKE '%photo%' OR kind LIKE '%@%' OR length(kind) > 32`)[0].n) === 0, "loop events do not carry sheet text, photos, or addresses");
+
+  const samUsed = Number((await db`SELECT COUNT(*)::int n FROM sheets WHERE scanned_by=${ids.sam} AND created_at > now() - interval '1 day'`)[0].n);
+  const allowBefore = await call("GET", "/api/sheets/allowance", undefined, sam);
+  ok(allowBefore.status === 200 && allowBefore.json.show === (samUsed >= 10), "the daily allowance stays hidden until 10 scans");
+  if (samUsed < 10) await db`INSERT INTO sheets (image_path, mime, status, source, scanned_by) SELECT 'test/day.jpg', 'image/jpeg', 'failed', 'upload', ${ids.sam} FROM generate_series(1, ${10 - samUsed})`;
+  const allowAfter = await call("GET", "/api/sheets/allowance", undefined, sam);
+  ok(allowAfter.json.show === true && allowAfter.json.used === 10 && allowAfter.json.left === 5, "after 10 scans the player sees how many are left today");
+  await db`INSERT INTO sheets (image_path, mime, status, source, scanned_by) SELECT 'test/day.jpg', 'image/jpeg', 'failed', 'upload', ${ids.boss} FROM generate_series(1, 10)`;
+  ok((await call("GET", "/api/sheets/allowance", undefined, boss)).json.show === false, "admins are not capped per day, so no allowance line");
+
+  const padMonth = async (n: number) => {
+    const cur = Number((await db`SELECT COUNT(*)::int n FROM sheets WHERE created_at >= date_trunc('month', now())`)[0].n);
+    if (cur < n) await db`INSERT INTO sheets (image_path, mime, status, source) SELECT 'test/cap.jpg', 'image/jpeg', 'failed', 'upload' FROM generate_series(1, ${n - cur})`;
+  };
+  const admins = Number((await db`SELECT COUNT(DISTINCT user_id)::int n FROM role_grants WHERE role='admin' AND revoked_at IS NULL`)[0].n);
+  await padMonth(1200);
+  const capImage = `data:image/png;base64,${Buffer.concat([Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64"), Buffer.from("LATEICE_FAKE:" + JSON.stringify([{ op: "json", body: ocrBody(), inputTokens: 1, outputTokens: 1, expectFollowup: false }]))]).toString("base64")}`;
+  const at60 = await Promise.all([call("POST", "/api/sheets", { image: capImage }, boss), call("POST", "/api/sheets", { image: capImage }, boss)]);
+  ok(at60.every((r) => r.status === 202), "scans still go through at 60 percent of the monthly cap");
+  const n60 = Number((await db`SELECT COUNT(*)::int n FROM notifications WHERE kind='scan_cap_60' AND created_at >= date_trunc('month', now())`)[0].n);
+  ok(n60 === admins, "admins are told once at 60 percent");
+  await call("POST", "/api/sheets", { image: capImage }, boss);
+  ok(Number((await db`SELECT COUNT(*)::int n FROM notifications WHERE kind='scan_cap_60' AND created_at >= date_trunc('month', now())`)[0].n) === n60, "the 60 percent notice is not sent again");
+  await padMonth(2000);
+  const atCap = await Promise.all([call("POST", "/api/sheets", { image: capImage }, sam), call("POST", "/api/sheets", { image: capImage }, sam)]);
+  ok(atCap.every((r) => r.status === 429 && /paused/i.test(r.json?.message ?? "")), "the monthly cap pauses scanning");
+  const n100 = Number((await db`SELECT COUNT(*)::int n FROM notifications WHERE kind='scan_cap' AND created_at >= date_trunc('month', now())`)[0].n);
+  ok(n100 === admins, "admins are told once when the monthly cap is reached");
+  await call("POST", "/api/sheets", { image: capImage }, sam);
+  ok(Number((await db`SELECT COUNT(*)::int n FROM notifications WHERE kind='scan_cap' AND created_at >= date_trunc('month', now())`)[0].n) === n100, "the cap notice is not sent again");
 
   console.log("pages render");
   for (const path of ["/", "/leagues", `/team/${hh}`, `/player/${mike}`, "/players", "/rink", "/scan", "/join", "/privacy", `/game/${conf.json.gameId}`, `/league/${lg}`, `/team/${hh}/manage`, `/team/${hh}/lineup/${lgGame.json.id}`]) {

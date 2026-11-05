@@ -3,6 +3,7 @@ import { sql, q, one } from "@/server/db";
 import { confirmSheet, HttpError } from "@/server/services";
 import { refreshDisplays, requireApproved } from "@/server/accounts";
 import { requireConfirm } from "@/server/sheetconfirm";
+import { logEvent } from "@/server/appevents";
 
 export const dynamic = "force-dynamic";
 export const POST = handle<{ id: string }>(async (req, { id }) => {
@@ -13,6 +14,7 @@ export const POST = handle<{ id: string }>(async (req, { id }) => {
     if (!s) throw new HttpError(404, "Sheet not found");
     await requireConfirm(tx, u, s, input);
     const g = await confirmSheet(tx, num(id), input);
+    await logEvent(tx, { userId: u.id, kind: "confirm", gameId: g });
     await refreshDisplays(tx);
     return g;
   });

@@ -7,12 +7,14 @@ import { attendance, nextGame } from "@/server/schedule";
 import { cleanAvatar } from "@/lib/avatar";
 import { teamArchetypes, setOwnArchetype } from "@/server/archetypes";
 import { subRequestsFor } from "@/server/subs";
+import { logEvent } from "@/server/appevents";
 
 export const dynamic = "force-dynamic";
 
 export const GET = handle(async (req) => {
   const u = await A.userFromRequest(req);
   if (!u) return Response.json({ message: "Not signed in" }, { status: 401 });
+  await logEvent(sql, { userId: u.id, kind: "app_open" });
   const slots = [];
   for (const s of await q<any>(sql,
     `SELECT p.id, p.display_name AS name, p.rating, p.games_rated, p.position, re.number, re.source, t.id team_id, t.name team_name, t.color, t.logo, l.id league_id, l.level, l.name league_name
