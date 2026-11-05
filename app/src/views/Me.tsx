@@ -71,7 +71,7 @@ export default function MePage() {
 
       {me.staff && (
         <Link href="/staff" className="card-hi mt-3 p-4 flex items-center gap-3" data-testid="link-staff">
-          <span className="flex-1"><span className="block font-bold">Staff page</span><span className="block text-xs text-[var(--mute)]">Rinks, requests, support and roles.</span></span>
+          <span className="flex-1"><span className="block font-bold">Manage</span><span className="block text-xs text-[var(--mute)]">Requests, rinks, leagues, teams and staff.</span></span>
           <span>›</span>
         </Link>
       )}

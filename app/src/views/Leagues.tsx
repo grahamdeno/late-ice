@@ -3,6 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { CaptainPanel } from "@/components/CaptainPanel";
 import { ShotMap } from "@/components/ShotMap";
 import { Schedule } from "@/components/Schedule";
+import { AddButton, AddTeamForm } from "@/components/ManageForms";
+import { act } from "@/lib/auth";
+import { useLocation } from "@/lib/router";
 import { Link } from "@/lib/router";
 import { useState } from "react";
 import { BackBar, Empty, GameRow, LevelPill, Loading, Section, TeamBadge, fmtDate, fmtRating, useFilter } from "@/lib/ui";
@@ -75,9 +78,11 @@ export function Leagues() {
 
 export function LeaguePage({ id }: { id: string }) {
   const [seasonId, setSeasonId] = useState<number | null>(null);
+  const [adding, setAdding] = useState(false);
   const { data } = useQuery<any>({ queryKey: [seasonId ? `/api/leagues/${id}?season=${seasonId}` : `/api/leagues/${id}`] });
   if (!data) return <Loading />;
   const { league, season, seasons } = data;
+  const can = data.can ?? {};
   return (
     <div>
       <BackBar href="/leagues" title="Standings" />
@@ -91,7 +96,12 @@ export function LeaguePage({ id }: { id: string }) {
           ))}
         </div>
       )}
-      <div className="card overflow-hidden mt-5"><StandingsTable rows={data.standings} /></div>
+      <div className="flex items-center justify-end mt-4 min-h-[20px]">
+        {!adding && (can.addTeam ? <AddButton label="Team" onClick={() => setAdding(true)} testid="button-league-add-team" />
+          : data.signedIn ? <button className="text-sm text-[var(--blue)] font-bold" onClick={() => setAdding(true)} data-testid="button-start-team">Start a team</button> : null)}
+      </div>
+      {adding && <div className="mt-2"><AddTeamForm leagueId={league.id} leagueName={league.name} request={!can.addTeam} onDone={() => setAdding(false)} /></div>}
+      <div className="card overflow-hidden mt-2"><StandingsTable rows={data.standings} /></div>
       {data.imported && (
         <p className="text-[11px] text-[var(--mute)] mt-2 px-1" data-testid="text-imported-note">
           Includes {data.imported.gp / 2} games imported from the {data.imported.source}, as of {fmtDate(data.imported.as_of)}. Goal totals start with the first scanned sheet.
@@ -130,6 +140,8 @@ export function LeaguePage({ id }: { id: string }) {
 
 export function TeamPage({ id }: { id: string }) {
   const { data } = useQuery<any>({ queryKey: [`/api/teams/${id}`] });
+  const [, nav] = useLocation();
+  const [removeErr, setRemoveErr] = useState<string | null>(null);
   if (!data) return <Loading />;
   const { team, league, record, roster, games, rating, season, imported } = data;
   return (
@@ -178,6 +190,12 @@ export function TeamPage({ id }: { id: string }) {
       <Section title="Games">
         {games.length ? <div className="space-y-3">{games.map((g: any) => <GameRow key={g.id} g={g} />)}</div> : <Empty title="No games yet" body="Snap the sheet after this team's next game." />}
       </Section>
+      {data.can?.remove && (
+        <div className="mt-8 text-center">
+          <button className="text-xs text-[var(--mute)] underline" onClick={async () => { if (!confirm(`Remove ${team.name}? It has no games or players, so nothing else changes.`)) return; const e = await act("DELETE", `/api/teams/${team.id}`); setRemoveErr(e); if (!e) nav(`/league/${league.id}`); }} data-testid="button-remove-team">Remove this team</button>
+          {removeErr && <p className="text-xs down mt-1">{removeErr}</p>}
+        </div>
+      )}
     </div>
   );
 }

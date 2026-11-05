@@ -23,7 +23,7 @@ function ok(cond: unknown, msg: string): asserts cond {
 }
 
 async function start() {
-  srv = spawn("npx", ["next", "start", "-p", String(PORT)], { env: { ...env, NODE_ENV: "production", BOOTSTRAP_ADMIN_EMAIL: "boss@example.com", ALLOW_LOCAL_FEEDS: "1" }, stdio: ["ignore", "ignore", "inherit"] });
+  srv = spawn("npx", ["next", "start", "-p", String(PORT)], { env: { ...env, NODE_ENV: "production", BOOTSTRAP_ADMIN_EMAIL: "boss@example.com", ALLOW_LOCAL_FEEDS: "1", LATEICE_MAP_LOOKUP: "off" }, stdio: ["ignore", "ignore", "inherit"] });
   for (let i = 0; i < 200; i++) {
     try { const r = await fetch(`${BASE}/api/bootstrap`); if (r.ok) return; } catch {}
     await new Promise((r) => setTimeout(r, 200));
@@ -549,6 +549,48 @@ async function main() {
   ok(dc.status === 200 && dc.json.removed === 1 && (await call("GET", `/api/teams/${hh}/schedule`)).json.games.length === 0, "disconnecting takes its upcoming games off");
   ok((await db`SELECT COUNT(*)::int c FROM team_feeds`)[0].c === 0, "the link is deleted");
   feedSrv.close();
+
+  console.log("manage: new rinks, leagues, seasons and teams");
+  const dupRink = await call("POST", "/api/rink-requests", { name: "Polar Ice", city: "Wilmington", state: "NC" }, fan);
+  ok(dupRink.status === 409 && dupRink.json.matches.some((m: any) => /Polar Ice/.test(m.name)), "asking for a rink that's already here points to it");
+  const rq1 = await call("POST", "/api/rink-requests", { name: "Cape Fear Ice Arena", city: "Fayetteville", state: "NC", website: "capefearice.com", manage: true, role: "hockey_director" }, fan);
+  ok(rq1.status === 200 && rq1.json.requested, "a player asks to add a rink and manage it");
+  ok(!(await call("GET", "/api/staff/requests", undefined, mt)).json.some((r: any) => r.kind === "new_rink"), "new rinks go to admins, not rink managers");
+  const rqBoss = (await call("GET", "/api/staff/requests", undefined, boss)).json.find((r: any) => r.kind === "new_rink");
+  ok(rqBoss && rqBoss.details.manage && rqBoss.details.emailOnDomain === false, "the admin sees it, and that the email isn't on the rink's domain");
+  ok((await call("POST", `/api/staff/requests/${rqBoss.id}`, { decision: "approve" }, boss)).status === 400, "a manager can't be approved before a check");
+  ok((await call("POST", `/api/staff/requests/${rqBoss.id}/phone`, undefined, boss)).status === 200, "admin records the call to the rink");
+  const ap1 = await call("POST", `/api/staff/requests/${rqBoss.id}`, { decision: "approve" }, boss);
+  ok(ap1.status === 200 && ap1.json.rinkId, "rink created");
+  const cfRink = ap1.json.rinkId;
+  ok((await call("GET", "/api/me", undefined, fan)).json.roles.some((r: any) => r.role === "rink_manager" && r.scopeId === cfRink), "and the requester runs it");
+  ok((await db`SELECT COUNT(*)::int c FROM seasons WHERE rink_id=${cfRink}`)[0].c === 1, "a new rink starts with the current season");
+  ok((await call("POST", `/api/rinks/1/leagues`, { level: "B" }, fan)).status === 403, "a rink manager can't add leagues at someone else's rink");
+  const nl = await call("POST", `/api/rinks/${cfRink}/leagues`, { level: "C" }, fan);
+  ok(nl.status === 200, "rink manager adds a C League");
+  ok((await call("POST", `/api/rinks/${cfRink}/leagues`, { level: "C" }, fan)).status === 409, "the same league twice is refused");
+  const nt = await call("POST", `/api/leagues/${nl.json.id}/teams`, { name: "Cape Fear Cubs" }, fan);
+  ok(nt.status === 200, "and a team");
+  ok((await call("POST", `/api/leagues/${nl.json.id}/teams`, { name: "Cape Fear Cubs" }, fan)).status === 409, "the same team twice is refused");
+  ok((await call("POST", `/api/rinks/${cfRink}/seasons`, { name: "Overlap", startsOn: "2026-10-01", endsOn: "2026-10-31" }, fan)).status === 409, "a season that overlaps another is refused");
+  ok((await call("POST", `/api/rinks/${cfRink}/seasons`, { name: "Winter 2027", startsOn: "2027-01-01", endsOn: "2027-04-30" }, fan)).status === 200, "a new season");
+  ok((await call("PATCH", `/api/rinks/${cfRink}`, { phone: "910-555-0100", sheets: 2 }, fan)).status === 200, "rink profile edited");
+  const lgPage = (await call("GET", `/api/leagues/${nl.json.id}`, undefined, fan)).json;
+  ok(lgPage.can.addTeam === true && (await call("GET", `/api/leagues/${nl.json.id}`, undefined, sam)).json.can.addTeam === false, "the league page shows + Team only to staff");
+  const tr = await call("POST", "/api/team-requests", { leagueId: nl.json.id, name: "Sam's Squad", captain: true }, sam);
+  ok(tr.status === 200 && tr.json.requested, "a player asks to start a team");
+  const trq = (await call("GET", "/api/staff/requests", undefined, fan)).json.find((r: any) => r.kind === "new_team");
+  ok(trq && trq.details.name === "Sam's Squad", "it goes to that rink's staff");
+  const tra = await call("POST", `/api/staff/requests/${trq.id}`, { decision: "approve" }, fan);
+  ok(tra.status === 200 && tra.json.teamId, "approved");
+  ok((await call("GET", "/api/me", undefined, sam)).json.roles.some((r: any) => r.role === "captain" && r.scopeId === tra.json.teamId), "the player who started it is its captain");
+  ok((await call("GET", `/api/teams/${nt.json.id}`, undefined, fan)).json.can.remove === true, "an empty team shows Remove to staff");
+  ok((await call("DELETE", `/api/teams/${nt.json.id}`, undefined, sam)).status === 403, "a player can't remove a team");
+  ok((await call("DELETE", `/api/teams/${nt.json.id}`, undefined, fan)).status === 200, "rink manager removes the empty team");
+  ok((await call("DELETE", `/api/teams/${hh}`, undefined, boss)).status === 409, "a team with games can't be removed");
+  ok((await call("DELETE", `/api/leagues/${nl.json.id}`, undefined, fan)).status === 409, "a league with teams can't be removed");
+  const direct = await call("POST", "/api/rink-requests", { name: "Wilmington Ice House", city: "Wilmington", state: "NC", confirmNew: true }, boss);
+  ok(direct.status === 200 && direct.json.created, "an admin adds a rink directly");
 
   console.log("standings: goal difference");
   let lgS = (await call("GET", `/api/leagues/${lg}`)).json.standings;
