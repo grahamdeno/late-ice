@@ -2,6 +2,7 @@ import { handle, body, num } from "@/server/http";
 import { sql, q, one } from "@/server/db";
 import { HttpError } from "@/server/services";
 import * as A from "@/server/accounts";
+import { require_ } from "@/server/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -9,8 +10,7 @@ export const dynamic = "force-dynamic";
 export const GET = handle(async (req) => {
   const u = await A.requireUser(req);
   const rinkId = Number(new URL(req.url).searchParams.get("rink") || u.home_rink_id || 0);
-  const captainHere = await one(sql, "SELECT 1 FROM team_roles r JOIN teams t ON t.id=r.team_id JOIN leagues l ON l.id=t.league_id WHERE r.user_id=$1 AND r.role='captain' AND l.rink_id=$2", [u.id, rinkId]);
-  if (!captainHere) throw new HttpError(403, "The draft pool is for captains at this rink.");
+  await require_(sql, u, "pool.view", { rinkId });
   const players = [];
   for (const x of await q<any>(sql, "SELECT u.id, u.name, u.number, u.position, u.status, u.status_until, u.created_at FROM users u WHERE u.home_rink_id=$1 AND u.name IS NOT NULL ORDER BY u.name", [rinkId])) {
     const slots = await q<any>(sql,

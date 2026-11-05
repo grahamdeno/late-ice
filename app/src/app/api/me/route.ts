@@ -2,6 +2,7 @@ import { handle, body, num } from "@/server/http";
 import { sql, q, one } from "@/server/db";
 import { HttpError } from "@/server/services";
 import * as A from "@/server/accounts";
+import { teamRoleOf } from "@/server/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -13,13 +14,21 @@ export const GET = handle(async (req) => {
     `SELECT p.id, p.display_name AS name, p.rating, p.games_rated, p.position, re.number, re.source, t.id team_id, t.name team_name, t.color, t.logo, l.id league_id, l.level, l.name league_name
      FROM players p JOIN roster_entries re ON re.player_id=p.id JOIN teams t ON t.id=re.team_id JOIN leagues l ON l.id=t.league_id
      WHERE p.user_id=$1 ORDER BY l.sort`, [u.id])) {
-    slots.push({ ...s, captain: await A.captainOf(sql, s.team_id), isCaptain: await A.isCaptain(sql, u.id, s.team_id) });
+    const teamRole = await teamRoleOf(sql, u.id, s.team_id);
+    slots.push({ ...s, captain: await A.captainOf(sql, s.team_id), isCaptain: teamRole === "captain", teamRole, assistants: await A.assistantsOf(sql, s.team_id) });
   }
+  // Teams this person runs: captain or assistant captain.
   const captainTeams = await q(sql,
-    "SELECT t.id, t.name, t.color, t.logo, l.level, l.rink_id FROM team_roles r JOIN teams t ON t.id=r.team_id JOIN leagues l ON l.id=t.league_id WHERE r.user_id=$1 AND r.role='captain'", [u.id]);
+    `SELECT t.id, t.name, t.color, t.logo, l.level, l.rink_id, r.role FROM role_grants r JOIN teams t ON t.id=r.scope_id JOIN leagues l ON l.id=t.league_id
+     WHERE r.user_id=$1 AND r.scope_type='team' AND r.role IN ('captain','assistant_captain') AND r.revoked_at IS NULL`, [u.id]);
+  const handoffs = await q(sql,
+    `SELECT rq.id, rq.scope_id team_id, t.name team_name, fu.name from_name FROM role_requests rq JOIN teams t ON t.id=rq.scope_id JOIN users fu ON fu.id=rq.user_id
+     WHERE rq.kind='captain_handoff' AND rq.status='open' AND rq.target_user_id=$1`, [u.id]);
+  const roles = await A.rolesSummary(sql, u);
+  const staff = roles.some((r) => ["scorekeeper", "commissioner", "rink_manager", "support", "admin"].includes(r.role));
   const notifications = await q(sql, "SELECT * FROM notifications WHERE user_id=$1 ORDER BY id DESC LIMIT 30", [u.id]);
   const unread = (await one<any>(sql, "SELECT COUNT(*) c FROM notifications WHERE user_id=$1 AND read_at IS NULL", [u.id]))!.c;
-  return { user: await A.publicUser(sql, u), slots, captainTeams, notifications, unread, suggestions: await A.suggestionsFor(sql, u) };
+  return { user: await A.publicUser(sql, u), slots, captainTeams, notifications, unread, suggestions: await A.suggestionsFor(sql, u), roles, staff, handoffs };
 });
 
 export const PATCH = handle(async (req) => {

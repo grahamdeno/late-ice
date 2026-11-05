@@ -6,6 +6,7 @@ import "server-only";
 import { one, q, sql, type Tx } from "./db";
 import { HttpError, LEVEL_START, similarity } from "./services";
 import { supabaseAdmin } from "./supabase";
+import { audit, grant, grantsOf, require_, revokeRole, teamRoleOf, type Action, type Scope } from "./permissions";
 
 const err = (status: number, message: string, extra: Record<string, unknown> = {}) => new HttpError(status, message, extra);
 
@@ -77,16 +78,37 @@ export async function userFromRequest(req: Request) {
   const a = await authUser(req);
   if (!a) return null;
   let u = await one<any>(sql, "SELECT * FROM users WHERE auth_id=$1", [a.authId]);
-  if (u) return u;
-  if (!a.email) return null;
-  // Supabase verified this address, so its owner owns the matching Late Ice account.
-  u = await one<any>(
-    sql,
-    `INSERT INTO users (auth_id, email) VALUES ($1,$2)
-     ON CONFLICT (email) DO UPDATE SET auth_id=EXCLUDED.auth_id RETURNING *`,
-    [a.authId, a.email],
-  );
-  return u ?? null;
+  if (!u) {
+    if (!a.email) return null;
+    // Supabase verified this address, so its owner owns the matching Late Ice account.
+    u = await one<any>(
+      sql,
+      `INSERT INTO users (auth_id, email) VALUES ($1,$2)
+       ON CONFLICT (email) DO UPDATE SET auth_id=EXCLUDED.auth_id RETURNING *`,
+      [a.authId, a.email],
+    );
+  }
+  if (!u) return null;
+  // An account merged into another stays as a record of history; it can't be signed into.
+  if (u.merged_into) throw err(410, "This account was moved to a new email. Sign in with that one.");
+  await bootstrapAdmin(u);
+  return u;
+}
+
+let adminExists = false;
+/** The first admin comes from a server setting, so no personal email sits in the public code. */
+async function bootstrapAdmin(u: any) {
+  if (adminExists) return;
+  const want = normEmail(process.env.BOOTSTRAP_ADMIN_EMAIL);
+  if (!want) return;
+  if (await one(sql, "SELECT 1 FROM role_grants WHERE role='admin' AND revoked_at IS NULL LIMIT 1")) { adminExists = true; return; }
+  if (u.email !== want) return;
+  await sql.begin(async (tx) => {
+    if (await one(tx, "SELECT 1 FROM role_grants WHERE role='admin' AND revoked_at IS NULL LIMIT 1")) return;
+    await grant(tx, u.id, "admin", null, null, "bootstrap admin");
+    await audit(tx, u.id, "grant.admin", { type: "user", id: u.id }, undefined, { role: "admin" }, "bootstrap");
+  });
+  adminExists = true;
 }
 
 export async function requireUser(req: Request) {
@@ -112,16 +134,75 @@ export async function teamOrThrow(db: Tx, teamId: number) {
   return t;
 }
 export async function captainOf(db: Tx, teamId: number) {
-  return (await one<any>(db, "SELECT u.id, u.name FROM team_roles r JOIN users u ON u.id=r.user_id WHERE r.team_id=$1 AND r.role='captain' ORDER BY r.id LIMIT 1", [teamId])) ?? null;
+  return (await one<any>(db,
+    "SELECT u.id, u.name FROM role_grants r JOIN users u ON u.id=r.user_id WHERE r.scope_type='team' AND r.scope_id=$1 AND r.role='captain' AND r.revoked_at IS NULL LIMIT 1",
+    [teamId])) ?? null;
+}
+export async function assistantsOf(db: Tx, teamId: number) {
+  return q<any>(db,
+    "SELECT u.id, u.name, r.granted_at FROM role_grants r JOIN users u ON u.id=r.user_id WHERE r.scope_type='team' AND r.scope_id=$1 AND r.role='assistant_captain' AND r.revoked_at IS NULL ORDER BY r.granted_at, r.id",
+    [teamId]);
 }
 export async function isCaptain(db: Tx, userId: number, teamId: number) {
-  return !!(await one(db, "SELECT 1 FROM team_roles WHERE team_id=$1 AND user_id=$2 AND role='captain'", [teamId, userId]));
+  return (await teamRoleOf(db, userId, teamId)) === "captain";
 }
-export async function requireCaptain(db: Tx, user: any, teamId: number) {
+/** Check a team action and return the team. */
+export async function requireTeam(db: Tx, user: any, teamId: number, action: Action = "roster.manage") {
   const t = await teamOrThrow(db, teamId);
-  if (!(await isCaptain(db, user.id, teamId))) throw err(403, "Only the team captain can do that.");
+  await require_(db, user, action, { teamId, leagueId: t.league_id, rinkId: t.rink_id });
   return t;
 }
+export const requireCaptain = (db: Tx, user: any, teamId: number) => requireTeam(db, user, teamId, "roster.manage");
+export async function userCan(db: Tx, user: any, action: Action, scope: Scope) {
+  const { can } = await import("./permissions");
+  return can(db, user, action, scope);
+}
+
+/** Captain leaves: the longest-serving assistant takes over, or the role opens up. */
+export async function vacateCaptain(db: Tx, teamId: number, actor: number | null, note: string) {
+  const cap = await captainOf(db, teamId);
+  if (cap) await revokeRole(db, cap.id, "captain", teamId, actor, note);
+  const [next] = await assistantsOf(db, teamId);
+  const t = await teamOrThrow(db, teamId);
+  if (next) {
+    await revokeRole(db, next.id, "assistant_captain", teamId, actor, "promoted to captain");
+    await grant(db, next.id, "captain", teamId, actor, "promoted: captain left");
+    await logAction(db, teamId, actor, "captain", null, next.id, { promoted: true });
+    for (const m of await teamUserIds(db, teamId)) {
+      await notify(db, m, { kind: "captain", teamId, link: `/team/${teamId}`, title: `${next.name} is now captain of ${t.name}` });
+    }
+  } else {
+    for (const m of await teamUserIds(db, teamId)) {
+      await notify(db, m, { kind: "captain", teamId, link: `/team/${teamId}`, title: `${t.name} needs a captain`, body: "Anyone on the roster can take the role from the team page." });
+    }
+  }
+}
+
+/** Someone left a roster: their team roles end with it. */
+export async function leaveTeamRoles(db: Tx, userId: number, teamId: number, actor: number | null) {
+  const role = await teamRoleOf(db, userId, teamId);
+  if (role === "assistant_captain") await revokeRole(db, userId, "assistant_captain", teamId, actor, "left roster");
+  if (role === "captain") await vacateCaptain(db, teamId, actor, "left roster");
+}
+
+export async function teamUserIds(db: Tx, teamId: number) {
+  return (await q<{ user_id: number }>(db,
+    "SELECT DISTINCT p.user_id FROM roster_entries re JOIN players p ON p.id=re.player_id WHERE re.team_id=$1 AND p.user_id IS NOT NULL", [teamId])).map((r) => r.user_id);
+}
+
+/** Roles for display: "Captain, Hammer'd Heads" and so on. */
+export async function rolesSummary(db: Tx, user: any) {
+  const out = [];
+  for (const g of await grantsOf(db, user)) {
+    let where: string | null = null;
+    if (g.scope_type === "team") where = (await one<any>(db, "SELECT name FROM teams WHERE id=$1", [g.scope_id]))?.name ?? null;
+    if (g.scope_type === "league") where = (await one<any>(db, "SELECT name FROM leagues WHERE id=$1", [g.scope_id]))?.name ?? null;
+    if (g.scope_type === "rink") where = (await one<any>(db, "SELECT name FROM rinks WHERE id=$1", [g.scope_id]))?.name ?? null;
+    out.push({ id: g.id, role: g.role, scopeType: g.scope_type, scopeId: g.scope_id, where });
+  }
+  return out;
+}
+
 export async function onTeam(db: Tx, userId: number, teamId: number) {
   return !!(await one(db, "SELECT 1 FROM roster_entries re JOIN players p ON p.id=re.player_id WHERE re.team_id=$1 AND p.user_id=$2", [teamId, userId]));
 }

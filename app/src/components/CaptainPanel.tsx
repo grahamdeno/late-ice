@@ -9,15 +9,18 @@ const COLORS = ["#EF4444", "#F97316", "#F5B301", "#22C55E", "#14B8A6", "#3B82F6"
 
 const ACTION_TEXT: Record<string, string> = {
   claim: "claimed", match: "matched", draft: "drafted", release: "released", remove: "removed", merge: "merged",
-  captain: "took the captain role", step_down: "stepped down as captain", decline: "declined", contest: "contested the captain", edit_team: "edited the team",
+  captain: "became captain", step_down: "stepped down as captain", decline: "declined", contest: "contested the captain", edit_team: "edited the team",
+  assistant: "named an assistant captain:", assistant_removed: "removed an assistant captain:", captain_assigned: "set the captain:",
 };
 
 /** Captain line on the team page, plus the roster builder when the viewer is the captain. */
-export function CaptainPanel({ team, captain }: { team: any; captain: { id: number; name: string } | null }) {
+export function CaptainPanel({ team, captain, assistants = [] }: { team: any; captain: { id: number; name: string } | null; assistants?: { id: number; name: string }[] }) {
   const { me } = useMe();
   const [err, setErr] = useState<string | null>(null);
   if (team.is_sample) return null;
-  const isCap = !!me?.captainTeams.some((t) => t.id === team.id);
+  const myRole = me?.captainTeams.find((t) => t.id === team.id)?.role ?? null;
+  const isCap = myRole === "captain";
+  const runsTeam = !!myRole;
   const onRoster = !!me?.slots.some((s) => s.team_id === team.id);
   const run = async (method: string, url: string, body?: unknown) => setErr(await act(method, url, body));
 
@@ -28,16 +31,22 @@ export function CaptainPanel({ team, captain }: { team: any; captain: { id: numb
         <span className="flex-1 font-bold truncate">{captain ? captain.name : <span className="text-[var(--mute)] font-medium">No captain yet</span>}</span>
         {!me && <Link href="/join" className="btn btn-ghost h-8 text-xs" data-testid="link-join-team">Your team? Join</Link>}
         {me && !captain && onRoster && <button className="btn btn-red h-8 text-xs" onClick={() => run("POST", `/api/teams/${team.id}/captain`)} data-testid="button-take-captain">I'm the captain</button>}
-        {me && captain && !isCap && onRoster && <button className="btn btn-ghost h-8 text-xs" onClick={() => confirm("Tell the captain you're the real captain?") && run("POST", `/api/teams/${team.id}/captain`)} data-testid="button-contest-captain">Contest</button>}
+        {me && captain && !runsTeam && onRoster && <button className="btn btn-ghost h-8 text-xs" onClick={() => confirm("Tell the captain you're the real captain?") && run("POST", `/api/teams/${team.id}/captain`)} data-testid="button-contest-captain">Contest</button>}
       </div>
-      {me && !onRoster && !isCap && <p className="text-[11px] text-[var(--mute)] mt-2 px-1">On this team? Tap your name in the roster and claim it.</p>}
+      {assistants.length > 0 && (
+        <div className="card mt-2 p-3.5 flex items-center gap-3 text-sm" data-testid="card-assistants">
+          <span className="label">Assistants</span>
+          <span className="flex-1 font-bold truncate">{assistants.map((a) => a.name).join(", ")}</span>
+        </div>
+      )}
+      {me && !onRoster && !runsTeam && <p className="text-[11px] text-[var(--mute)] mt-2 px-1">On this team? Tap your name in the roster and claim it.</p>}
       {err && <p className="text-sm down mt-2 px-1" data-testid="text-error">{err}</p>}
-      {isCap && <RosterBuilder teamId={team.id} />}
+      {runsTeam && <RosterBuilder teamId={team.id} isCaptain={isCap} assistants={assistants} />}
     </>
   );
 }
 
-function RosterBuilder({ teamId }: { teamId: number }) {
+function RosterBuilder({ teamId, isCaptain, assistants }: { teamId: number; isCaptain: boolean; assistants: { id: number; name: string }[] }) {
   const { me } = useMe();
   const { data } = useQuery<any>({ queryKey: [`/api/teams/${teamId}/manage`] });
   const [err, setErr] = useState<string | null>(null);
@@ -63,7 +72,7 @@ function RosterBuilder({ teamId }: { teamId: number }) {
             <button type="button" className="w-full flex items-center gap-3 text-sm text-left" onClick={() => setOpenId(openId === s.id ? null : s.id)} aria-expanded={openId === s.id} data-testid={`button-slot-${s.id}`}>
               <span className="tnum text-[var(--mute)] w-8">{s.number ? `#${s.number}` : "–"}</span>
               <span className="flex-1 min-w-0">
-                <span className="block font-bold truncate">{s.name}{s.position === "G" ? " · G" : ""}</span>
+                <span className="block font-bold truncate">{s.name}{s.position === "G" ? " · G" : ""}{s.badge ? <span className="ml-1.5 text-[10px] font-black text-[var(--mute)]">{s.badge}</span> : null}</span>
                 <span className="block text-[11px] text-[var(--mute)]">
                   {s.registered ? <span className="up">Registered</span> : "From the sheet"}
                   {s.source === "draft" ? " · drafted" : ""}{s.gp ? ` · ${s.gp} scanned GP` : ""}
@@ -82,7 +91,7 @@ function RosterBuilder({ teamId }: { teamId: number }) {
                   {!s.registered && <Link href={`/pool/${teamId}/match/${s.id}`} className="btn btn-ghost h-8 text-xs" data-testid={`button-match-${s.id}`}>Match</Link>}
                   {s.registered && s.user_id !== me?.user.id && <button className="btn btn-ghost h-8 text-xs" onClick={() => confirm(`Release ${s.name}'s claim on this spot?`) && run("POST", `/api/teams/${teamId}/slots/${s.id}/release`)} data-testid={`button-release-${s.id}`}>Release</button>}
                   <button className="btn btn-ghost h-8 text-xs" onClick={() => { setMergeFrom(s.id); setOpenId(null); }} data-testid={`button-merge-${s.id}`}>Same person as…</button>
-                  {s.user_id !== me?.user.id && <button className="btn btn-ghost h-8 text-xs" onClick={() => confirm(`Take ${s.name} off the roster? Games already played keep their lines.`) && run("POST", `/api/teams/${teamId}/slots/${s.id}/remove`)} data-testid={`button-remove-${s.id}`}>Remove</button>}
+                  {s.user_id !== me?.user.id && (isCaptain || !s.badge) && <button className="btn btn-ghost h-8 text-xs" onClick={() => confirm(`Take ${s.name} off the roster? Games already played keep their lines.`) && run("POST", `/api/teams/${teamId}/slots/${s.id}/remove`)} data-testid={`button-remove-${s.id}`}>Remove</button>}
                 </>
               )}
             </div>
@@ -91,6 +100,37 @@ function RosterBuilder({ teamId }: { teamId: number }) {
         ))}
       </div>
 
+      {isCaptain && (
+        <div className="card mt-3 p-4" data-testid="card-assistant-picker">
+          <div className="text-sm font-bold">Assistant captains <span className="text-[var(--mute)] font-medium">({assistants.length} of 2)</span></div>
+          <p className="text-[11px] text-[var(--mute)] mt-0.5">They can run the roster and schedule with you. Only you name assistants, hand off or rename the team.</p>
+          <div className="mt-2 space-y-1.5">
+            {assistants.map((a) => (
+              <div key={a.id} className="flex items-center gap-2 text-sm">
+                <span className="h-5 w-5 rounded-full bg-[var(--ice-3)] border border-[var(--line)] text-[10px] font-black flex items-center justify-center">A</span>
+                <span className="flex-1 truncate">{a.name}</span>
+                <button className="btn btn-ghost h-8 text-xs" onClick={() => run("DELETE", `/api/teams/${teamId}/assistants?userId=${a.id}`)} data-testid={`button-remove-assistant-${a.id}`}>Remove</button>
+              </div>
+            ))}
+          </div>
+          {assistants.length < 2 && (
+            <select className="input w-full mt-2 text-sm" value="" onChange={(e) => e.target.value && run("POST", `/api/teams/${teamId}/assistants`, { userId: Number(e.target.value) })} data-testid="select-add-assistant">
+              <option value="">Add an assistant captain…</option>
+              {data.slots.filter((s: any) => s.registered && s.user_id !== me?.user.id && !assistants.some((a) => a.id === s.user_id)).map((s: any) => (
+                <option key={s.id} value={s.user_id}>{s.user_name ?? s.name}{s.number ? ` #${s.number}` : ""}</option>
+              ))}
+            </select>
+          )}
+          <select className="input w-full mt-2 text-sm" value="" onChange={(e) => e.target.value && confirm("Offer the captaincy? They accept from their profile, and you become a regular player.") && run("POST", `/api/teams/${teamId}/captain/handoff`, { userId: Number(e.target.value) })} data-testid="select-handoff">
+            <option value="">Hand off captaincy to…</option>
+            {data.slots.filter((s: any) => s.registered && s.user_id !== me?.user.id).map((s: any) => (
+              <option key={s.id} value={s.user_id}>{s.user_name ?? s.name}{s.number ? ` #${s.number}` : ""}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {isCaptain && (
       <div className="card mt-3 p-4">
         {!editing ? (
           <div className="flex items-center gap-3">
@@ -113,6 +153,7 @@ function RosterBuilder({ teamId }: { teamId: number }) {
           </form>
         )}
       </div>
+      )}
 
       {data.actions.length > 0 && (
         <details className="card mt-3 p-4 text-xs">
@@ -125,7 +166,7 @@ function RosterBuilder({ teamId }: { teamId: number }) {
         </details>
       )}
 
-      <button className="text-xs text-[var(--mute)] mt-3 px-1" onClick={() => confirm("Step down as captain? Anyone on the roster can take the role.") && run("POST", `/api/teams/${teamId}/captain/step-down`)} data-testid="button-step-down">Step down as captain</button>
+      {isCaptain && <button className="text-xs text-[var(--mute)] mt-3 px-1" onClick={() => confirm(assistants.length ? `Step down? ${assistants[0].name} becomes captain.` : "Step down as captain? Anyone on the roster can take the role.") && run("POST", `/api/teams/${teamId}/captain/step-down`)} data-testid="button-step-down">Step down as captain</button>}
     </Section>
   );
 }
