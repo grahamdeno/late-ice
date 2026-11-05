@@ -2,35 +2,41 @@
 
 The questions a beer-league player, captain or rink manager asks in the first five minutes, and the answer the app gives. These decisions come before sign-in, notifications and hosting, because every one of those depends on them.
 
-The organizing principle: **the scoresheet creates the record; people only ever claim what already exists.** Nobody registers a team, drafts a roster, types a schedule or enters a score. If the app ever asks someone to fill in a blank form, something went wrong.
+The organizing principle: **register once, then your captain pulls you onto the team. The scoresheet creates the record either way.** Nobody types a schedule or enters a score. Registration is a phone number and four fields, and it is the only form in the app.
 
 ---
 
 ## 1. How do I get on the app?
 
-**You don't sign up to exist. You exist the first time a sheet with your name on it is scanned. Signing up just claims that record.**
+**You register first. Registering makes you draftable.**
 
-Onboarding, in order:
+1. Open the app (from a teammate's text, a rink flyer, or the store).
+2. Phone number, six-digit code. Then name, jersey number, position, home rink. That's the whole form.
+3. You now have a registered profile and you're in the **draft pool** for your home rink: visible to captains there, with your number and position.
+4. If a captain has already built a roster and there's a slot in your name (because your name was on a scanned sheet), the app shows it: "Front Street Flyers has a #9 Sam Okafor. Is that you?" Tap to claim your spot. Your captain is notified and can reject a wrong claim.
+5. If no slot exists yet, you wait to be drafted. Captains at your rink see you in the pool.
 
-1. Open the link a teammate texted you (it points at a game page, not a landing page).
-2. See the game, the three stars, and your own name with a rating next to it.
-3. Tap "That's me." Enter a phone number, get a six-digit code. No password, no email, no profile form.
-4. Confirm your number and position. Done. Everything you've ever appeared on, at any rink, is now yours.
-
-Why phone: beer league already runs on group texts. Phone is the identity people actually have for each other, it's how invites travel, and it's the hook for the notification that makes the app sticky ("your rating moved"). Apple and Google sign-in come with the iOS and Android apps.
-
-What if nobody has scanned a sheet with your name yet? The app says so plainly: "Nothing with your name yet. Snap your next scoresheet and you're in." Then the camera button. There is no empty profile to build.
+Why phone: beer league runs on group texts, and it's the hook for "your rating moved." Apple and Google sign-in arrive with the native apps.
 
 ## 2. How do I get on my team's roster?
 
-**The scoresheet is the roster.** If your name and number appear on a scanned sheet for a team, you are on that team. No invite, no captain approval, no draft.
+**The captain pulls you on. Three ways a roster slot gets filled:**
 
-Rules that make this work:
+| Path | Who acts | What happens |
+| --- | --- | --- |
+| **Draft** | Captain | Captain opens the draft pool for the rink and pulls a registered player onto the team. The player gets a notification and can decline. |
+| **Match** | Captain | A scanned sheet already created a slot ("M. Tolliver #1") holding stats. Captain matches a registered player to that slot. Stats and rating history transfer to the person. |
+| **Claim** | Player | If the captain has built the roster and a slot carries the player's name, the player can claim it. Captain is notified and can undo. |
 
-- **Appearance vs. roster member.** Every sheet creates an *appearance*. Three appearances for the same team in a season makes you a *roster member*. Fewer than three and you're listed as a sub. Subs still get rated.
-- **Same person, different spellings.** Within a team, jersey number plus a similar name is the same person ("M. Tolliver", "Mike Tolliver", "Tolliver #1"). Across teams, a claimed player can say "that's me too" to merge an appearance. Unclaimed duplicates are merged by a captain or by anyone who claims both.
-- **One player, one rating.** Playing C on Tuesday and Over 40 on Sunday is one profile with two teams and one rating. The level tag on each game tells the rating engine what it needs.
-- **Captain is a light role, not a gate.** The captain is whoever claims it first for a team (teammates can contest). Captains can rename the team, merge duplicate players, mark a sub, and dispute a scan. They cannot add or remove games.
+What never happens: a name on a sheet does not put a registered person on a roster by itself. The sheet creates a **slot**, not a membership.
+
+Rules that make this hold together:
+
+- **Slots hold the team's record whether or not anyone registers.** An unregistered slot shows an obfuscated name ("M. Tolliver #1"), keeps every goal, assist and penalty minute, and carries a rating. The team's standings and stats are complete even if half the roster never downloads the app.
+- **Matching is the only way stats move onto a person.** Captain action or player claim with captain visibility. No automatic merge across teams; a player who plays C and 40+ gets matched on each team and the app links the two slots to one profile and one rating.
+- **Subs.** A name that appears on a sheet but isn't on the captain's roster is a sub slot. It's rated and listed under "Subs" for that game, and the captain can promote it to the roster.
+- **Captain.** The first registered player to claim a team becomes captain; teammates can contest, and a verified rink admin can reassign. Captains build the roster, draft, match, rename the team, pick colors, and dispute scans. Captains cannot add, edit or remove games.
+- **Spelling variants** on the same team with the same number ("Tolliver", "M. Tolliver") collapse into one slot automatically. Different numbers stay separate until the captain merges them.
 
 ## 3. Which rinks show up, and why?
 
@@ -62,15 +68,13 @@ Rules that make this work:
 
 ## 6. How does the scoresheet get photographed at all?
 
-This is the one question the app can't answer alone, and it decides whether the loop closes.
+Scorekeepers at Polar Ice will let captains photograph the sheet right after the game. So the three supported paths are:
 
-At most rinks the official sheet goes to the office after the game. Options, best first:
+1. **Captain photographs it at the scorer's table.** The default. Thirty seconds, before the sheet goes to the office.
+2. **Scorekeeper texts the photo.** The app gets an inbound SMS/MMS number. A photo texted from a registered scorekeeper's phone is scanned exactly like an in-app upload, and the game lands in that rink's review queue.
+3. **Scorekeeper uploads directly.** A **scorekeeper role** at the rink, assigned by the rink admin or self-claimed and verified. Scorekeeper scans are marked as official and skip the duplicate-comparison wait.
 
-1. **Photo at the scorer's table** right after the handshake line, before the sheet leaves. Thirty seconds. This is the habit to build.
-2. **Rink posts the sheets.** Some rinks tape them to a board or scan them to a league page. The app can read a photo of the posted sheet.
-3. **Rink admin uploads.** If the hockey director is on board, the office can batch-upload the night's sheets in one go.
-
-Open question for Wilmington: what does Polar Ice do with the sheet after the game, and will the scorekeeper let a captain photograph it at the table?
+Games scanned by a scorekeeper or confirmed by both captains are marked official. A single captain scan is provisional until the 72-hour dispute window passes.
 
 ## 7. What's in it for me the first week?
 
@@ -103,8 +107,11 @@ Game-night features (RSVP, lines, check-in) wait for Phase 2. Until then the app
 
 | Add | Why |
 | --- | --- |
-| `users` (phone, verified_at) and `claims` (user ↔ player) | Identity without profile forms |
-| `appearances` separate from `roster_entries` | Subs vs. members, three-appearance rule |
+| `users` (phone, name, number, position, home_rink) | Registration; the draft pool is every registered user at a rink |
+| `roster_slots` (team, number, display_name, user_id nullable) | Sheet-created slots hold stats; matching sets user_id |
+| `roster_actions` (draft, match, claim, promote, with who/when) | Captain control and an audit trail |
+| `team_roles` (captain, scorekeeper, rink_admin) | Who can do what |
+| `appearances` separate from roster slots | Subs vs. members |
 | `player_aliases` | Spelling variants and merges |
 | `rink_directory` (seeded, with `live_at`) | Every rink listed, live when scanned |
 | `regions` computed from rink geo | No region picker |
@@ -115,13 +122,13 @@ Game-night features (RSVP, lines, check-in) wait for Phase 2. Until then the app
 
 ## Build order, revised
 
-1. Phone sign-in and "That's me" claiming (uses the game-page link as the entry point)
-2. Appearance/roster rules, aliases and merge
-3. Name display rules and self-hide
+1. Registration (phone, name, number, position, home rink) and the draft pool
+2. Captain claim, roster builder: draft, match a registered player to a sheet slot, player self-claim with captain notice
+3. Obfuscated slot names, alias collapse, self-hide
 4. Rink directory seed, live/listed states, rink detection from the sheet
 5. Seasons and standings reset
 6. Scan attribution, duplicate comparison, dispute flow
 7. Shareable recap card
-8. Rink admin role and the Polar Ice outreach
+8. Rink admin and scorekeeper roles, inbound text-a-photo number, Polar Ice outreach
 9. Push notifications ("your rating moved", "sheet needs a look")
 10. Schedule reading, then game-night features
