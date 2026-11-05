@@ -220,7 +220,7 @@ export function cleanNumber(n: unknown) {
   const s = String(n ?? "").replace(/[^0-9]/g, "").slice(0, 2);
   return s || null;
 }
-export const POSITIONS = new Set(["F", "D", "G"]);
+export const POSITIONS = new Set(["C", "W", "F", "D", "G"]);
 export const STATUSES = new Set(["available", "ir", "away", "resting"]);
 
 export async function publicUser(db: Tx, u: any) {

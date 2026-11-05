@@ -4,6 +4,22 @@ import { Link, useLocation } from "@/lib/router";
 import { useMe, act, signOut, POSITION_LABEL, STATUS_LABEL, ROLE_LABEL } from "@/lib/auth";
 import { Empty, LevelPill, Loading, Section, TeamBadge, fmtRating } from "@/lib/ui";
 import { ProfileForm } from "./Join";
+import { useTheme, type Theme } from "@/lib/theme";
+import { GameLine } from "@/components/Schedule";
+
+function Appearance() {
+  const [theme, setTheme] = useTheme();
+  return (
+    <Section title="Appearance">
+      <div className="card p-1.5 grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Appearance">
+        {([["auto", "Match phone"], ["light", "Light"], ["dark", "Dark"]] as [Theme, string][]).map(([k, label]) => (
+          <button key={k} role="radio" aria-checked={theme === k} onClick={() => setTheme(k)} className={`h-10 rounded-xl text-sm font-bold ${theme === k ? "bg-[var(--red-btn)] text-white" : "text-[var(--mute)]"}`} data-testid={`button-theme-${k}`}>{label}</button>
+        ))}
+      </div>
+      <p className="text-[11px] text-[var(--mute)] mt-2 px-1">Saved on this phone.</p>
+    </Section>
+  );
+}
 
 function timeAgo(s: string) {
   const t = new Date(s).getTime();
@@ -133,6 +149,12 @@ export default function MePage() {
                     <span className="block text-[10px] label">LIR</span>
                   </span>
                 </Link>
+                {s.next && (
+                  <Link href={`/team/${s.team_id}`} className="block mt-3 rounded-xl border border-[var(--line)] p-2.5" data-testid={`next-game-${s.team_id}`}>
+                    <span className="block label mb-1.5">Next game</span>
+                    <GameLine g={s.next} />
+                  </Link>
+                )}
                 <div className="flex flex-wrap gap-2 mt-3">
                   <Link href={`/player/${s.id}`} className="btn btn-ghost h-9 text-sm">Rating history</Link>
                   {s.teamRole && <Link href={`/team/${s.team_id}`} className="btn btn-red h-9 text-sm" data-testid={`button-manage-${s.team_id}`}>Manage roster</Link>}
@@ -174,6 +196,8 @@ export default function MePage() {
           <p className="text-[11px] text-[var(--mute)] mt-3">Your captains see this. It never touches your rating, and injured reserve freezes it.</p>
         </div>
       </Section>
+
+      <Appearance />
 
       <Section title="Privacy">
         <div className="card p-4 flex items-center gap-3">

@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@/lib/router";
-import { useMe, act, POSITION_LABEL, STATUS_LABEL } from "@/lib/auth";
+import { useMe, act, POSITION_LABEL, posMatch, STATUS_LABEL } from "@/lib/auth";
 import { BackBar, Empty, LevelPill, Loading, TeamBadge, fmtRating } from "@/lib/ui";
 
 interface PoolPlayer {
@@ -43,7 +43,7 @@ export default function Pool({ teamId, slotId }: { teamId?: string; slotId?: str
   const myTeam = me.captainTeams.find((t) => t.id === team);
 
   const players = (data?.players ?? [])
-    .filter((p) => pos === "all" || p.position === pos)
+    .filter((p) => posMatch(pos, p.position))
     .filter((p) => !onlyFree || p.status === "available")
     .filter((p) => !p.teams.some((t) => t.id === team));
 

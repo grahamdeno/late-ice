@@ -2,6 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { CaptainPanel } from "@/components/CaptainPanel";
 import { ShotMap } from "@/components/ShotMap";
+import { Schedule } from "@/components/Schedule";
 import { Link } from "@/lib/router";
 import { useState } from "react";
 import { BackBar, Empty, GameRow, LevelPill, Loading, Section, TeamBadge, fmtDate, fmtRating, useFilter } from "@/lib/ui";
@@ -30,11 +31,16 @@ function StandingsTable({ rows, compact = false }: { rows: any[]; compact?: bool
             </td>
             <td className="text-center text-[var(--mute)]">{t.gp}</td>
             <td className="text-center">{t.w}-{t.l}-{t.t}</td>
-            {!compact && <td className={`text-center ${t.diff > 0 ? "up" : t.diff < 0 ? "down" : "text-[var(--mute)]"}`}>{t.diff > 0 ? "+" : ""}{t.diff}</td>}
+            {!compact && <td className={`text-center ${t.diff > 0 ? "up" : t.diff < 0 ? "down" : "text-[var(--mute)]"}`}>{t.diff == null ? "–" : `${t.diff > 0 ? "+" : ""}${t.diff}`}</td>}
             <td className="text-right pr-4 font-display text-lg">{t.pts}</td>
           </tr>
         ))}
       </tbody>
+      {!compact && (
+        <tfoot>
+          <tr><td colSpan={5} className="px-4 pt-3 pb-1 text-[11px] text-[var(--mute)] text-left font-sans">GP games played · W-L-T wins, losses, ties · DIFF goals for minus goals against · PTS 2 for a win, 1 for a tie</td></tr>
+        </tfoot>
+      )}
     </table>
   );
 }
@@ -139,7 +145,7 @@ export function TeamPage({ id }: { id: string }) {
           </div>
         </div>
         <div className="grid grid-cols-4 gap-2 mt-5 text-center">
-          {[["Record", `${record.w}-${record.l}-${record.t}`], ["Points", record.pts], ["GF-GA", record.scanned ? `${record.gf}-${record.ga}` : "–"], ["Rating", fmtRating(rating)]].map(([k, v]) => (
+          {[["Record", `${record.w}-${record.l}-${record.t}`], ["Points", record.pts], ["GF-GA", record.gf != null && record.gp ? `${record.gf}-${record.ga}` : "–"], ["Rating", fmtRating(rating)]].map(([k, v]) => (
             <div key={k as string} className="rounded-xl bg-[var(--ice-3)] py-2.5">
               <div className="font-display text-xl tnum">{v}</div>
               <div className="text-[10px] label">{k}</div>
@@ -153,6 +159,7 @@ export function TeamPage({ id }: { id: string }) {
         <div className="mt-3 text-xs text-[var(--mute)] px-1" data-testid="text-imported-team">Record and totals include {imported.gp} games imported from the {imported.source} as of {fmtDate(imported.as_of)}. Ratings start moving with the first scanned sheet.</div>
       ) : null}
       <CaptainPanel team={team} captain={data.captain} assistants={data.assistants} />
+      <Schedule teamId={team.id} />
       <Section title="Roster" action={<span className="label">{roster.length} players</span>}>
         {roster.length ? (
           <div className="card divide-y divide-[var(--line)]">

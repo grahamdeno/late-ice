@@ -163,8 +163,8 @@ export function ProfileForm({ onDone, submitLabel = "Join the draft pool" }: { o
         </label>
         <div>
           <span className="label">Position</span>
-          <div className="grid grid-cols-3 gap-1.5 mt-1.5">
-            {(["F", "D", "G"] as const).map((p) => (
+          <div className="grid grid-cols-4 gap-1.5 mt-1.5">
+            {(["C", "W", "D", "G"] as const).map((p) => (
               <button type="button" key={p} onClick={() => setPosition(p)} className={`h-11 rounded-xl border text-sm font-bold ${position === p ? "border-[var(--red)] bg-[var(--red-dim)]" : "border-[var(--line)] bg-[var(--ice-3)]"}`} data-testid={`button-position-${p}`}>
                 {POSITION_LABEL[p]}
               </button>

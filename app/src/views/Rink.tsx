@@ -21,7 +21,7 @@ export default function Rink() {
       <div className="card-hi mt-5 overflow-hidden">
         {/* Top-down sheet of ice: red center line, blue lines, faceoff dots. */}
         <svg viewBox="0 0 400 170" className="w-full block" aria-label="Rink diagram">
-          <rect x="6" y="6" width="388" height="158" rx="60" fill="#0e141e" stroke="#2a3446" strokeWidth="2" />
+          <rect x="6" y="6" width="388" height="158" rx="60" style={{ fill: "var(--rink)", stroke: "var(--rink-line)" }} strokeWidth="2" />
           <line x1="200" y1="6" x2="200" y2="164" stroke="#FF3B3B" strokeWidth="3" />
           <line x1="140" y1="6" x2="140" y2="164" stroke="#5aa9ff" strokeWidth="4" />
           <line x1="260" y1="6" x2="260" y2="164" stroke="#5aa9ff" strokeWidth="4" />

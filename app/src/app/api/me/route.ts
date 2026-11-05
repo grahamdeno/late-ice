@@ -3,6 +3,7 @@ import { sql, q, one } from "@/server/db";
 import { HttpError } from "@/server/services";
 import * as A from "@/server/accounts";
 import { teamRoleOf } from "@/server/permissions";
+import { nextGame } from "@/server/schedule";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export const GET = handle(async (req) => {
      FROM players p JOIN roster_entries re ON re.player_id=p.id JOIN teams t ON t.id=re.team_id JOIN leagues l ON l.id=t.league_id
      WHERE p.user_id=$1 ORDER BY l.sort`, [u.id])) {
     const teamRole = await teamRoleOf(sql, u.id, s.team_id);
-    slots.push({ ...s, captain: await A.captainOf(sql, s.team_id), isCaptain: teamRole === "captain", teamRole, assistants: await A.assistantsOf(sql, s.team_id) });
+    slots.push({ ...s, next: await nextGame(sql, s.team_id), captain: await A.captainOf(sql, s.team_id), isCaptain: teamRole === "captain", teamRole, assistants: await A.assistantsOf(sql, s.team_id) });
   }
   // Teams this person runs: captain or assistant captain.
   const captainTeams = await q(sql,
@@ -41,7 +42,7 @@ export const PATCH = handle(async (req) => {
     next.name = n;
   }
   if (b.number !== undefined) next.number = A.cleanNumber(b.number);
-  if (b.position !== undefined) { if (!A.POSITIONS.has(b.position)) throw new HttpError(400, "Pick forward, defense or goalie."); next.position = b.position; }
+  if (b.position !== undefined) { if (!A.POSITIONS.has(b.position)) throw new HttpError(400, "Pick center, wing, defense or goalie."); next.position = b.position; }
   if (b.homeRinkId !== undefined) {
     if (!(await one(sql, "SELECT 1 FROM rinks WHERE id=$1", [Number(b.homeRinkId) || 0]))) throw new HttpError(400, "Pick your home rink.");
     next.home_rink_id = Number(b.homeRinkId);
@@ -55,6 +56,7 @@ export const PATCH = handle(async (req) => {
   const saved = await sql.begin(async (tx) => {
     await q(tx, "UPDATE users SET name=$1, number=$2, position=$3, home_rink_id=$4, status=$5, status_until=$6, hidden=$7 WHERE id=$8",
       [next.name, next.number, next.position, next.home_rink_id, next.status, next.status_until, next.hidden, u.id]);
+    if (next.position && next.position !== u.position) await q(tx, "UPDATE players SET position=$1 WHERE user_id=$2", [next.position, u.id]);
     for (const p of await q<{ id: number }>(tx, "SELECT id FROM players WHERE user_id=$1", [u.id])) await A.refreshDisplay(tx, p.id);
     return one(tx, "SELECT * FROM users WHERE id=$1", [u.id]);
   });

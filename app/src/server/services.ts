@@ -242,15 +242,17 @@ export async function teamRecord(db: Tx, teamId: number, seasonId: number | null
   const sq = seasonId ? " AND season_id=$2" : "";
   const sp = seasonId ? [seasonId] : [];
   const gs = await q<any>(db, `SELECT * FROM games WHERE (home_team_id=$1 OR away_team_id=$1) AND source='sheet'${sq}`, [teamId, ...sp]);
-  const imp = await one<any>(db, `SELECT SUM(gp) gp, SUM(w) w, SUM(l) l, SUM(t) t FROM team_imports WHERE team_id=$1${sq}`, [teamId, ...sp]);
-  let w = imp?.w ?? 0, l = imp?.l ?? 0, t = imp?.t ?? 0, gf = 0, ga = 0;
+  const imp = await one<any>(db, `SELECT SUM(gp)::int gp, SUM(w)::int w, SUM(l)::int l, SUM(t)::int t, SUM(gf)::int gf, SUM(ga)::int ga, COUNT(*)::int n, COUNT(gf)::int ngf FROM team_imports WHERE team_id=$1${sq}`, [teamId, ...sp]);
+  // Goals are known only if every imported baseline carried them.
+  const goalsKnown = !imp?.n || imp.ngf === imp.n;
+  let w = imp?.w ?? 0, l = imp?.l ?? 0, t = imp?.t ?? 0, gf = imp?.gf ?? 0, ga = imp?.ga ?? 0;
   for (const g of gs) {
     const mine = g.home_team_id === teamId ? g.home_score : g.away_score;
     const theirs = g.home_team_id === teamId ? g.away_score : g.home_score;
     gf += mine; ga += theirs;
     if (mine > theirs) w++; else if (mine < theirs) l++; else t++;
   }
-  return { gp: gs.length + (imp?.gp ?? 0), scanned: gs.length, imported: imp?.gp ?? 0, w, l, t, pts: w * 2 + t, gf, ga, diff: gf - ga };
+  return { gp: gs.length + (imp?.gp ?? 0), scanned: gs.length, imported: imp?.gp ?? 0, w, l, t, pts: w * 2 + t, goalsKnown, gf: goalsKnown ? gf : null, ga: goalsKnown ? ga : null, diff: goalsKnown ? gf - ga : null };
 }
 
 export async function teamRating(db: Tx, teamId: number) {
@@ -262,7 +264,7 @@ export async function standings(db: Tx, leagueId: number, seasonId: number | nul
   const teams = await q<any>(db, "SELECT * FROM teams WHERE league_id=$1", [leagueId]);
   const rows = [];
   for (const t of teams) rows.push({ ...t, ...(await teamRecord(db, t.id, seasonId)), rating: await teamRating(db, t.id) });
-  return rows.sort((a, b) => b.pts - a.pts || b.diff - a.diff || b.gf - a.gf || a.name.localeCompare(b.name));
+  return rows.sort((a, b) => b.pts - a.pts || (b.diff ?? 0) - (a.diff ?? 0) || (b.gf ?? 0) - (a.gf ?? 0) || a.name.localeCompare(b.name));
 }
 
 export async function leaders(db: Tx, leagueId: number | null, limit = 10, seasonId: number | null = null) {

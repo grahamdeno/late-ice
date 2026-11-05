@@ -5,7 +5,7 @@ import { apiRequest, getQueryFn, queryClient, setToken } from "./queryClient";
 import { supabase } from "./supabase";
 
 export interface MeUser {
-  id: number; email: string | null; phone: string | null; name: string | null; number: string | null; position: "F" | "D" | "G" | null;
+  id: number; email: string | null; phone: string | null; name: string | null; number: string | null; position: "C" | "W" | "F" | "D" | "G" | null;
   homeRink: { id: number; name: string } | null; status: "available" | "ir" | "away" | "resting";
   statusUntil: string | null; hidden: boolean; profileComplete: boolean;
 }
@@ -92,7 +92,14 @@ export async function act(method: string, url: string, body?: unknown): Promise<
   }
 }
 
-export const POSITION_LABEL: Record<string, string> = { F: "Forward", D: "Defense", G: "Goalie" };
+export const POSITION_LABEL: Record<string, string> = { C: "Center", W: "Wing", F: "Forward", D: "Defense", G: "Goalie" };
+/** Position filters. "F" covers center, wing and forwards who haven't said which. */
+export function posMatch(filter: string, pos: string | null | undefined) {
+  if (filter === "all") return true;
+  if (filter === "skaters") return pos !== "G";
+  if (filter === "F") return pos === "C" || pos === "W" || pos === "F";
+  return pos === filter;
+}
 export const ROLE_LABEL: Record<string, string> = {
   assistant_captain: "Assistant captain", captain: "Captain", scorekeeper: "Scorekeeper", commissioner: "League commissioner",
   rink_manager: "Rink manager", support: "Support", admin: "Admin",

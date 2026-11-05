@@ -3,6 +3,7 @@ import { sql, q, one } from "@/server/db";
 import { recomputeAll } from "@/server/rating";
 import { refreshDisplays } from "@/server/accounts";
 import { runDueMerges } from "@/server/staff";
+import { syncAllFeeds } from "@/server/schedule";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -13,5 +14,6 @@ export const GET = handle(async (req) => {
   const r = await recomputeAll();
   await refreshDisplays(sql, true);
   const merges = await runDueMerges();
-  return { ...r, merges };
+  const feeds = await syncAllFeeds();
+  return { ...r, merges, feeds };
 });

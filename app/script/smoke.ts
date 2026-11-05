@@ -3,6 +3,7 @@
 // path, photo storage, and the nightly rating replay. CI runs it after `next build`.
 import { spawn, type ChildProcess } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { createServer } from "node:http";
 import postgres from "postgres";
 import { createClient } from "@supabase/supabase-js";
 // @ts-ignore plain JS helper
@@ -22,7 +23,7 @@ function ok(cond: unknown, msg: string): asserts cond {
 }
 
 async function start() {
-  srv = spawn("npx", ["next", "start", "-p", String(PORT)], { env: { ...env, NODE_ENV: "production", BOOTSTRAP_ADMIN_EMAIL: "boss@example.com" }, stdio: ["ignore", "ignore", "inherit"] });
+  srv = spawn("npx", ["next", "start", "-p", String(PORT)], { env: { ...env, NODE_ENV: "production", BOOTSTRAP_ADMIN_EMAIL: "boss@example.com", ALLOW_LOCAL_FEEDS: "1" }, stdio: ["ignore", "ignore", "inherit"] });
   for (let i = 0; i < 200; i++) {
     try { const r = await fetch(`${BASE}/api/bootstrap`); if (r.ok) return; } catch {}
     await new Promise((r) => setTimeout(r, 200));
@@ -440,6 +441,70 @@ async function main() {
   ok(after.roster.filter((r: any) => r.name === "Adam Y.").length === 1 && after.roster.find((r: any) => r.name === "Adam Y.").number === "19", "\"Adam Young\" #19 on the sheet is the imported \"Adam Y.\" spot, no duplicate");
   ok(after.record.w === hhBefore.record.w && after.record.l === hhBefore.record.l && after.record.gp === hhBefore.record.gp, "record still adds up: the game moved from the baseline to the sheet");
   ok((await ptsOf("Adam Y.")) === adamPts, "Adam's points still add up (2G 1A, counted once)");
+
+  console.log("schedule: calendar feed and hand-added games");
+  const ymd = (days: number) => new Date(Date.now() + days * 86400000).toISOString().slice(0, 10).replace(/-/g, "");
+  let feedEvents = [
+    ["a1@polarwil", `DTSTART;TZID=America/New_York:${ymd(3)}T211500`, "Hammered Heads vs Blue Liners", "Polar Ice Wilmington\\, Rink 1"],
+    ["a2@polarwil", `DTSTART;TZID=America/New_York:${ymd(10)}T221500`, "Hammered Heads @ Wild Puckers", ""],
+    ["p1@polarwil", `DTSTART;TZID=America/New_York:${ymd(-7)}T210000`, "Hammered Heads W 6-0 vs Blue Liners", ""],
+  ];
+  const ics = () => ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//test//EN",
+    ...feedEvents.flatMap(([uid, start, sum, loc]) => ["BEGIN:VEVENT", `UID:${uid}`, start, `SUMMARY:${sum}`, ...(loc ? [`LOCATION:${loc}`] : []),
+      "DESCRIPTION:A long description that the feed folds onto a second line so the reader has to", " join it back together", "END:VEVENT"]),
+    "END:VCALENDAR"].join("\r\n");
+  const feedSrv = createServer((req, res) => {
+    if (req.url === "/team.ics") { res.writeHead(200, { "content-type": "text/calendar" }); res.end(ics()); }
+    else { res.writeHead(200, { "content-type": "text/html" }); res.end("<html>not a calendar</html>"); }
+  });
+  await new Promise<void>((r) => feedSrv.listen(3197, r));
+  const feedLink = "http://localhost:3197/team.ics";
+  const fan = await signUp("fan@example.com", { name: "Fran Fan", number: "88", position: "W" });
+  ok((await call("PUT", `/api/teams/${hh}/feed`, { url: feedLink }, fan)).status === 403, "a player can't connect the team calendar");
+  ok((await call("PUT", `/api/teams/${hh}/feed`, { url: "ftp://nope" }, boss)).status === 400, "a link that isn't web or webcal is refused");
+  const notCal = await call("PUT", `/api/teams/${hh}/feed`, { url: "http://localhost:3197/page" }, boss);
+  ok(notCal.status === 400 && /calendar/i.test(notCal.json.message), "a page that isn't a calendar is refused with a clear message");
+  const fc = await call("PUT", `/api/teams/${hh}/feed`, { url: feedLink }, boss);
+  ok(fc.status === 200 && fc.json.events === 3 && fc.json.added === 3, "calendar connected: 3 games read");
+  let sch = await call("GET", `/api/teams/${hh}/schedule`);
+  ok(sch.status === 200 && sch.json.games.length === 2, "the schedule shows the 2 upcoming games, not the one already played");
+  ok(sch.json.feed === null && !sch.text.includes("3197"), "the calendar link never reaches the public");
+  const [g1, g2] = sch.json.games;
+  ok(g1.opponent === "Blue Liners" && g1.opponent_team_id === blId && g1.local_time === "9:15 PM", "\"vs Blue Liners\" at 9:15 PM matches the league team");
+  ok(g1.location === "Polar Ice Wilmington, Rink 1", "location read, escaped comma and all");
+  ok(g2.opponent === "Wild Puckers" && g2.is_home === false && g2.local_time === "10:15 PM", "\"@ Wild Puckers\" is an away game at 10:15 PM");
+  ok((await call("GET", `/api/teams/${hh}/schedule`, undefined, boss)).json.feed.connected === true, "the captain side sees the calendar is connected");
+  const reread = await call("POST", `/api/teams/${hh}/feed`, undefined, boss);
+  ok(reread.status === 200 && reread.json.added === 0 && reread.json.updated === 3, "reading it again adds no duplicates");
+  feedEvents = feedEvents.filter(([uid]) => uid !== "a2@polarwil");
+  ok((await call("POST", `/api/teams/${hh}/feed`, undefined, boss)).json.removed === 1, "a game dropped from the calendar comes off the schedule");
+  ok((await call("POST", `/api/teams/${hh}/schedule`, { date: "2026-12-01", opponentName: "Raleigh Rebels", kind: "tournament" }, fan)).status === 403, "a player can't add games");
+  const plus5 = ymd(5);
+  const man = await call("POST", `/api/teams/${hh}/schedule`, { date: `${plus5.slice(0, 4)}-${plus5.slice(4, 6)}-${plus5.slice(6)}`, time: "19:30", opponentName: "Raleigh Rebels", kind: "tournament", location: "Wake Competition Center" }, boss);
+  ok(man.status === 200, "a tournament game added by hand");
+  sch = await call("GET", `/api/teams/${hh}/schedule`);
+  const tg = sch.json.games.find((g: any) => g.id === man.json.id);
+  ok(sch.json.games.length === 2 && sch.json.games[1].id === man.json.id && tg.local_time === "7:30 PM" && tg.kind === "tournament" && tg.opponent === "Raleigh Rebels", "it sits in date order at 7:30 PM as a tournament game");
+  ok((await call("DELETE", `/api/teams/${hh}/schedule/${g1.id}`, undefined, boss)).status === 400, "a calendar game can't be deleted, only marked canceled");
+  ok((await call("PATCH", `/api/teams/${hh}/schedule/${g1.id}`, { status: "canceled" }, boss)).status === 200, "marked canceled");
+  ok((await call("GET", `/api/teams/${hh}/schedule`)).json.games.find((g: any) => g.id === g1.id).status === "canceled", "shows as canceled");
+  ok((await call("DELETE", `/api/teams/${hh}/schedule/${man.json.id}`, undefined, boss)).status === 200, "a hand-added game can be removed");
+  const dc = await call("DELETE", `/api/teams/${hh}/feed`, undefined, boss);
+  ok(dc.status === 200 && dc.json.removed === 1 && (await call("GET", `/api/teams/${hh}/schedule`)).json.games.length === 0, "disconnecting takes its upcoming games off");
+  ok((await db`SELECT COUNT(*)::int c FROM team_feeds`)[0].c === 0, "the link is deleted");
+  feedSrv.close();
+
+  console.log("standings: goal difference");
+  let lgS = (await call("GET", `/api/leagues/${lg}`)).json.standings;
+  ok(lgS.find((t: any) => t.name === "Blue Liners").diff === null, "no goals on the rink's page: DIFF is unknown, not zero");
+  await db`UPDATE team_imports SET gf=30, ga=20 WHERE team_id=${blId}`;
+  lgS = (await call("GET", `/api/leagues/${lg}`)).json.standings;
+  const bl = lgS.find((t: any) => t.name === "Blue Liners");
+  ok(bl.diff === bl.gf - bl.ga && bl.gf >= 30, "with goals for and against loaded, DIFF adds up");
+
+  console.log("positions");
+  ok((await call("PATCH", "/api/me", { position: "W" }, sam)).json.user.position === "W", "a player can pick wing");
+  ok((await call("PATCH", "/api/me", { position: "X" }, sam)).status === 400, "an unknown position is refused");
 
   console.log("status and sign-out");
   ok((await call("PATCH", "/api/me", { status: "ir", statusUntil: "2026-12-01" }, sam)).json.user.status === "ir", "set injured reserve");

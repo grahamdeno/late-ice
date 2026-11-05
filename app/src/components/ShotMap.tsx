@@ -36,14 +36,14 @@ export function ShotMap({ teamId }: { teamId: number }) {
     <Section title="Shot map" action={sample ? <span className="chip h-6 text-[10px] border-[var(--amber)] text-[var(--amber)]" data-testid="badge-sample">Sample</span> : <span className="label">Team only</span>}>
       <div className="card-hi overflow-hidden" data-testid="card-shotmap">
         <svg viewBox={`0 0 100 ${H}`} className="w-full block" aria-label="Half rink shot map">
-          <rect x="0.5" y="0.5" width="99" height={H - 1} rx="14" fill="#0e141e" stroke="#2a3446" strokeWidth="0.6" />
+          <rect x="0.5" y="0.5" width="99" height={H - 1} rx="14" style={{ fill: "var(--rink)", stroke: "var(--rink-line)" }} strokeWidth="0.6" />
           <rect x="0" y="0" width="1.6" height={H} fill="#5aa9ff" opacity=".9" />
           <line x1="89" y1="2" x2="89" y2={H - 2} stroke="#FF3B3B" strokeWidth="0.4" opacity=".8" />
           {[22, 78].map((y) => (
             <g key={y}><circle cx="69" cy={sy(y)} r="12.5" fill="none" stroke="#FF3B3B" strokeWidth="0.4" opacity=".7" /><circle cx="69" cy={sy(y)} r="0.9" fill="#FF3B3B" /></g>
           ))}
           <path d={`M89 ${sy(50) - 5} A6 6 0 0 0 89 ${sy(50) + 5}`} fill="rgba(90,169,255,.18)" stroke="#5aa9ff" strokeWidth="0.4" />
-          <rect x="89" y={sy(50) - 2.6} width="3" height="5.2" fill="none" stroke="#EEF3F8" strokeWidth="0.5" />
+          <rect x="89" y={sy(50) - 2.6} width="3" height="5.2" fill="none" style={{ stroke: "var(--white)" }} strokeWidth="0.5" />
           {pts.map((p, i) => (
             <circle key={i} cx={p.x} cy={sy(p.y)} r={p.kind === "goal" ? 1.7 : 1.3}
               fill={p.sample ? "none" : p.kind === "goal" ? "#FF3B3B" : "#5aa9ff"}

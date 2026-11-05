@@ -53,7 +53,7 @@ export default function Scan() {
       <p className="text-[var(--mute)] mt-2">Grab the scoresheet off the scorer's table. One photo puts the game, the goals and everyone's rating on the books.</p>
 
       <div className="card-hi mt-5 p-4">
-        <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-[var(--line)] flex items-center justify-center" style={{ background: "repeating-linear-gradient(0deg,#0b0f16 0 22px,#0e131c 22px 23px)" }}>
+        <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-[var(--line)] flex items-center justify-center" style={{ background: "repeating-linear-gradient(0deg,var(--ice-2) 0 22px,var(--ice-3) 22px 23px)" }}>
           {["top-3 left-3 border-t-4 border-l-4 rounded-tl-xl", "top-3 right-3 border-t-4 border-r-4 rounded-tr-xl", "bottom-3 left-3 border-b-4 border-l-4 rounded-bl-xl", "bottom-3 right-3 border-b-4 border-r-4 rounded-br-xl"].map((c) => (
             <span key={c} className={`absolute h-8 w-8 border-[var(--red)] ${c}`} />
           ))}
