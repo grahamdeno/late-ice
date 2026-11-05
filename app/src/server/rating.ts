@@ -72,7 +72,8 @@ export async function recomputeAll() {
     await q(tx, "LOCK TABLE rating_history IN EXCLUSIVE MODE");
     await q(tx, "DELETE FROM rating_history");
     await q(tx, "UPDATE players SET rating=COALESCE(start_rating, rating), games_rated=0");
-    const games = await q<{ id: number }>(tx, "SELECT id FROM games ORDER BY played_on NULLS LAST, id");
+    // Imported results have no lineup, so they're never rated.
+    const games = await q<{ id: number }>(tx, "SELECT id FROM games WHERE source='sheet' ORDER BY played_on NULLS LAST, id");
     for (const g of games) { await rateGame(tx, g.id); n++; }
     await q(tx, "INSERT INTO rating_runs (kind,algo_version,games,ms) VALUES ('recompute',$1,$2,$3)", [ALGO_VERSION, n, Date.now() - t0]);
   });

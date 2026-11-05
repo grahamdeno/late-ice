@@ -24,5 +24,9 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
     const ids = await q<any>(sql, "SELECT DISTINCT p.id, p.rating FROM players p JOIN roster_entries re ON re.player_id=p.id JOIN teams t ON t.id=re.team_id WHERE t.league_id=$1", [t.league_id]);
     ranks.push({ level: t.level, rank: ids.filter((x: any) => x.rating > raw.rating).length + 1, of: ids.length, tied: ids.filter((x: any) => x.rating === raw.rating).length > 1 });
   }
-  return { player: p, teams, history, totals, imported: imp.gp ? imp : null, lines, ranks, reliability: Math.min(100, raw.games_rated * 10) };
+  const importedGames = [];
+  for (const l of await q<any>(sql, "SELECT il.*, g.played_on FROM imported_game_lines il JOIN games g ON g.id=il.game_id WHERE il.player_id=$1 ORDER BY g.played_on DESC", [raw.id])) {
+    importedGames.push({ goals: l.goals, assists: l.assists, game: await gameCard(sql, await one(sql, "SELECT * FROM games WHERE id=$1", [l.game_id])) });
+  }
+  return { player: p, teams, history, importedGames, totals, imported: imp.gp ? imp : null, lines, ranks, reliability: Math.min(100, raw.games_rated * 10) };
 });

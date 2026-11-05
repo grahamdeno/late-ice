@@ -352,6 +352,95 @@ async function main() {
   ok((await call("DELETE", `/api/staff/grants?id=${myAdmin.id}`, undefined, boss)).status === 400, "the last admin can't remove themselves");
   ok((await call("POST", "/api/staff/recompute", undefined, boss)).status === 200, "admin runs the rating job");
 
+  console.log("import: DaySmart report (made-up names)");
+  const report = [
+    "RAW REPORT - Test (DaySmart name: 'Hammered Heads'), C League, Adult Hockey Fall 2026, Polar Ice Wilmington",
+    "",
+    "GAME 2026-09-06 3:00 PM | Home: Hammered Heads 3 | Away: Blue Liners 1 | Final | OT/shootout: not shown",
+    "GOAL not shown",
+    "PLAYERROW Hammered Heads | Adam Y. G2 A1  (G=goals A=assists SA=shots against; assist type not shown)",
+    "PLAYERROW Opponent | Zed Q. G1 SA1  (G=goals A=assists SA=shots against; assist type not shown)",
+    "TOTALS HH totals: G3 A1",
+    "",
+    "GAME 2026-08-23 4:30 PM | Home: Wild Puckers 0 | Away: Hammered Heads 2 | Final | OT/shootout: not shown",
+    "PLAYERROW Hammered Heads | Jared A. G1",
+    "",
+    "TEAM STATS (ignored)",
+    "Adam Y. | 1 | 2 | 1 | 3 | 0",
+    "",
+    "ROSTERS (number/position not shown on page)",
+    "Hammered Heads",
+    "  Adam Y.",
+    "  Jared A.",
+    "Blue Liners",
+    "  Zed Q.",
+    "  ANA BELL",
+    "Wild Puckers",
+    "  Yuri P.",
+    "Not A Real Team FC",
+    "  Nobody N.",
+  ].join("\n");
+  const before = (await call("GET", `/api/teams/${hh}`)).json;
+  const ptsOf = async (name: string) => (await call("GET", `/api/leagues/${lg}`)).json.leaders.find((x: any) => x.name === name)?.pts ?? 0;
+  const adamPts = await ptsOf("Adam Y.");
+  ok((await call("POST", "/api/staff/import", { text: report, rinkId, apply: true }, graham)).status === 403, "a captain can't import");
+  const pv = await call("POST", "/api/staff/import", { text: report, rinkId }, mt);
+  ok(pv.status === 200 && pv.json.applied === false && pv.json.summary.gamesAdded === 2, "rink manager previews: 2 games");
+  ok(pv.json.summary.rosterAdded === 3 && pv.json.summary.rosterExisting === 2, "preview: 3 new roster spots, 2 already here");
+  ok(pv.json.summary.warnings.some((w: string) => w.includes("Not A Real Team FC")), "preview flags a team that doesn't match");
+  ok(pv.json.summary.unassigned.some((u: any) => u.team === "Hammer'd Heads" && u.goals === 1), "preview counts goals with no scorer");
+  ok(!(await call("GET", `/api/teams/${hh}`)).json.games.some((g: any) => g.source === "daysmart"), "preview saves nothing");
+  const ap = await call("POST", "/api/staff/import", { text: report, rinkId, apply: true }, mt);
+  ok(ap.status === 200 && ap.json.applied && ap.json.summary.gamesAdded === 2, "import applied");
+  let after = (await call("GET", `/api/teams/${hh}`)).json;
+  ok(after.games.filter((g: any) => g.source === "daysmart").length === 2, "imported games show on the team page");
+  ok(JSON.stringify(after.record) === JSON.stringify(before.record), "standings don't count imported games twice");
+  ok((await ptsOf("Adam Y.")) === adamPts, "season points don't count imported games twice");
+  const blRoster = (await call("GET", `/api/teams/${(await db`SELECT id FROM teams WHERE name='Blue Liners'`)[0].id}`)).json.roster;
+  ok(blRoster.some((r: any) => r.name === "Zed Q.") && blRoster.some((r: any) => r.name === "Ana B."), "opponent roster spots added, all-caps fixed and shown as first name and last initial");
+  const ig = after.games.find((g: any) => g.playedOn === "2026-09-06");
+  const igPage = await call("GET", `/api/games/${ig.id}`);
+  ok(igPage.json.source === "daysmart" && igPage.json.imported.some((l: any) => l.name === "Adam Y." && l.goals === 2 && l.assists === 1), "game page lists credited scorers");
+  ok(igPage.json.unassigned.home === 1 && igPage.json.unassigned.away === 0, "game page counts the goal with no scorer");
+  const adamId = after.roster.find((r: any) => r.name === "Adam Y.").id;
+  ok((await call("GET", `/api/players/${adamId}`)).json.importedGames.length === 1, "player page shows the game log");
+  const again = await call("POST", "/api/staff/import", { text: report, rinkId, apply: true }, mt);
+  ok(again.json.summary.gamesAdded === 0 && again.json.summary.gamesUpdated === 2 && again.json.summary.rosterAdded === 0, "importing again changes nothing new");
+
+  console.log("shot map");
+  const outsider = await signUp("outsider@example.com", { name: "Otto Side", number: "3", position: "D" });
+  ok((await call("GET", `/api/teams/${hh}/shotmap`)).status === 401, "shot map needs sign-in");
+  ok((await call("GET", `/api/teams/${hh}/shotmap`, undefined, outsider)).status === 403, "other players can't see a team's shot map");
+  ok((await call("GET", `/api/teams/${hh}/shotmap`, undefined, boss)).status === 200, "admin on the roster sees it as a player");
+  const sm = await call("GET", `/api/teams/${hh}/shotmap`, undefined, graham);
+  ok(sm.status === 200 && sm.json.sample === true && sm.json.points.every((p: any) => p.sample), "team sees the map, every spot marked sample");
+  ok(sm.json.points.filter((p: any) => p.kind === "goal").length === 3 && sm.json.points.filter((p: any) => p.kind === "assist").length === 1, "one spot per credited goal and assist");
+  ok(sm.json.points.every((p: any) => p.x >= 0 && p.x <= 100 && p.y >= 0 && p.y <= 100), "spots land on the ice");
+  const sm2 = await call("GET", `/api/teams/${hh}/shotmap`, undefined, graham);
+  ok(JSON.stringify(sm2.json.points) === JSON.stringify(sm.json.points), "the same goal always lands in the same spot");
+
+  console.log("import: a real sheet replaces the imported game");
+  const blId = (await db`SELECT id FROM teams WHERE name='Blue Liners'`)[0].id;
+  const [sh2] = await db`INSERT INTO sheets (image_path,mime,status,source) VALUES ('test/none.jpg','image/jpeg','review','upload') RETURNING id`;
+  const real = {
+    is_scoresheet: true, date: "2026-09-06", time: "3:00 PM", league_text: "C", rink_text: null, confidence: 0.9, notes: [],
+    home: { name: "Hammer'd Heads", roster: [{ number: "19", name: "Adam Young", position: null }, { number: "7", name: "Jared Anders", position: null }, { number: "30", name: "Gus Goalie", position: "G" }],
+      goals: [{ period: 1, time: "10:00", scorer: "19", assist1: null, assist2: null }, { period: 2, time: "9:00", scorer: "19", assist1: "7", assist2: null }, { period: 3, time: "5:00", scorer: "7", assist1: "19", assist2: null }],
+      penalties: [], shots_by_period: [9, 9, 9], score_by_period: [1, 1, 1], total: 3 },
+    away: { name: "Blue Liners", roster: [{ number: "5", name: "Zed Quill", position: null }, { number: "31", name: "Gil Keeper", position: "G" }],
+      goals: [{ period: 2, time: "4:00", scorer: "5", assist1: null, assist2: null }], penalties: [], shots_by_period: [5, 5, 5], score_by_period: [0, 1, 0], total: 1 },
+  };
+  await db`UPDATE sheets SET extracted_json=${JSON.stringify(real)} WHERE id=${sh2.id}`;
+  const sv2 = (await call("GET", `/api/sheets/${sh2.id}`)).json;
+  ok(sv2.suggestion.duplicateGameId === null, "an imported game isn't flagged as already scanned");
+  const c2 = await call("POST", `/api/sheets/${sh2.id}/confirm`, { leagueId: lg, homeTeamId: hh, awayTeamId: blId, data: real });
+  ok(c2.status === 200, "the real sheet goes in");
+  after = (await call("GET", `/api/teams/${hh}`)).json;
+  ok(!after.games.some((g: any) => g.source === "daysmart" && g.playedOn === "2026-09-06") && after.games.some((g: any) => g.id === c2.json.gameId), "it replaced the imported game");
+  ok(after.roster.filter((r: any) => r.name === "Adam Y.").length === 1 && after.roster.find((r: any) => r.name === "Adam Y.").number === "19", "\"Adam Young\" #19 on the sheet is the imported \"Adam Y.\" spot, no duplicate");
+  ok(after.record.w === before.record.w && after.record.l === before.record.l && after.record.gp === before.record.gp, "record still adds up: the game moved from the baseline to the sheet");
+  ok((await ptsOf("Adam Y.")) === adamPts, "Adam's points still add up (2G 1A, counted once)");
+
   console.log("status and sign-out");
   ok((await call("PATCH", "/api/me", { status: "ir", statusUntil: "2026-12-01" }, sam)).json.user.status === "ir", "set injured reserve");
 

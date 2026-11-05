@@ -16,6 +16,7 @@ export default function Game({ id, fresh }: { id: string; fresh?: boolean }) {
     .sort((a: any, b: any) => (a.period - b.period) || (toSec(b.time) - toSec(a.time)));
   const stars = [...g.lines].sort((a: any, b: any) => (b.goals * 2 + b.assists) - (a.goals * 2 + a.assists) || (b.delta ?? 0) - (a.delta ?? 0)).slice(0, 3);
   const periods = Math.max(3, (g.periods.home || []).length);
+  const imported = g.source === "daysmart";
 
   return (
     <div>
@@ -49,7 +50,7 @@ export default function Game({ id, fresh }: { id: string; fresh?: boolean }) {
             <span className={g.awayScore >= g.homeScore ? "" : "text-[var(--mute)]"}>{g.awayScore}</span>
           </div>
         </div>
-        <table className="w-full mt-5 text-sm tnum">
+        {!imported && <table className="w-full mt-5 text-sm tnum">
           <thead><tr className="text-[var(--mute)]"><th className="text-left font-medium py-1"> </th>{Array.from({ length: periods }, (_, i) => <th key={i} className="font-medium">{i + 1}</th>)}<th className="font-medium">T</th><th className="font-medium">SOG</th></tr></thead>
           <tbody>
             {sides.map((s) => (
@@ -61,8 +62,37 @@ export default function Game({ id, fresh }: { id: string; fresh?: boolean }) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table>}
       </div>
+
+      {imported && (
+        <>
+          <p className="text-[11px] text-[var(--mute)] mt-3 px-1" data-testid="text-imported-game">
+            From DaySmart. It records the score and who was credited with goals and assists, but no times, penalties, shots or lineups, so this game isn't rated. Scan the sheet to add the rest.
+          </p>
+          {sides.map((s) => {
+            const rows = g.imported.filter((l: any) => l.team_id === s.team.id);
+            const un = g.unassigned?.[s.key] ?? 0;
+            return (
+              <div key={s.key} className="card mt-3 overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-[var(--line)] font-bold flex items-center gap-2"><TeamBadge team={s.team} size={22} />{s.team.name}<span className="ml-auto font-display text-xl tnum">{s.score}</span></div>
+                <div className="divide-y divide-[var(--line)]">
+                  {rows.map((l: any) => (
+                    <Link key={l.player_id} href={`/player/${l.player_id}`} className="flex items-center gap-3 px-4 py-2.5 text-sm" data-testid={`row-imported-${l.player_id}`}>
+                      <span className="flex-1 truncate font-medium">{l.name}</span>
+                      <span className="tnum text-[var(--mute)]">{l.goals}G {l.assists}A</span>
+                    </Link>
+                  ))}
+                  {un > 0 && <div className="px-4 py-2.5 text-xs text-[var(--mute)]">{un} {un === 1 ? "goal" : "goals"} with no scorer recorded</div>}
+                  {!rows.length && !un && <div className="px-4 py-2.5 text-xs text-[var(--mute)]">No scoring recorded.</div>}
+                </div>
+              </div>
+            );
+          })}
+        </>
+      )}
+
+      {!imported && <>
 
       <h2 className="font-black text-[17px] mt-7 mb-3 px-1">Three stars</h2>
       <div className="grid grid-cols-3 gap-2">
@@ -122,6 +152,8 @@ export default function Game({ id, fresh }: { id: string; fresh?: boolean }) {
           </div>
         </div>
       ))}
+
+      </>}
 
       {g.sheetId && (
         <a href={img(`/api/sheets/${g.sheetId}/image`)} target="_blank" rel="noreferrer" className="card mt-4 p-3 flex items-center gap-3" data-testid="link-source-sheet">

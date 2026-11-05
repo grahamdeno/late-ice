@@ -1,6 +1,7 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
 import { CaptainPanel } from "@/components/CaptainPanel";
+import { ShotMap } from "@/components/ShotMap";
 import { Link } from "@/lib/router";
 import { useState } from "react";
 import { BackBar, Empty, GameRow, LevelPill, Loading, Section, TeamBadge, fmtDate, fmtRating, useFilter } from "@/lib/ui";
@@ -166,6 +167,7 @@ export function TeamPage({ id }: { id: string }) {
           </div>
         ) : <Empty title="Roster fills itself" body="Players are added straight from the scoresheet the first time this team's game is scanned." />}
       </Section>
+      <ShotMap teamId={team.id} />
       <Section title="Games">
         {games.length ? <div className="space-y-3">{games.map((g: any) => <GameRow key={g.id} g={g} />)}</div> : <Empty title="No games yet" body="Snap the sheet after this team's next game." />}
       </Section>

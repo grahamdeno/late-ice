@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@/lib/router";
 import { useMe, act, ROLE_LABEL } from "@/lib/auth";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { BackBar, Empty, LevelPill, Loading, Section, TeamBadge } from "@/lib/ui";
 
 const when = (s: string) => new Date(s).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -34,6 +35,7 @@ export default function Staff() {
       <Requests run={run} />
       {data.isSupport || data.isAdmin ? <SupportDesk run={run} isAdmin={data.isAdmin} /> : null}
       {data.rinks.map((r: any) => <RinkSection key={r.id} rink={r} run={run} />)}
+      {data.rinks.some((r: any) => r.manage) && <ImportSection rinks={data.rinks.filter((r: any) => r.manage)} />}
       {data.isAdmin && <AdminSection data={data} run={run} />}
       <Audit rinks={data.rinks} broad={data.isSupport || data.isAdmin} />
     </div>
@@ -252,6 +254,58 @@ function Audit({ rinks, broad }: { rinks: any[]; broad: boolean }) {
           {data.map((a) => <div key={a.id}>{when(a.created_at)} · {a.actor ?? "system"} · {a.action.replace(/[._]/g, " ")}{a.target_id ? ` · ${a.target_type} #${a.target_id}` : ""}</div>)}
         </div>
       </details>
+    </Section>
+  );
+}
+
+/** Upload a league report (DaySmart, via Grok). Preview first, then load. */
+function ImportSection({ rinks }: { rinks: any[] }) {
+  const [rinkId, setRinkId] = useState<number>(rinks[0].id);
+  const [text, setText] = useState("");
+  const [file, setFile] = useState<string | null>(null);
+  const [res, setRes] = useState<any>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const send = async (apply: boolean) => {
+    setBusy(true); setErr(null);
+    try {
+      const r = await apiRequest("POST", "/api/staff/import", { text, rinkId, apply });
+      setRes(await r.json());
+      if (apply) await queryClient.invalidateQueries();
+    } catch (e: any) { setErr(e.message); }
+    setBusy(false);
+  };
+  const s = res?.summary;
+  return (
+    <Section title="Import from DaySmart">
+      <div className="card p-4 space-y-3" data-testid="card-import">
+        <p className="text-xs text-[var(--mute)]">Upload the report Grok collected. You'll see a preview before anything is saved. Rosters become unclaimed spots; games show as imported results that don't change standings or ratings.</p>
+        {rinks.length > 1 && (
+          <select className="input w-full text-sm" value={rinkId} onChange={(e) => setRinkId(Number(e.target.value))}>
+            {rinks.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+          </select>
+        )}
+        <label className="btn btn-ghost h-11 w-full cursor-pointer">
+          {file ? `File: ${file}` : "Choose the report file"}
+          <input type="file" accept=".txt,text/plain" className="hidden" data-testid="input-import-file"
+            onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; setFile(f.name); setText(await f.text()); setRes(null); }} />
+        </label>
+        <textarea className="input w-full h-24 py-2 text-xs" placeholder="Or paste the report here" value={text} onChange={(e) => { setText(e.target.value); setFile(null); setRes(null); }} data-testid="input-import-text" />
+        {err && <p className="text-sm down">{err}</p>}
+        <button className="btn btn-ghost h-11 w-full" disabled={busy || text.length < 50} onClick={() => send(false)} data-testid="button-import-preview">{busy && !res ? "Reading…" : "Preview"}</button>
+        {s && (
+          <div className="rounded-xl border border-[var(--line)] p-3 text-xs space-y-1.5" data-testid="import-summary">
+            <div className="font-bold text-sm">{res.applied ? "Imported" : "Preview"} · {s.league}</div>
+            <div>{s.gamesAdded} new games, {s.gamesUpdated} updated{s.gamesSkipped.length ? `, ${s.gamesSkipped.length} skipped` : ""} · {s.lines} player lines</div>
+            <div>{s.rosterAdded} new roster spots, {s.rosterExisting} already here</div>
+            <div className="text-[var(--mute)]">Teams: {s.teams.map((t: any) => t.source === t.team ? t.team : `${t.source} → ${t.team}`).join(", ")}</div>
+            {s.unassigned.length > 0 && <div className="text-[var(--mute)]">No scorer recorded: {s.unassigned.map((u: any) => `${u.date} ${u.team} ${u.goals}`).join("; ")}</div>}
+            {s.gamesSkipped.map((g: any, i: number) => <div key={i} className="text-[var(--amber)]">Skipped {g.date}: {g.why}</div>)}
+            {s.warnings.map((w: string, i: number) => <div key={i} className="text-[var(--amber)]">{w}</div>)}
+          </div>
+        )}
+        {s && !res.applied && <button className="btn btn-red h-11 w-full" disabled={busy} onClick={() => send(true)} data-testid="button-import-apply">{busy ? "Importing…" : "Import it"}</button>}
+      </div>
     </Section>
   );
 }

@@ -10,5 +10,10 @@ export const GET = handle<{ id: string }>(async (_req, { id }) => {
     `SELECT s.*, p.display_name AS name, (SELECT after-before FROM rating_history rh WHERE rh.player_id=s.player_id AND rh.game_id=s.game_id LIMIT 1) delta
      FROM player_game_stats s JOIN players p ON p.id=s.player_id WHERE s.game_id=$1 ORDER BY (s.goals+s.assists) DESC, p.display_name`, [g.id]);
   const parse = (s: string | null) => JSON.parse(s || "{}");
-  return { ...(await gameCard(sql, g)), periods: parse(g.periods_json), goals: parse(g.goals_json), penalties: parse(g.penalties_json), shots: parse(g.shots_json), lines };
+  const imported = await q(sql,
+    "SELECT il.*, p.display_name AS name FROM imported_game_lines il JOIN players p ON p.id=il.player_id WHERE il.game_id=$1 ORDER BY (il.goals*2+il.assists) DESC, p.display_name", [g.id]);
+  return {
+    ...(await gameCard(sql, g)), periods: parse(g.periods_json), goals: parse(g.goals_json), penalties: parse(g.penalties_json), shots: parse(g.shots_json), lines,
+    imported, unassigned: g.unassigned_json ? JSON.parse(g.unassigned_json) : null,
+  };
 });

@@ -97,7 +97,7 @@ export function GameRow({ g }: { g: GameCard }) {
         <div className="flex items-center gap-2 text-xs text-[var(--mute)]">
           <LevelPill level={g.league.level === "DEMO" ? "Demo" : g.league.level} /> <span>{fmtDate(g.playedOn)}</span>{g.startTime && <span>· {g.startTime}</span>}
         </div>
-        <span className="label">Final</span>
+        <span className="label">{(g as any).source === "daysmart" ? "Final · DaySmart" : "Final"}</span>
       </div>
       {[[g.home, g.homeScore, homeWon], [g.away, g.awayScore, awayWon]].map(([t, s, w]: any, i) => (
         <div key={i} className="flex items-center gap-3 py-1">
