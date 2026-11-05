@@ -387,8 +387,8 @@ async function main() {
   ok((await call("POST", "/api/staff/import", { text: report, rinkId, apply: true }, graham)).status === 403, "a captain can't import");
   const pv = await call("POST", "/api/staff/import", { text: report, rinkId }, mt);
   ok(pv.status === 200 && pv.json.applied === false && pv.json.summary.gamesAdded === 2, "rink manager previews: 2 games");
-  ok(pv.json.summary.rosterAdded === 3 && pv.json.summary.rosterExisting === 2, "preview: 3 new roster spots, 2 already here");
-  ok(pv.json.summary.warnings.some((w: string) => w.includes("Not A Real Team FC")), "preview flags a team that doesn't match");
+  ok(pv.json.summary.rosterAdded === 4 && pv.json.summary.rosterExisting === 2, "preview: 4 new roster spots, 2 already here");
+  ok(pv.json.summary.teamsCreated.includes("Not A Real Team FC") && !pv.json.summary.leagueCreated, "preview shows a team the league doesn't have yet as new");
   ok(pv.json.summary.unassigned.some((u: any) => u.team === "Hammer'd Heads" && u.goals === 1), "preview counts goals with no scorer");
   ok(!(await call("GET", `/api/teams/${hh}`)).json.games.some((g: any) => g.source === "daysmart"), "preview saves nothing");
   const ap = await call("POST", "/api/staff/import", { text: report, rinkId, apply: true }, mt);
@@ -406,7 +406,41 @@ async function main() {
   const adamId = after.roster.find((r: any) => r.name === "Adam Y.").id;
   ok((await call("GET", `/api/players/${adamId}`)).json.importedGames.length === 1, "player page shows the game log");
   const reimport = await call("POST", "/api/staff/import", { text: report, rinkId, apply: true }, mt);
-  ok(reimport.json.summary.gamesAdded === 0 && reimport.json.summary.gamesUpdated === 2 && reimport.json.summary.rosterAdded === 0, "importing again changes nothing new");
+  ok(reimport.json.summary.gamesAdded === 0 && reimport.json.summary.gamesUpdated === 2 && reimport.json.summary.rosterAdded === 0 && reimport.json.summary.teamsCreated.length === 0, "importing again changes nothing new");
+
+  console.log("import: a whole league with standings and season totals");
+  const leagueReport = [
+    "RAW REPORT - Polar Ice Wilmington, all teams",
+    "LEAGUE B League | LEVEL B | SEASON Fall 2026",
+    "STANDINGS",
+    "TEAMROW Port City Pilots | GP 4 | W 3 | L 1 | T 0 | OTL 0 | GF 15 | GA 8",
+    "TEAMROW Azalea Aces | GP 4 | W 1 | L 3 | T 0 | OTL 0 | GF 8 | GA 15",
+    "GAME 2026-10-04 8:00 PM | Home: Port City Pilots 5 | Away: Azalea Aces 2 | Final",
+    "PLAYERROW Port City Pilots | SAM T G2 A1",
+    "PLAYERROW Azalea Aces | Lee R. G1",
+    "PLAYERTOTALS",
+    "TOTALROW Port City Pilots | Sam T. | GP 4 | G 6 | A 2 | PIM 4",
+    "TOTALROW Azalea Aces | Lee R. | GP 4 | G 3 | A 0 | PIM 0",
+    "ROSTERS",
+    "Port City Pilots",
+    "  Sam T.",
+    "  Kim W.",
+    "Azalea Aces",
+    "  Lee R.",
+  ].join("\n");
+  const lp = await call("POST", "/api/staff/import", { text: leagueReport, rinkId }, mt);
+  ok(lp.status === 200 && lp.json.summary.leagueCreated && lp.json.summary.teamsCreated.length === 2 && lp.json.summary.standingsRows === 2 && lp.json.summary.playerTotals === 2, "preview: new league, 2 new teams, standings and totals read");
+  ok(!(await db`SELECT 1 FROM leagues WHERE level='B'`).length, "preview creates nothing");
+  ok((await call("POST", "/api/staff/import", { text: leagueReport, rinkId, apply: true }, mt)).status === 200, "league imported");
+  const bLg = (await db`SELECT id FROM leagues WHERE level='B'`)[0].id;
+  const bl2 = (await call("GET", `/api/leagues/${bLg}`)).json;
+  const pcp = bl2.standings.find((t: any) => t.name === "Port City Pilots");
+  ok(pcp && pcp.gp === 4 && pcp.w === 3 && pcp.l === 1 && pcp.pts === 6 && pcp.diff === 7, "standings come straight from the league page, with DIFF");
+  ok(bl2.standings[0].name === "Port City Pilots", "sorted by points");
+  ok(bl2.leaders.find((x: any) => x.name === "Sam T.")?.pts === 8, "season totals come from the league page, not just the games listed");
+  ok((await call("POST", "/api/staff/import", { text: leagueReport, rinkId, apply: true }, mt)).json.summary.teamsCreated.length === 0, "importing the league again adds no teams");
+  const bl3 = (await call("GET", `/api/leagues/${bLg}`)).json;
+  ok(bl3.standings.find((t: any) => t.name === "Port City Pilots").gp === 4 && bl3.leaders.find((x: any) => x.name === "Sam T.").pts === 8, "and doesn't double anything");
 
   console.log("shot map");
   const outsider = await signUp("outsider@example.com", { name: "Otto Side", number: "3", position: "D" });

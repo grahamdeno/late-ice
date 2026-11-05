@@ -279,7 +279,7 @@ function ImportSection({ rinks }: { rinks: any[] }) {
   return (
     <Section title="Import from DaySmart">
       <div className="card p-4 space-y-3" data-testid="card-import">
-        <p className="text-xs text-[var(--mute)]">Upload the report Grok collected. You'll see a preview before anything is saved. Rosters become unclaimed spots; games show as imported results that don't change standings or ratings.</p>
+        <p className="text-xs text-[var(--mute)]">Upload the report Grok collected, one league at a time. You'll see a preview before anything is saved. Leagues and teams that aren't here yet are added, rosters become unclaimed spots, and standings and season totals come from the league's own pages.</p>
         {rinks.length > 1 && (
           <select className="input w-full text-sm" value={rinkId} onChange={(e) => setRinkId(Number(e.target.value))}>
             {rinks.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
@@ -295,7 +295,9 @@ function ImportSection({ rinks }: { rinks: any[] }) {
         <button className="btn btn-ghost h-11 w-full" disabled={busy || text.length < 50} onClick={() => send(false)} data-testid="button-import-preview">{busy && !res ? "Reading…" : "Preview"}</button>
         {s && (
           <div className="rounded-xl border border-[var(--line)] p-3 text-xs space-y-1.5" data-testid="import-summary">
-            <div className="font-bold text-sm">{res.applied ? "Imported" : "Preview"} · {s.league}</div>
+            <div className="font-bold text-sm">{res.applied ? "Imported" : "Preview"} · {s.league}{s.leagueCreated ? " (new league)" : ""}</div>
+            {s.teamsCreated?.length > 0 && <div className="text-[var(--amber)]">New teams: {s.teamsCreated.join(", ")}. Check the spelling before importing.</div>}
+            {(s.standingsRows > 0 || s.playerTotals > 0) && <div>{s.standingsRows} standings rows · {s.playerTotals} player season totals</div>}
             <div>{s.gamesAdded} new games, {s.gamesUpdated} updated{s.gamesSkipped.length ? `, ${s.gamesSkipped.length} skipped` : ""} · {s.lines} player lines</div>
             <div>{s.rosterAdded} new roster spots, {s.rosterExisting} already here</div>
             <div className="text-[var(--mute)]">Teams: {s.teams.map((t: any) => t.source === t.team ? t.team : `${t.source} → ${t.team}`).join(", ")}</div>

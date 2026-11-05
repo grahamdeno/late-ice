@@ -68,7 +68,7 @@ export function Leagues() {
       <div className="label">Polar Ice Wilmington · {boot.season?.name}</div>
       <h1 className="font-display text-[40px] leading-none font-black uppercase mt-1">Standings</h1>
       <p className="text-sm text-[var(--mute)] mt-2">Two points a win, one a tie. Standings reset every season; ratings carry over.</p>
-      <div className="space-y-3 mt-5">{boot.leagues.map((l) => <LeagueCard key={l.id} id={l.id} />)}</div>
+      <div className="space-y-3 mt-5">{boot.leagues.filter((l) => l.level !== "DEMO").map((l) => <LeagueCard key={l.id} id={l.id} />)}</div>
     </div>
   );
 }
