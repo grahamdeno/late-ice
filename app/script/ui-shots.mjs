@@ -45,6 +45,7 @@ try {
   await page.getByTestId("button-save-profile").click();
   await page.waitForURL(/#\/me/);
   await shoot(page, "me-suggestions");
+  if (!(await page.locator('[data-testid^="button-claim-"]').count())) errors.push("no claim suggestion shown");
   await page.locator('[data-testid^="button-claim-"]').first().click();
   await page.waitForTimeout(600);
   await page.locator('[data-testid^="button-become-captain-"]').first().click();
@@ -62,6 +63,8 @@ try {
   await page.locator('[data-testid^="button-manage-"]').first().click();
   await page.waitForTimeout(800);
   await shoot(page, "team-roster-builder");
+  await page.locator('[data-testid^="button-slot-"]').first().click();
+  await shoot(page, "team-roster-row-open");
   await page.getByTestId("link-draft").click();
   await page.waitForTimeout(800);
   await shoot(page, "pool");
@@ -72,8 +75,12 @@ try {
   await page.waitForTimeout(800);
   await shoot(page, "team-after-draft");
 
+  await p2.goto(`${BASE}/#/`);
+  await p2.reload();
   await p2.goto(`${BASE}/#/me`);
+  await page.waitForTimeout(800);
   await shoot(p2, "sam-notified");
+  if (!(await p2.getByTestId(/card-my-team-/).count())) errors.push("drafted player does not see the team");
 
   // Signed-out view of an unclaimed player.
   const ctx3 = await browser.newContext({ viewport: { width: 390, height: 844 } });

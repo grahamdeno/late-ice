@@ -25,6 +25,11 @@ export function useMe() {
     queryKey: ["/api/me"],
     queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: signedIn(),
+    // Drafts, claims and notices arrive from other people; keep this fresh.
+    staleTime: 15_000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchInterval: 60_000,
   });
   return { me: signedIn() ? q.data ?? null : null, loading: signedIn() && q.isLoading, refetch: q.refetch };
 }

@@ -42,6 +42,7 @@ function RosterBuilder({ teamId }: { teamId: number }) {
   const { data } = useQuery<any>({ queryKey: [`/api/teams/${teamId}/manage`] });
   const [err, setErr] = useState<string | null>(null);
   const [mergeFrom, setMergeFrom] = useState<number | null>(null);
+  const [openId, setOpenId] = useState<number | null>(null);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
   const [color, setColor] = useState("");
@@ -52,14 +53,14 @@ function RosterBuilder({ teamId }: { teamId: number }) {
   return (
     <Section title="Roster builder" action={<Link href={`/pool/${teamId}`} className="btn btn-red h-8 text-xs" data-testid="link-draft">Draft a player</Link>}>
       <div className="card p-3.5 text-xs text-[var(--mute)]">
-        {data.slots.length - unregistered} of {data.slots.length} registered. Spots from the scoresheet hold stats until you match them to a registered player.
+        {data.slots.length - unregistered} of {data.slots.length} registered. Spots from the scoresheet hold stats until you match them to a registered player. Tap a player for options.
         {mergeFrom && <div className="mt-2 text-[var(--white)] font-bold">Pick the spot to merge into, or <button className="text-[var(--blue)]" onClick={() => setMergeFrom(null)}>cancel</button>.</div>}
       </div>
       {err && <p className="text-sm down mt-2 px-1" data-testid="text-error">{err}</p>}
       <div className="card divide-y divide-[var(--line)] mt-2">
         {data.slots.map((s: any) => (
           <div key={s.id} className={`p-3.5 ${mergeFrom === s.id ? "bg-[var(--red-dim)]" : ""}`} data-testid={`row-slot-${s.id}`}>
-            <div className="flex items-center gap-3 text-sm">
+            <button type="button" className="w-full flex items-center gap-3 text-sm text-left" onClick={() => setOpenId(openId === s.id ? null : s.id)} aria-expanded={openId === s.id} data-testid={`button-slot-${s.id}`}>
               <span className="tnum text-[var(--mute)] w-8">{s.number ? `#${s.number}` : "–"}</span>
               <span className="flex-1 min-w-0">
                 <span className="block font-bold truncate">{s.name}{s.position === "G" ? " · G" : ""}</span>
@@ -70,7 +71,9 @@ function RosterBuilder({ teamId }: { teamId: number }) {
                 </span>
               </span>
               <span className="tnum font-display text-lg">{fmtRating(s.rating)}</span>
-            </div>
+              {!mergeFrom && <span className="text-[var(--mute)] text-xs w-3">{openId === s.id ? "▾" : "›"}</span>}
+            </button>
+            {(openId === s.id || (mergeFrom && mergeFrom !== s.id)) && (
             <div className="flex flex-wrap gap-1.5 mt-2 pl-11">
               {mergeFrom && mergeFrom !== s.id ? (
                 <button className="btn btn-red h-8 text-xs" onClick={async () => { await run("POST", `/api/teams/${teamId}/merge`, { fromId: mergeFrom, intoId: s.id }); setMergeFrom(null); }} data-testid={`button-merge-into-${s.id}`}>Merge into this</button>
@@ -78,11 +81,12 @@ function RosterBuilder({ teamId }: { teamId: number }) {
                 <>
                   {!s.registered && <Link href={`/pool/${teamId}/match/${s.id}`} className="btn btn-ghost h-8 text-xs" data-testid={`button-match-${s.id}`}>Match</Link>}
                   {s.registered && s.user_id !== me?.user.id && <button className="btn btn-ghost h-8 text-xs" onClick={() => confirm(`Release ${s.name}'s claim on this spot?`) && run("POST", `/api/teams/${teamId}/slots/${s.id}/release`)} data-testid={`button-release-${s.id}`}>Release</button>}
-                  <button className="btn btn-ghost h-8 text-xs" onClick={() => setMergeFrom(s.id)} data-testid={`button-merge-${s.id}`}>Same person as…</button>
+                  <button className="btn btn-ghost h-8 text-xs" onClick={() => { setMergeFrom(s.id); setOpenId(null); }} data-testid={`button-merge-${s.id}`}>Same person as…</button>
                   {s.user_id !== me?.user.id && <button className="btn btn-ghost h-8 text-xs" onClick={() => confirm(`Take ${s.name} off the roster? Games already played keep their lines.`) && run("POST", `/api/teams/${teamId}/slots/${s.id}/remove`)} data-testid={`button-remove-${s.id}`}>Remove</button>}
                 </>
               )}
             </div>
+            )}
           </div>
         ))}
       </div>
