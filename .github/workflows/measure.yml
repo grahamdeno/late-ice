@@ -1,0 +1,126 @@
+name: Measure
+
+# Audit measurements only. Runs against a local Supabase seeded with a realistic season,
+# plus signed-out page views of the live site. Never writes to production.
+on:
+  push:
+    branches: [audit/measure]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install
+        run: npm ci
+
+      - name: Start local Supabase (Postgres, Auth, Storage)
+        run: |
+          started=""
+          for reg in ghcr.io public.ecr.aws docker.io ghcr.io; do
+            if SUPABASE_INTERNAL_IMAGE_REGISTRY=$reg npx supabase start -x studio,imgproxy,realtime,edge-runtime,logflare,vector,postgres-meta; then
+              started=$reg; break
+            fi
+            npx supabase stop --no-backup || true
+            sleep 30
+          done
+          [ -n "$started" ] || { echo "Could not start Supabase"; exit 1; }
+          npx supabase status -o env > /tmp/sb.env
+          get() { grep "^$1=" /tmp/sb.env | head -1 | cut -d= -f2- | tr -d '"'; }
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$(get API_URL)"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(get ANON_KEY)"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$(get SERVICE_ROLE_KEY)"
+            echo "DATABASE_URL=$(get DB_URL)"
+            echo "CRON_SECRET=ci-secret"
+          } >> "$GITHUB_ENV"
+
+      - name: Build and record bundle sizes
+        run: |
+          mkdir -p measure
+          npm run build 2>&1 | tee measure/build.log
+          # The per-route size table Next prints at the end of the build.
+          awk '/Route \(app\)/,0' measure/build.log > measure/bundle.txt || true
+
+      - name: Seed a realistic season
+        run: npx tsx script/seed-season.ts
+
+      - name: Install the browser
+        run: |
+          npm i --no-save playwright@1 lighthouse@12 || npm i --no-save playwright@~1.64.0 lighthouse@12
+          npx playwright install --with-deps chromium
+
+      - name: Measure (throttled phone, local + live signed out)
+        continue-on-error: true
+        env:
+          PROD_BASE: https://late-ice.tangomike.app
+        run: node script/measure.mjs
+
+      - name: Live API timings (cold then warm, signed out)
+        continue-on-error: true
+        run: |
+          {
+            echo "## Live API timings (curl, signed out, seconds)"
+            echo
+            echo "| Call | 1st (likely cold) | 2nd | 3rd | 4th | 5th |"
+            echo "| --- | --- | --- | --- | --- | --- |"
+            for p in /api/bootstrap /api/feed /api/rink "/api/players"; do
+              row="| $p |"
+              for i in 1 2 3 4 5; do
+                t=$(curl -s -o /dev/null -w '%{time_starttransfer}' "https://late-ice.tangomike.app$p")
+                row="$row $t |"; sleep 1
+              done
+              echo "$row"
+            done
+          } > measure/live-api.md
+          cat measure/live-api.md
+
+      - name: Lighthouse (mobile, signed out)
+        continue-on-error: true
+        run: |
+          export CHROME_PATH=$(node -e "console.log(require('playwright').chromium.executablePath())")
+          (NODE_ENV=production BOOTSTRAP_ADMIN_EMAIL=boss@example.com npx next start -p 3096 > /dev/null 2>&1 &)
+          for i in $(seq 1 100); do curl -sf http://localhost:3096/api/bootstrap > /dev/null && break; sleep 1; done
+          mkdir -p measure/lighthouse
+          for target in "local-home http://localhost:3096/" "local-leagues http://localhost:3096/leagues" "local-players http://localhost:3096/players" "live-home https://late-ice.tangomike.app/"; do
+            set -- $target
+            npx lighthouse "$2" --quiet --form-factor=mobile --only-categories=performance,accessibility,best-practices \
+              --chrome-flags="--headless=new --no-sandbox" --output=json --output-path="measure/lighthouse/$1.json" || true
+          done
+          node -e '
+            const fs=require("fs");const d="measure/lighthouse";const L=["## Lighthouse (mobile, simulated 4G)","","| Page | Performance | Accessibility | Best practices | FCP ms | LCP ms | TBT ms | CLS | Speed index ms |","| --- | --- | --- | --- | --- | --- | --- | --- | --- |"];
+            for (const f of fs.readdirSync(d).filter(f=>f.endsWith(".json"))) { try { const j=JSON.parse(fs.readFileSync(d+"/"+f)); const a=j.audits, c=j.categories, s=k=>Math.round((c[k]?.score??0)*100), v=k=>Math.round(a[k]?.numericValue??0);
+              L.push(`| ${f.replace(".json","")} | ${s("performance")} | ${s("accessibility")} | ${s("best-practices")} | ${v("first-contentful-paint")} | ${v("largest-contentful-paint")} | ${v("total-blocking-time")} | ${(a["cumulative-layout-shift"]?.numericValue??0).toFixed(3)} | ${v("speed-index")} |`);
+              const fails=Object.values(a).filter(x=>x.score===0&&x.scoreDisplayMode==="binary").map(x=>x.id); if (fails.length) L.push(`|  | failing a11y/bp checks: ${fails.slice(0,12).join(", ")} |  |  |  |  |  |  |  |`);
+            } catch(e) { L.push(`| ${f} | error ${e.message} |`); } }
+            fs.writeFileSync("measure/lighthouse.md", L.join("\n")+"\n"); console.log(L.join("\n"));'
+
+      - name: Scoresheet reader eval
+        continue-on-error: true
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: npx tsx script/ocr-eval.ts
+
+      - name: Summary
+        if: always()
+        run: |
+          for f in measure/measure.md measure/live-api.md measure/lighthouse.md measure/ocr-eval.md; do [ -f "$f" ] && cat "$f" >> "$GITHUB_STEP_SUMMARY" && echo >> "$GITHUB_STEP_SUMMARY"; done
+          echo '## Bundle sizes' >> "$GITHUB_STEP_SUMMARY"; echo '```' >> "$GITHUB_STEP_SUMMARY"; cat measure/bundle.txt >> "$GITHUB_STEP_SUMMARY" || true; echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audit-measurements
+          path: app/measure
