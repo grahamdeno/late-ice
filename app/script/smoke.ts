@@ -703,6 +703,21 @@ async function main() {
   ok((await call("PATCH", `/api/leagues/${lgOf}`, { rosterMax: 15 }, boss)).status === 200, "and back to 15");
   ok((await call("PATCH", `/api/leagues/${lgOf}`, { rosterMax: 99 }, boss)).status === 400, "an absurd size is refused");
 
+  console.log("lineup");
+  const lgGame = await call("POST", `/api/teams/${hh}/schedule`, { date: `${ymd(4).slice(0, 4)}-${ymd(4).slice(4, 6)}-${ymd(4).slice(6)}`, time: "20:00", opponentTeamId: blId, kind: "league" }, graham);
+  ok(lgGame.status === 200, "a game to set lines for");
+  const lu = await call("GET", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`);
+  ok(lu.status === 200 && !lu.saved && lu.json.lineup.f.length === 3 && lu.json.players.length > 0, "anyone can see the lineup; it starts as a guess from who's In");
+  ok(lu.json.can.edit === false, "a visitor can't edit it");
+  const firstTwo = lu.json.players.slice(0, 2).map((p: any) => p.id);
+  const mine = { f: [[firstTwo[0], null, null], [null, null, null], [null, null, null]], d: [[firstTwo[1], null], [null, null], [null, null]], g: [null], extras: [] };
+  ok((await call("PUT", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, mine, mt)).status === 403, "only the team's captains set it");
+  ok((await call("PUT", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, { ...mine, d: [[firstTwo[0], null], [null, null], [null, null]] }, graham)).status === 400, "a player in two spots is refused");
+  ok((await call("PUT", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, { ...mine, g: [999999] }, graham)).status === 400, "someone not on the roster is refused");
+  ok((await call("PUT", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, mine, graham)).status === 200, "captain saves the lines");
+  const lu2 = (await call("GET", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, undefined, graham)).json;
+  ok(lu2.saved && lu2.lineup.f[0][0] === firstTwo[0] && lu2.can.edit === true, "and it comes back as set");
+
   console.log("subs");
   const ivSlot = (await db`SELECT p.id FROM players p WHERE p.user_id=${ivId}`)[0].id;
   ok((await call("PATCH", `/api/teams/${blId}/slots/${ivSlot}/sub`, { sub: true }, sam)).status === 403, "only that team's captains mark subs");
@@ -790,7 +805,7 @@ async function main() {
   ok(/Disallow: \//.test(robots) && /noindex/.test(await (await fetch(`${BASE}/`)).text()), "search engines are told to stay out");
 
   console.log("pages render");
-  for (const path of ["/", "/leagues", `/team/${hh}`, `/player/${mike}`, "/players", "/rink", "/scan", "/join", "/privacy", `/game/${conf.json.gameId}`, `/league/${lg}`]) {
+  for (const path of ["/", "/leagues", `/team/${hh}`, `/player/${mike}`, "/players", "/rink", "/scan", "/join", "/privacy", `/game/${conf.json.gameId}`, `/league/${lg}`, `/team/${hh}/manage`, `/team/${hh}/lineup/${lgGame.json.id}`]) {
     const r = await fetch(BASE + path);
     ok(r.status === 200, `${path} renders`);
   }
