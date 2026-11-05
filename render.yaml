@@ -17,3 +17,10 @@ services:
         value: "*"
       - key: LATE_ICE_DB
         value: /data/data.db
+      # Sign-in texts. Leave unset for test mode (code shown on screen).
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_FROM
+        sync: false

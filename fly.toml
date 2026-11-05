@@ -1,4 +1,4 @@
-# fly launch --no-deploy && fly secrets set ANTHROPIC_API_KEY=... && fly volumes create lateice_data -s 1 && fly deploy
+# fly launch --no-deploy && fly secrets set ANTHROPIC_API_KEY=... TWILIO_ACCOUNT_SID=... TWILIO_AUTH_TOKEN=... TWILIO_FROM=+1... && fly volumes create lateice_data -s 1 && fly deploy
 app = "late-ice"
 primary_region = "iad"
 

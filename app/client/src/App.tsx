@@ -41,7 +41,7 @@ function AppRouter() {
       <Route path="/rink" component={Rink} />
       <Route path="/join" component={Join} />
       <Route path="/me" component={MePage} />
-      <Route path="/pool" component={Pool} />
+      <Route path="/pool">{() => <Pool />}</Route>
       <Route path="/pool/:team/match/:slot">{(p) => <Pool teamId={p.team} slotId={p.slot} />}</Route>
       <Route path="/pool/:team">{(p) => <Pool teamId={p.team} />}</Route>
       <Route component={NotFound} />
