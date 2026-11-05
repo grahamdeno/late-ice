@@ -545,9 +545,9 @@ async function main() {
   console.log("archetypes: voted by teammates");
   const hhNow = (await call("GET", `/api/teams/${hh}`, undefined, graham)).json;
   const samSlot = hhNow.roster.find((r: any) => r.name === "Sam Okafor");
-  const grahamSlot = hhNow.roster.find((r: any) => r.name === "Graham DeNoyer");
-  ok(samSlot && grahamSlot && hhNow.archetypes.voter === true, "teammates can vote");
-  ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: grahamSlot.id, archetype: "sniper" }, graham)).status === 400, "you can't pick your own");
+  const grahamRow = hhNow.roster.find((r: any) => r.name === "Graham DeNoyer");
+  ok(samSlot && grahamRow && hhNow.archetypes.voter === true, "teammates can vote");
+  ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: grahamRow.id, archetype: "sniper" }, graham)).status === 400, "you can't pick your own");
   ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: samSlot.id, archetype: "sniper" }, fan)).status === 403, "only teammates vote");
   ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: samSlot.id, archetype: "wizard" }, graham)).status === 400, "only the listed archetypes");
   ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: samSlot.id, archetype: "sniper" }, graham)).status === 200, "Graham votes Sam a Sniper");
