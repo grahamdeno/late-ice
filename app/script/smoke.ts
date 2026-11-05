@@ -679,8 +679,8 @@ async function main() {
   ok((await db`SELECT COUNT(DISTINCT re.team_id)::int c FROM roster_entries re JOIN players p ON p.id=re.player_id WHERE p.user_id=${ivId}`)[0].c === 2, "still on both teams");
 
   console.log("manage team: adding and editing spots, roster sizes");
-  const before = (await call("GET", `/api/teams/${hh}/manage`, undefined, graham)).json;
-  ok(before.counts && before.counts.rosterMax === 15 && before.counts.goalieMax === 2, "a league starts at 15 skaters and 2 goalies");
+  const mtBefore = (await call("GET", `/api/teams/${hh}/manage`, undefined, graham)).json;
+  ok(mtBefore.counts && mtBefore.counts.rosterMax === 15 && mtBefore.counts.goalieMax === 2, "a league starts at 15 skaters and 2 goalies");
   const added = await call("POST", `/api/teams/${hh}/slots`, { name: "Pat Newguy", number: "71", position: "D" }, graham);
   ok(added.status === 200 && added.json.playerId, "captain adds a player by hand");
   ok((await call("POST", `/api/teams/${hh}/slots`, { name: "Pat Newguy", number: "45", position: "D" }, graham)).status === 409, "the same name twice is refused");
@@ -688,10 +688,10 @@ async function main() {
   ok((await call("POST", `/api/teams/${hh}/slots`, { name: "Other Guy", number: "71", position: "W" }, graham)).status === 409, "a taken number is refused");
   ok((await call("POST", `/api/teams/${hh}/slots`, { name: "Not Captain", number: "47", position: "W" }, mt)).status === 403, "only the team's captains add spots");
   ok((await call("PATCH", `/api/teams/${hh}/slots/${added.json.playerId}`, { number: "72", position: "G" }, graham)).status === 200, "captain edits number and position of an unregistered spot");
-  const after = (await call("GET", `/api/teams/${hh}/manage`, undefined, graham)).json;
-  const pat = after.slots.find((s: any) => s.id === added.json.playerId);
+  const mtAfter = (await call("GET", `/api/teams/${hh}/manage`, undefined, graham)).json;
+  const pat = mtAfter.slots.find((s: any) => s.id === added.json.playerId);
   ok(pat.number === "72" && pat.position === "G", "the edit stuck");
-  ok(after.counts.goalies === before.counts.goalies + 1 && after.counts.skaters === before.counts.skaters, "he now counts as a goalie, not a skater");
+  ok(mtAfter.counts.goalies === mtBefore.counts.goalies + 1 && mtAfter.counts.skaters === mtBefore.counts.skaters, "he now counts as a goalie, not a skater");
   const lgOf = (await db`SELECT league_id FROM teams WHERE id=${hh}`)[0].league_id;
   ok((await call("PATCH", `/api/leagues/${lgOf}`, { rosterMax: 3 }, boss)).status === 200, "staff set a smaller roster");
   ok((await call("POST", `/api/teams/${hh}/slots`, { name: "One Too Many", number: "49", position: "W" }, graham)).status === 409, "a full roster refuses another skater");
