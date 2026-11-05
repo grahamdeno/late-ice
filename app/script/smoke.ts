@@ -23,7 +23,7 @@ function ok(cond: unknown, msg: string): asserts cond {
 }
 
 async function start() {
-  srv = spawn("npx", ["next", "start", "-p", String(PORT)], { env: { ...env, NODE_ENV: "production", BOOTSTRAP_ADMIN_EMAIL: "boss@example.com", ALLOW_LOCAL_FEEDS: "1", LATEICE_MAP_LOOKUP: "off" }, stdio: ["ignore", "ignore", "inherit"] });
+  srv = spawn("npx", ["next", "start", "-p", String(PORT)], { env: { ...env, NODE_ENV: "production", BOOTSTRAP_ADMIN_EMAIL: "boss@example.com", ALLOW_LOCAL_FEEDS: "1", LATEICE_MAP_LOOKUP: "off", LATEICE_COUNT_QUERIES: "1" }, stdio: ["ignore", "ignore", "inherit"] });
   for (let i = 0; i < 200; i++) {
     try { const r = await fetch(`${BASE}/api/bootstrap`); if (r.ok) return; } catch {}
     await new Promise((r) => setTimeout(r, 200));
@@ -47,7 +47,13 @@ async function call(method: string, url: string, body?: unknown, token?: string)
   const text = await res.text();
   let json: any = null;
   try { json = JSON.parse(text); } catch {}
-  return { status: res.status, json, text };
+  return { status: res.status, json, text, headers: res.headers };
+}
+
+/** x-query-count from a server started with LATEICE_COUNT_QUERIES=1. */
+function okFast(url: string, r: { status: number; headers: Headers }) {
+  const n = Number(r.headers.get("x-query-count"));
+  ok(r.status === 200 && Number.isFinite(n) && n <= 10, `${url} uses ${n} queries`);
 }
 
 /** Sign in by emailed code (read from the local mail catcher) and register. */
@@ -136,11 +142,49 @@ async function main() {
     ok(r.status === 200 && !r.text.includes("Tolliver"), `${u} ok and private`);
   }
 
+  console.log("server speed");
+  const rink = await call("GET", "/api/rink");
+  const rid = rink.json.rink.id;
+  const seasonId = rink.json.season?.id;
+  okFast("/api/rink", rink);
+  const cLeague = rink.json.leagues.find((l: any) => l.level === "C");
+  ok(cLeague && cLeague.teams === 8 && cLeague.games === 40 && cLeague.leader?.name === "Hammer'd Heads" && cLeague.leader.pts === 16 && cLeague.leader.gp === 10, "rink leagues list has team count, game count and the leader");
+  ok(!rink.json.leagues.some((l: any) => l.level === "DEMO" || l.level === "TOURN"), "rink leagues skip demo and tournament");
+  const bulk = await call("GET", `/api/standings?rink=${rid}`);
+  okFast(`/api/standings?rink=${rid}`, bulk);
+  const bulkSeason = await call("GET", `/api/standings?rink=${rid}&season=${seasonId}`);
+  okFast(`/api/standings?rink=${rid}&season=${seasonId}`, bulkSeason);
+  ok(bulk.json.seasonId === seasonId && bulk.json.leagues.length === rink.json.leagues.length, "bulk standings defaults to the current season and every real league");
+  ok(!bulk.json.leagues.some((l: any) => l.level === "DEMO" || l.level === "TOURN"), "bulk standings skip demo and tournament");
+  const bulkC = bulk.json.leagues.find((l: any) => l.level === "C");
+  ok(bulkC.standings[0].name === "Hammer'd Heads" && bulkC.standings.find((t: any) => t.name === "Blue Liners").diff === null, "bulk standings match the league page sort, and missing goals stay unknown");
+  okFast("/api/feed", await call("GET", "/api/feed"));
+  okFast("/api/bootstrap", await call("GET", "/api/bootstrap"));
+  okFast(`/api/leagues/${lg}`, await call("GET", `/api/leagues/${lg}`));
+  const blIdEarly = (await db`SELECT id FROM teams WHERE name='Blue Liners'`)[0].id as number;
+  const inserted: number[] = [];
+  for (let i = 1; i <= 12; i++) {
+    const day = String(i).padStart(2, "0");
+    const [g] = await db`INSERT INTO games (league_id, season_id, home_team_id, away_team_id, played_on, home_score, away_score, source)
+      VALUES (${lg}, ${seasonId}, ${hh}, ${blIdEarly}, ${"2026-10-" + day}, 1, 0, 'daysmart') RETURNING id`;
+    inserted.push(g.id as number);
+  }
+  const limited = await call("GET", `/api/leagues/${lg}`);
+  okFast(`/api/leagues/${lg} with a long list`, limited);
+  ok(limited.json.games.length === 10 && limited.json.games[0].playedOn === "2026-10-12", "a league page shows the latest 10 games");
+  const allGames = await call("GET", `/api/leagues/${lg}?games=all`);
+  ok(allGames.status === 200 && allGames.json.games.length === 12, "games=all returns the full list");
+  await db`DELETE FROM games WHERE id IN ${db(inserted)}`;
+  ok((await call("GET", `/api/leagues/${lg}`)).json.games.length === 0, "the extra games are gone");
+
   console.log("sign-in");
   ok((await call("GET", "/api/me")).status === 401, "signed-out /api/me is 401");
   ok((await call("GET", "/api/me", undefined, "not-a-token")).status === 401, "bad token is 401");
   const graham = await signUp("Graham@Example.com", { name: "Graham DeNoyer", number: "12", position: "F" });
   ok((await call("PATCH", "/api/me", { name: "Graham" }, graham)).status === 400, "one-word name rejected");
+  okFast(`/api/leagues/${lg} signed in`, await call("GET", `/api/leagues/${lg}`, undefined, graham));
+  okFast("/api/rink signed in", await call("GET", "/api/rink", undefined, graham));
+  okFast("/api/bootstrap signed in", await call("GET", "/api/bootstrap", undefined, graham));
   {
     const sb = createClient(env.NEXT_PUBLIC_SUPABASE_URL!, env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false } });
     const before = await lastMailId("graham@example.com");
@@ -842,6 +886,23 @@ async function main() {
   ok((await call("PUT", "/api/staff/settings", { signupsPaused: false }, boss)).json.signupsPaused === false, "and back open");
   const robots = await (await fetch(`${BASE}/robots.txt`)).text();
   ok(/Disallow: \//.test(robots) && /noindex/.test(await (await fetch(`${BASE}/`)).text()), "search engines are told to stay out");
+
+  console.log("home rink time zone");
+  ok((await db`SELECT timezone FROM rinks WHERE slug='polar-ice-wilmington'`)[0].timezone === "America/New_York", "a rink starts in Eastern time");
+  const clocks = (await db`SELECT to_char(now() AT TIME ZONE 'Pacific/Honolulu', 'YYYY-MM-DD') AS west, to_char(now() AT TIME ZONE 'Pacific/Kiritimati', 'YYYY-MM-DD') AS east, to_char(now() AT TIME ZONE 'America/New_York', 'YYYY-MM-DD') AS ny`)[0];
+  const regionId = (await db`SELECT region_id FROM rinks WHERE slug='polar-ice-wilmington'`)[0].region_id;
+  const [westRink] = await db`INSERT INTO rinks (region_id, slug, name, timezone) VALUES (${regionId}, 'tz-west', 'TZ West', 'Pacific/Honolulu') RETURNING id`;
+  const [eastRink] = await db`INSERT INTO rinks (region_id, slug, name, timezone) VALUES (${regionId}, 'tz-east', 'TZ East', 'Pacific/Kiritimati') RETURNING id`;
+  const [westUser] = await db`INSERT INTO users (email, name, access, status, status_until, home_rink_id) VALUES ('tz-west@example.com', 'West TZ', 'approved', 'ir', ${clocks.west}, ${westRink.id}) RETURNING id`;
+  const [eastUser] = await db`INSERT INTO users (email, name, access, status, status_until, home_rink_id) VALUES ('tz-east@example.com', 'East TZ', 'approved', 'away', ${clocks.west}, ${eastRink.id}) RETURNING id`;
+  const tzCron = await fetch(`${BASE}/api/cron/recompute`, { headers: { Authorization: `Bearer ${env.CRON_SECRET}` } });
+  ok(tzCron.status === 200, "nightly job runs with per-rink clocks");
+  const westAfter = (await db`SELECT status, status_until FROM users WHERE id=${westUser.id}`)[0];
+  const eastAfter = (await db`SELECT status FROM users WHERE id=${eastUser.id}`)[0];
+  ok(westAfter.status === "ir" && westAfter.status_until === clocks.west, `IR lasts through today on the home rink clock (Honolulu ${clocks.west}, New York ${clocks.ny})`);
+  ok(eastAfter.status === "active", `the same date has already passed on a rink a day ahead (Kiritimati ${clocks.east})`);
+  await db`DELETE FROM users WHERE id IN ${db([westUser.id, eastUser.id])}`;
+  await db`DELETE FROM rinks WHERE id IN ${db([westRink.id, eastRink.id])}`;
 
   console.log("pages render");
   for (const path of ["/", "/leagues", `/team/${hh}`, `/player/${mike}`, "/players", "/rink", "/scan", "/join", "/privacy", `/game/${conf.json.gameId}`, `/league/${lg}`, `/team/${hh}/manage`, `/team/${hh}/lineup/${lgGame.json.id}`]) {

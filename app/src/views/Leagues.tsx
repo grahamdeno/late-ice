@@ -51,30 +51,34 @@ function StandingsTable({ rows, compact = false }: { rows: any[]; compact?: bool
   );
 }
 
-function LeagueCard({ id }: { id: number }) {
-  const { data } = useQuery<any>({ queryKey: [`/api/leagues/${id}`] });
-  if (!data) return <div className="card h-40" />;
-  const gp = data.standings.reduce((a: number, t: any) => a + t.gp, 0) / 2;
+function LeagueCard({ league }: { league: any }) {
+  const rows = league.standings ?? [];
+  const gp = rows.reduce((a: number, t: any) => a + t.gp, 0) / 2;
   return (
     <div className="card overflow-hidden">
-      <Link href={`/league/${id}`} className="flex items-center justify-between px-4 pt-4 pb-2" data-testid={`link-league-${data.league.level}`}>
-        <div className="flex items-center gap-2"><LevelPill level={data.league.level === "DEMO" ? "Demo" : data.league.level} /><span className="font-black">{data.league.name}</span></div>
+      <Link href={`/league/${league.id}`} className="flex items-center justify-between px-4 pt-4 pb-2" data-testid={`link-league-${league.level}`}>
+        <div className="flex items-center gap-2"><LevelPill level={league.level === "DEMO" ? "Demo" : league.level} /><span className="font-black">{league.name}</span></div>
         <span className="text-xs text-[var(--mute)]">{gp} games ›</span>
       </Link>
-      <StandingsTable rows={data.standings} compact />
+      <StandingsTable rows={rows} compact />
     </div>
   );
 }
 
 export function Leagues() {
   const { boot } = useFilter();
-  if (!boot) return <Loading />;
+  const rinkId = boot?.rink?.id ?? null;
+  const seasonId = boot?.season?.id ?? null;
+  const key = rinkId ? `/api/standings?rink=${rinkId}${seasonId ? `&season=${seasonId}` : ""}` : "/api/standings";
+  const { data } = useQuery<any>({ queryKey: [key], enabled: !!rinkId });
+  if (!boot || (rinkId && !data)) return <Loading />;
+  const cards = (data?.leagues ?? []).filter((l: any) => l.level !== "DEMO" && l.level !== "TOURN");
   return (
     <div>
       <div className="label">{boot.rink?.name} · {boot.season?.name}</div>
       <h1 className="font-display text-[40px] leading-none font-black uppercase mt-1">Standings</h1>
       <p className="text-sm text-[var(--mute)] mt-2">Two points a win, one a tie. Standings reset every season; ratings carry over.</p>
-      <div className="space-y-3 mt-5">{boot.leagues.filter((l) => l.level !== "DEMO" && l.level !== "TOURN").map((l) => <LeagueCard key={l.id} id={l.id} />)}</div>
+      <div className="space-y-3 mt-5">{cards.map((l: any) => <LeagueCard key={l.id} league={l} />)}</div>
     </div>
   );
 }

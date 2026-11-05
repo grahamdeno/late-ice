@@ -1,22 +1,29 @@
 import "server-only";
 import { NextResponse } from "next/server";
+import { currentQueryCount, runWithQueryCount } from "./db";
 import { HttpError } from "./services";
+
+function withQueryHeader(res: Response) {
+  const n = currentQueryCount();
+  if (n !== null) res.headers.set("x-query-count", String(n));
+  return res;
+}
 
 export type Ctx<P = Record<string, string>> = { params: Promise<P> };
 
 /** Wrap a route handler: JSON errors with the right status, no stack traces to the client. */
 export function handle<P = Record<string, string>>(fn: (req: Request, params: P) => Promise<Response | unknown>) {
-  return async (req: Request, ctx: Ctx<P>) => {
+  return async (req: Request, ctx: Ctx<P>) => runWithQueryCount(async () => {
     try {
       const params = ctx?.params ? await ctx.params : ({} as P);
       const out = await fn(req, params);
-      return out instanceof Response ? out : NextResponse.json(out);
+      return withQueryHeader(out instanceof Response ? out : NextResponse.json(out));
     } catch (e: any) {
-      if (e instanceof HttpError) return NextResponse.json({ message: e.message, ...e.extra }, { status: e.status });
+      if (e instanceof HttpError) return withQueryHeader(NextResponse.json({ message: e.message, ...e.extra }, { status: e.status }));
       console.error(e);
-      return NextResponse.json({ message: "Something went wrong on the server." }, { status: 500 });
+      return withQueryHeader(NextResponse.json({ message: "Something went wrong on the server." }, { status: 500 }));
     }
-  };
+  });
 }
 
 export async function body<T = any>(req: Request): Promise<T> {

@@ -1,5 +1,27 @@
 import "server-only";
+import { AsyncLocalStorage } from "node:async_hooks";
 import postgres from "postgres";
+
+// Per-request query count. Active only when LATEICE_COUNT_QUERIES=1, and only
+// inside a request that opted in (so scripts and the nightly job stay quiet).
+const querySlots = new AsyncLocalStorage<{ n: number }>();
+
+export function runWithQueryCount<T>(fn: () => Promise<T>): Promise<T> {
+  if (process.env.LATEICE_COUNT_QUERIES !== "1") return fn();
+  return querySlots.run({ n: 0 }, fn);
+}
+
+/** How many q/one calls this request has made, or null when counting is off. */
+export function currentQueryCount(): number | null {
+  const slot = querySlots.getStore();
+  return slot ? slot.n : null;
+}
+
+function noteQuery() {
+  if (process.env.LATEICE_COUNT_QUERIES !== "1") return;
+  const slot = querySlots.getStore();
+  if (slot) slot.n += 1;
+}
 
 // One pooled client per server instance. On Vercel, DATABASE_URL should be the
 // Supabase pooler in transaction mode (port 6543), which needs prepare: false.
@@ -28,11 +50,17 @@ function make() {
 export const sql: postgres.Sql = g.__lateIceSql ?? (g.__lateIceSql = make());
 export type Tx = postgres.Sql | postgres.TransactionSql;
 
-/** Rows as plain objects. */
-export async function q<T = any>(db: Tx, text: string, params: any[] = []): Promise<T[]> {
+/** One round trip. Both q and one count a single query (one does not call q). */
+async function exec<T = any>(db: Tx, text: string, params: any[] = []): Promise<T[]> {
+  noteQuery();
   return (await db.unsafe(text, params)) as unknown as T[];
 }
+
+/** Rows as plain objects. */
+export async function q<T = any>(db: Tx, text: string, params: any[] = []): Promise<T[]> {
+  return exec<T>(db, text, params);
+}
 export async function one<T = any>(db: Tx, text: string, params: any[] = []): Promise<T | undefined> {
-  const r = await q<T>(db, text, params);
+  const r = await exec<T>(db, text, params);
   return r[0];
 }
