@@ -6,7 +6,7 @@ import { useMe, act, POSITION_LABEL, posMatch, STATUS_LABEL } from "@/lib/auth";
 import { BackBar, Empty, LevelPill, Loading, TeamBadge, fmtRating } from "@/lib/ui";
 
 interface PoolPlayer {
-  id: number; name: string; number: string | null; position: string | null; status: string; status_until: string | null;
+  id: number; name: string; number: string | null; position: string | null; status: string; status_until: string | null; looking_for_team: boolean; will_sub: boolean;
   teams: { id: number; name: string; level: string }[]; rating: number | null;
 }
 
@@ -44,7 +44,7 @@ export default function Pool({ teamId, slotId }: { teamId?: string; slotId?: str
 
   const players = (data?.players ?? [])
     .filter((p) => posMatch(pos, p.position))
-    .filter((p) => !onlyFree || p.status === "available")
+    .filter((p) => !onlyFree || p.looking_for_team)
     .filter((p) => !p.teams.some((t) => t.id === team));
 
   const submit = async () => {
@@ -83,7 +83,7 @@ export default function Pool({ teamId, slotId }: { teamId?: string; slotId?: str
         {["all", "F", "D", "G"].map((p) => (
           <button key={p} onClick={() => setPos(p)} className={`chip ${pos === p ? "border-[var(--red)] bg-[var(--red-dim)]" : ""}`} data-testid={`button-filter-pos-${p}`}>{p === "all" ? "All" : POSITION_LABEL[p]}</button>
         ))}
-        <button onClick={() => setOnlyFree((v) => !v)} className={`chip ${onlyFree ? "border-[var(--red)] bg-[var(--red-dim)]" : ""}`} data-testid="button-filter-available">Available only</button>
+        <button onClick={() => setOnlyFree((v) => !v)} className={`chip ${onlyFree ? "border-[var(--red)] bg-[var(--red-dim)]" : ""}`} data-testid="button-filter-available">Looking for a team</button>
       </div>
 
       {error ? <p className="text-sm down mt-4">{(error as any).message}</p> : !data ? <Loading /> : players.length === 0 ? (
@@ -96,7 +96,7 @@ export default function Pool({ teamId, slotId }: { teamId?: string; slotId?: str
               <span className="flex-1 min-w-0">
                 <span className="block font-bold truncate">{p.name}</span>
                 <span className="block text-xs text-[var(--mute)] truncate">
-                  {p.position ? POSITION_LABEL[p.position] : ""}{p.status !== "available" ? ` · ${STATUS_LABEL[p.status]}` : ""}
+                  {p.position ? POSITION_LABEL[p.position] : ""}{!["active", "available"].includes(p.status) ? ` · ${STATUS_LABEL[p.status]}` : ""}{p.looking_for_team ? " · Looking for a team" : ""}{p.will_sub ? " · Will sub" : ""}
                   {p.teams.length ? ` · ${p.teams.map((t) => `${t.name} (${t.level})`).join(", ")}` : " · Free agent"}
                 </span>
               </span>

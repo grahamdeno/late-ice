@@ -427,6 +427,7 @@ async function main() {
     "  Kim W.",
     "Azalea Aces",
     "  Lee R.",
+    "  Gil K. (G)",
   ].join("\n");
   const lp = await call("POST", "/api/staff/import", { text: leagueReport, rinkId }, mt);
   ok(lp.status === 200 && lp.json.summary.leagueCreated && lp.json.summary.teamsCreated.length === 2 && lp.json.summary.standingsRows === 2 && lp.json.summary.playerTotals === 2, "preview: new league, 2 new teams, standings and totals read");
@@ -437,6 +438,8 @@ async function main() {
   const pcp = bl2.standings.find((t: any) => t.name === "Port City Pilots");
   ok(pcp && pcp.gp === 4 && pcp.w === 3 && pcp.l === 1 && pcp.pts === 6 && pcp.diff === 7, "standings come straight from the league page, with DIFF");
   ok(bl2.standings[0].name === "Port City Pilots", "sorted by points");
+  const aces = bl2.standings.find((t: any) => t.name === "Azalea Aces");
+  ok((await call("GET", `/api/teams/${aces.id}`)).json.roster.find((r: any) => r.name === "Gil K.")?.position === "G", "a roster name marked (G) comes in as a goalie");
   ok(bl2.leaders.find((x: any) => x.name === "Sam T.")?.pts === 8, "season totals come from the league page, not just the games listed");
   ok((await call("POST", "/api/staff/import", { text: leagueReport, rinkId, apply: true }, mt)).json.summary.teamsCreated.length === 0, "importing the league again adds no teams");
   const bl3 = (await call("GET", `/api/leagues/${bLg}`)).json;
@@ -519,6 +522,25 @@ async function main() {
   sch = await call("GET", `/api/teams/${hh}/schedule`);
   const tg = sch.json.games.find((g: any) => g.id === man.json.id);
   ok(sch.json.games.length === 2 && sch.json.games[1].id === man.json.id && tg.local_time === "7:30 PM" && tg.kind === "tournament" && tg.opponent === "Raleigh Rebels", "it sits in date order at 7:30 PM as a tournament game");
+  console.log("availability: in, out, late");
+  const rs = (t?: string) => call("GET", `/api/teams/${hh}/schedule`, undefined, t).then((r) => r.json.games.find((g: any) => g.id === man.json.id).rsvp);
+  ok((await call("PUT", `/api/schedule/${man.json.id}/rsvp`, { answer: "in" }, fan)).status === 403, "only players on the roster can answer");
+  ok((await call("PUT", `/api/schedule/${man.json.id}/rsvp`, { answer: "maybe" }, graham)).status === 400, "only in, out or late");
+  ok((await call("PUT", `/api/schedule/${man.json.id}/rsvp`, { answer: "in" }, graham)).status === 200, "Graham is in");
+  ok((await call("PATCH", "/api/me", { status: "ir", statusUntil: "2099-01-01" }, sam)).json.user.status === "ir", "Sam goes on injured reserve");
+  let samView = await rs(sam);
+  ok(samView.mine === "out" && samView.mineAuto === true, "injured reserve marks Sam out without him answering");
+  const capView = await rs(graham);
+  ok(capView.counts.in >= 1 && capView.counts.out >= 1 && capView.names.in.length === capView.counts.in, "the team sees the count and who's in");
+  ok((await rs()).names === null && (await rs()).counts.in >= 1, "the public sees counts, not names");
+  ok((await call("PUT", `/api/schedule/${man.json.id}/rsvp`, { answer: "late" }, sam)).status === 200, "Sam answers Late anyway");
+  samView = await rs(sam);
+  ok(samView.mine === "late" && !samView.mineAuto, "his own answer wins");
+  ok((await call("PATCH", "/api/me", { status: "away", statusUntil: "2000-01-01" }, sam)).json.user.status === "active", "an Away date in the past is already over");
+  const sw = await call("PATCH", "/api/me", { lookingForTeam: true, willSub: true }, sam);
+  ok(sw.json.user.lookingForTeam === true && sw.json.user.willSub === true, "Looking for a team and Will sub switches");
+  ok((await call("PATCH", "/api/me", { status: "resting" }, sam)).status === 400, "Resting is gone");
+  await call("PATCH", "/api/me", { status: "active" }, sam);
   ok((await call("DELETE", `/api/teams/${hh}/schedule/${g1.id}`, undefined, boss)).status === 400, "a calendar game can't be deleted, only marked canceled");
   ok((await call("PATCH", `/api/teams/${hh}/schedule/${g1.id}`, { status: "canceled" }, boss)).status === 200, "marked canceled");
   ok((await call("GET", `/api/teams/${hh}/schedule`)).json.games.find((g: any) => g.id === g1.id).status === "canceled", "shows as canceled");

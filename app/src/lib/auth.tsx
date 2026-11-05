@@ -6,7 +6,7 @@ import { supabase } from "./supabase";
 
 export interface MeUser {
   id: number; email: string | null; phone: string | null; name: string | null; number: string | null; position: "C" | "W" | "F" | "D" | "G" | null;
-  homeRink: { id: number; name: string } | null; status: "available" | "ir" | "away" | "resting";
+  homeRink: { id: number; name: string } | null; status: "active" | "ir" | "away"; lookingForTeam: boolean; willSub: boolean;
   statusUntil: string | null; hidden: boolean; profileComplete: boolean;
 }
 export interface MeSlot {
@@ -105,4 +105,4 @@ export const ROLE_LABEL: Record<string, string> = {
   assistant_captain: "Assistant captain", captain: "Captain", scorekeeper: "Scorekeeper", commissioner: "League commissioner",
   rink_manager: "Rink manager", support: "Support", admin: "Admin",
 };
-export const STATUS_LABEL: Record<string, string> = { available: "Available", ir: "Injured reserve", away: "Away", resting: "Resting" };
+export const STATUS_LABEL: Record<string, string> = { active: "Active", available: "Active", ir: "Injured reserve", away: "Away" };

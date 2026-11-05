@@ -74,6 +74,8 @@ export async function runMerge(tx: Tx, m: any, actor: number | null) {
     else await q(tx, "UPDATE role_grants SET user_id=$1, note=COALESCE(note,'') || ' (merged)' WHERE id=$2", [to.id, g.id]);
   }
   await q(tx, "UPDATE notifications SET user_id=$1 WHERE user_id=$2", [to.id, from.id]);
+  await q(tx, "UPDATE rsvps r SET user_id=$1 WHERE user_id=$2 AND NOT EXISTS (SELECT 1 FROM rsvps x WHERE x.user_id=$1 AND x.scheduled_game_id=r.scheduled_game_id)", [to.id, from.id]);
+  await q(tx, "DELETE FROM rsvps WHERE user_id=$1", [from.id]);
   // Profile fields the new account doesn't have yet.
   await q(tx,
     `UPDATE users SET name=COALESCE(name,$2), number=COALESCE(number,$3), position=COALESCE(position,$4), home_rink_id=COALESCE(home_rink_id,$5), phone=COALESCE(phone,$6)

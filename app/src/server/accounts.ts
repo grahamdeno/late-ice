@@ -221,14 +221,19 @@ export function cleanNumber(n: unknown) {
   return s || null;
 }
 export const POSITIONS = new Set(["C", "W", "F", "D", "G"]);
-export const STATUSES = new Set(["available", "ir", "away", "resting"]);
+export const STATUSES = new Set(["active", "ir", "away"]);
+/** Injured reserve and Away end on their own once the return date passes. */
+export function effectiveStatus(u: { status: string; status_until: string | null }) {
+  if ((u.status === "ir" || u.status === "away") && u.status_until && u.status_until < new Date().toISOString().slice(0, 10)) return "active";
+  return u.status === "ir" || u.status === "away" ? u.status : "active";
+}
 
 export async function publicUser(db: Tx, u: any) {
   if (!u) return null;
   const rink = u.home_rink_id ? await one<any>(db, "SELECT id,name FROM rinks WHERE id=$1", [u.home_rink_id]) : null;
   return {
     id: u.id, email: u.email, phone: u.phone, name: u.name, number: u.number, position: u.position, homeRink: rink,
-    status: u.status, statusUntil: u.status_until, hidden: !!u.hidden, profileComplete: !!(u.name && u.position && u.home_rink_id),
+    status: effectiveStatus(u), statusUntil: effectiveStatus(u) === "active" ? null : u.status_until, lookingForTeam: !!u.looking_for_team, willSub: !!u.will_sub, hidden: !!u.hidden, profileComplete: !!(u.name && u.position && u.home_rink_id),
   };
 }
 

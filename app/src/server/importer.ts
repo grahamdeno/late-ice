@@ -87,7 +87,11 @@ export async function loadReport(tx: Tx, rinkId: number, p: Parsed): Promise<Imp
   for (const [src, names] of Object.entries(p.rosters)) {
     const t = teamFor(src);
     if (!t) continue;
-    for (const n of names) if (n && !FORBIDDEN_NAME.test(n)) await slot(t.id, n, true);
+    for (const n of names) {
+      if (!n || FORBIDDEN_NAME.test(n)) continue;
+      const pid = await slot(t.id, n, true);
+      if (pid && p.goalies.includes(`${src}|${n}`)) await q(tx, "UPDATE players SET position='G' WHERE id=$1 AND user_id IS NULL", [pid]);
+    }
   }
 
   // Games.

@@ -115,3 +115,32 @@ export async function upcoming(db: Tx, teamId: number, limit = 20) {
 export async function nextGame(db: Tx, teamId: number) {
   return (await upcoming(db, teamId, 4)).find((g) => g.status === "scheduled") ?? null;
 }
+
+/** Who's in, out or late for each game. Injured reserve and Away count as out until their return date. */
+export async function attendance(db: Tx, teamId: number, games: any[], viewerId: number | null, showNames: boolean) {
+  const members = await q<any>(db,
+    `SELECT DISTINCT ON (u.id) u.id, p.display_name AS name, u.status, u.status_until
+     FROM players p JOIN roster_entries re ON re.player_id=p.id JOIN users u ON u.id=p.user_id
+     WHERE re.team_id=$1 AND u.merged_into IS NULL ORDER BY u.id, p.id`, [teamId]);
+  const ids = games.map((g) => g.id);
+  const answers = ids.length ? await q<any>(db,
+    "SELECT scheduled_game_id gid, user_id, answer FROM rsvps WHERE scheduled_game_id IN (SELECT jsonb_array_elements_text($1::jsonb)::int)", [JSON.stringify(ids)]) : [];
+  const isMember = viewerId != null && members.some((m) => m.id === viewerId);
+  for (const g of games) {
+    const out = { in: [] as string[], out: [] as string[], late: [] as string[], none: [] as string[] };
+    let mine: string | null = null, mineAuto = false;
+    for (const m of members) {
+      const explicit = answers.find((a) => a.gid === g.id && a.user_id === m.id)?.answer ?? null;
+      const away = (m.status === "ir" || m.status === "away") && (!m.status_until || m.status_until >= g.local_date);
+      const ans = explicit ?? (away ? "out" : null);
+      (out as any)[ans ?? "none"].push(m.name);
+      if (m.id === viewerId) { mine = ans; mineAuto = !explicit && !!ans; }
+    }
+    g.rsvp = {
+      counts: { in: out.in.length, out: out.out.length, late: out.late.length, none: out.none.length },
+      names: showNames || isMember ? out : null,
+      mine, mineAuto, member: isMember,
+    };
+  }
+  return games;
+}

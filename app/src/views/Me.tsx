@@ -5,7 +5,7 @@ import { useMe, act, signOut, POSITION_LABEL, STATUS_LABEL, ROLE_LABEL } from "@
 import { Empty, LevelPill, Loading, Section, TeamBadge, fmtRating } from "@/lib/ui";
 import { ProfileForm } from "./Join";
 import { useTheme, type Theme } from "@/lib/theme";
-import { GameLine } from "@/components/Schedule";
+import { GameLine, Rsvp } from "@/components/Schedule";
 
 function Appearance() {
   const [theme, setTheme] = useTheme();
@@ -155,6 +155,9 @@ export default function MePage() {
                     <GameLine g={s.next} />
                   </Link>
                 )}
+                {s.next && s.next.rsvp?.member && (
+                  <div className="mt-2"><Rsvp g={s.next} /></div>
+                )}
                 <div className="flex flex-wrap gap-2 mt-3">
                   <Link href={`/player/${s.id}`} className="btn btn-ghost h-9 text-sm">Rating history</Link>
                   {s.teamRole && <Link href={`/team/${s.team_id}`} className="btn btn-red h-9 text-sm" data-testid={`button-manage-${s.team_id}`}>Manage roster</Link>}
@@ -180,8 +183,8 @@ export default function MePage() {
 
       <Section title="Availability">
         <div className="card p-4">
-          <div className="grid grid-cols-2 gap-2">
-            {(["available", "ir", "away", "resting"] as const).map((s) => (
+          <div className="grid grid-cols-3 gap-2">
+            {(["active", "ir", "away"] as const).map((s) => (
               <button key={s} className={`h-11 rounded-xl border text-sm font-bold ${u.status === s ? "border-[var(--red)] bg-[var(--red-dim)]" : "border-[var(--line)] bg-[var(--ice-3)]"}`} onClick={() => run("PATCH", "/api/me", { status: s, statusUntil: until || null })} data-testid={`button-status-${s}`}>
                 {STATUS_LABEL[s]}
               </button>
@@ -189,11 +192,21 @@ export default function MePage() {
           </div>
           {(u.status === "ir" || u.status === "away") && (
             <label className="block mt-3">
-              <span className="label">Expected back</span>
+              <span className="label">Back on</span>
               <input type="date" className="input w-full mt-1.5" value={until} onChange={(e) => setUntil(e.target.value)} onBlur={() => run("PATCH", "/api/me", { status: u.status, statusUntil: until || null })} data-testid="input-status-until" />
             </label>
           )}
-          <p className="text-[11px] text-[var(--mute)] mt-3">Your captains see this. It never touches your rating, and injured reserve freezes it.</p>
+          <p className="text-[11px] text-[var(--mute)] mt-3">{u.status === "active" ? "Answer In, Out or Late on each game. Injured reserve and Away keep your roster spot and mark you out until the date you set, then switch back on their own." : `You're marked out of games${u.statusUntil ? ` until ${u.statusUntil}` : ""}. Your roster spot stays, and your rating doesn't move while you're out.`}</p>
+          <div className="mt-4 divide-y divide-[var(--line)] border-t border-[var(--line)]">
+            {([["lookingForTeam", "Looking for a team", "Captains at your rink see you in their draft pool."], ["willSub", "Will sub", "Other teams can ask you to fill in."]] as const).map(([k, label, hint]) => (
+              <div key={k} className="flex items-center gap-3 pt-3 pb-1">
+                <span className="flex-1"><span className="block font-bold text-sm">{label}</span><span className="block text-xs text-[var(--mute)]">{hint}</span></span>
+                <button role="switch" aria-checked={u[k]} aria-label={label} onClick={() => run("PATCH", "/api/me", { [k]: !u[k] })} className={`h-7 w-12 shrink-0 rounded-full relative transition-colors ${u[k] ? "bg-[var(--red-btn)]" : "bg-[var(--ice-3)] border border-[var(--line)]"}`} data-testid={`switch-${k}`}>
+                  <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${u[k] ? "left-[22px]" : "left-0.5"}`} />
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       </Section>
 

@@ -15,5 +15,7 @@ export const GET = handle(async (req) => {
   await refreshDisplays(sql, true);
   const merges = await runDueMerges();
   const feeds = await syncAllFeeds();
+  // Injured reserve and Away end on their return date.
+  await q(sql, "UPDATE users SET status='active', status_until=NULL WHERE status IN ('ir','away') AND status_until IS NOT NULL AND status_until < to_char(now() AT TIME ZONE 'America/New_York', 'YYYY-MM-DD')");
   return { ...r, merges, feeds };
 });

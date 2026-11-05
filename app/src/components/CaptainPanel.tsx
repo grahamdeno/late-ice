@@ -76,7 +76,7 @@ function RosterBuilder({ teamId, isCaptain, assistants }: { teamId: number; isCa
                 <span className="block text-[11px] text-[var(--mute)]">
                   {s.registered ? <span className="up">Registered</span> : "From the sheet"}
                   {s.source === "draft" ? " · drafted" : ""}{s.gp ? ` · ${s.gp} scanned GP` : ""}
-                  {s.registered && s.status && s.status !== "available" ? ` · ${STATUS_LABEL[s.status]}${s.status_until ? ` until ${s.status_until}` : ""}` : ""}
+                  {s.registered && s.status && !["active", "available"].includes(s.status) ? ` · ${STATUS_LABEL[s.status]}${s.status_until ? ` until ${s.status_until}` : ""}` : ""}
                 </span>
               </span>
               <span className="tnum font-display text-lg">{fmtRating(s.rating)}</span>

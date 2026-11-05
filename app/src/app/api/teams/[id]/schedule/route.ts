@@ -2,7 +2,7 @@ import { handle, body, num } from "@/server/http";
 import { sql, q, one } from "@/server/db";
 import { HttpError } from "@/server/services";
 import { requireUser, requireTeam, userFromRequest, logAction, userCan } from "@/server/accounts";
-import { KINDS, rinkInstant, upcoming } from "@/server/schedule";
+import { KINDS, attendance, rinkInstant, upcoming } from "@/server/schedule";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +20,8 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
     feed = f ? { connected: true, host: new URL(f.url).hostname, lastSyncedAt: f.last_synced_at, lastError: f.last_error, lastCount: f.last_count } : { connected: false };
   }
   const opponents = can.manual ? await q(sql, "SELECT id, name FROM teams WHERE league_id=$1 AND id<>$2 ORDER BY name", [t.league_id, teamId]) : [];
-  return { games: await upcoming(sql, teamId), can, feed, opponents };
+  const games = await attendance(sql, teamId, await upcoming(sql, teamId), u?.id ?? null, can.manual);
+  return { games, can, feed, opponents };
 });
 
 /** Add a game by hand: tournaments, exhibitions, playoffs, or anything the league calendar is missing. */

@@ -38,6 +38,57 @@ export function GameLine({ g, teamId }: { g: any; teamId?: number }) {
   );
 }
 
+const ANSWERS = [["in", "In"], ["late", "Late"], ["out", "Out"]] as const;
+
+/** In / Late / Out for one game, for players on the roster. */
+export function Rsvp({ g }: { g: any }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const mine = g.rsvp?.mine ?? null;
+  const pick = async (a: string) => {
+    setBusy(true);
+    setErr(await act("PUT", `/api/schedule/${g.id}/rsvp`, { answer: mine === a && !g.rsvp?.mineAuto ? null : a }));
+    setBusy(false);
+  };
+  return (
+    <div>
+      <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Are you playing?">
+        {ANSWERS.map(([k, label]) => (
+          <button key={k} role="radio" aria-checked={mine === k} disabled={busy} onClick={() => pick(k)} data-testid={`button-rsvp-${k}-${g.id}`}
+            className={`h-9 rounded-xl text-sm font-bold border ${mine === k ? (k === "out" ? "border-[var(--line-2)] bg-[var(--ice-3)] text-[var(--white)]" : k === "late" ? "border-[var(--amber)] text-[var(--amber)] bg-[var(--ice-3)]" : "border-[var(--up)] text-[var(--up)] bg-[var(--ice-3)]") : "border-[var(--line)] text-[var(--mute)]"}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+      {g.rsvp?.mineAuto && <p className="text-[11px] text-[var(--mute)] mt-1">Marked out because of your availability. Tap In if you're playing anyway.</p>}
+      {err && <p className="text-xs down mt-1">{err}</p>}
+    </div>
+  );
+}
+
+function Counts({ g }: { g: any }) {
+  const [open, setOpen] = useState(false);
+  const c = g.rsvp?.counts;
+  if (!c) return null;
+  const parts = [[c.in, "in"], [c.late, "late"], [c.out, "out"], [c.none, "no answer"]].filter(([n]) => (n as number) > 0);
+  if (!parts.length) return null;
+  const names = g.rsvp.names;
+  return (
+    <div className="mt-2">
+      <button className="text-xs text-[var(--mute)] tnum" onClick={() => names && setOpen((o) => !o)} data-testid={`button-rsvp-counts-${g.id}`}>
+        {parts.map(([n, l]) => `${n} ${l}`).join(" · ")}{names ? (open ? " ▴" : " ▾") : ""}
+      </button>
+      {open && names && (
+        <div className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+          {([["in", "In"], ["late", "Late"], ["out", "Out"], ["none", "No answer"]] as const).filter(([k]) => names[k].length).map(([k, l]) => (
+            <div key={k} className="min-w-0"><span className="label">{l}</span><div className="text-[var(--mute)] break-words">{names[k].join(", ")}</div></div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Schedule({ teamId }: { teamId: number }) {
   const { data } = useQuery<any>({ queryKey: [`/api/teams/${teamId}/schedule`] });
   const [err, setErr] = useState<string | null>(null);
@@ -54,11 +105,15 @@ export function Schedule({ teamId }: { teamId: number }) {
       {games.length ? (
         <div className="card divide-y divide-[var(--line)]" data-testid="list-schedule">
           {games.map((g: any) => (
-            <div key={g.id} className="p-3 flex items-center gap-2" data-testid={`row-scheduled-${g.id}`}>
+            <div key={g.id} className="p-3" data-testid={`row-scheduled-${g.id}`}>
+              <div className="flex items-center gap-2">
               <GameLine g={g} teamId={teamId} />
               {can.manual && (g.source === "manual"
                 ? <button className="text-xs text-[var(--mute)] shrink-0 px-1" onClick={() => confirm("Take this game off the schedule?") && run("DELETE", `/api/teams/${teamId}/schedule/${g.id}`)} data-testid={`button-remove-game-${g.id}`}>Remove</button>
                 : <button className="text-xs text-[var(--mute)] shrink-0 px-1" onClick={() => run("PATCH", `/api/teams/${teamId}/schedule/${g.id}`, { status: g.status === "canceled" ? "scheduled" : "canceled" })} data-testid={`button-cancel-game-${g.id}`}>{g.status === "canceled" ? "Restore" : "Canceled?"}</button>)}
+              </div>
+              {g.status === "scheduled" && g.rsvp?.member && <div className="mt-2.5"><Rsvp g={g} /></div>}
+              {g.status === "scheduled" && (g.rsvp?.member || can.manual) && <Counts g={g} />}
             </div>
           ))}
         </div>

@@ -5,7 +5,7 @@ export interface PTeamRow { team: string; gp: number; w: number; l: number; t: n
 export interface PTotal { team: string; name: string; gp: number; g: number; a: number; pim: number }
 export interface Parsed {
   level: string | null; leagueName: string | null; games: PGame[]; rosters: Record<string, string[]>; teamName: string | null;
-  teamRows: PTeamRow[]; totals: PTotal[];
+  teamRows: PTeamRow[]; totals: PTotal[]; goalies: string[]; // "Team|Name"
 }
 
 /** "VADIM S." -> "Vadim S." ; "Graham D" -> "Graham D." */
@@ -27,6 +27,7 @@ export function parseReport(text: string): Parsed {
   const level = (levelField && /^([ABCD]|40\+)$/.test(levelField) ? levelField : null) ?? fromText(leagueName ?? "") ?? fromText(header);
   const teamRows: PTeamRow[] = [];
   const totals: PTotal[] = [];
+  const goalies: string[] = [];
   const field = (s: string, k: string) => { const m = s.match(new RegExp(`(?:^|\\|)\\s*${k}\\s+(-?\\d+)\\s*(?=\\||$)`, "i")); return m ? Number(m[1]) : null; };
   const teamName = header.match(/DaySmart name: '([^']+)'/)?.[1] ?? null;
   const games: PGame[] = [];
@@ -53,7 +54,12 @@ export function parseReport(text: string): Parsed {
     if (inRosters) {
       if (!l.trim()) continue;
       if (/^\S/.test(l)) { rosterTeam = l.trim(); rosters[rosterTeam] = []; }
-      else if (rosterTeam) rosters[rosterTeam].push(cleanName(l));
+      else if (rosterTeam) {
+        const g = /\s*\((?:G|goalie)\)\s*$/i.test(l);
+        const n = cleanName(l.replace(/\s*\((?:G|goalie)\)\s*$/i, ""));
+        rosters[rosterTeam].push(n);
+        if (g) goalies.push(`${rosterTeam}|${n}`);
+      }
       continue;
     }
     const g = l.match(/^GAME (\d{4}-\d{2}-\d{2})\s+(\d{1,2}:\d{2}\s*[AP]M)?\s*\|\s*Home:\s*(.+?)\s+(\d+)\s*\|\s*Away:\s*(.+?)\s+(\d+)\s*\|\s*Final/i);
@@ -68,6 +74,6 @@ export function parseReport(text: string): Parsed {
       cur.rows.push({ team: r[1].trim(), name: cleanName(r[2]), g: stat("G"), a: stat("A") });
     }
   }
-  return { level, leagueName, games, rosters, teamName, teamRows, totals };
+  return { level, leagueName, games, rosters, teamName, teamRows, totals, goalies };
 }
 
