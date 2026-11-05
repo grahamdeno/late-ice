@@ -3,11 +3,11 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "late ice · Wilmington",
+  title: "Late Ice · Wilmington",
   description: "Beer league hockey, counted. Snap the scoresheet, get your rating.",
   manifest: "/manifest.webmanifest",
   icons: { icon: "/favicon.svg", apple: "/icon-192.png" },
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "late ice" },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Late Ice" },
 };
 
 export const viewport: Viewport = {

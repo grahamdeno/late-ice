@@ -41,9 +41,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
       >
         <div className="mx-auto max-w-[560px] px-4">
           <div className="mt-2 h-14 rounded-2xl flex items-center justify-between px-3 border border-[var(--line)]" style={{ background: "rgba(11,15,22,.86)", backdropFilter: "blur(14px)" }}>
-            <Link href="/" className="flex items-center gap-2" data-testid="link-home-logo" aria-label="late ice home">
+            <Link href="/" className="flex items-center gap-2" data-testid="link-home-logo" aria-label="Late Ice home">
               <FaceoffDot size={26} />
-              <span style={{ fontWeight: 900, letterSpacing: "-0.03em", fontSize: 19 }}>late ice</span>
+              <span style={{ fontWeight: 900, letterSpacing: "-0.03em", fontSize: 19 }}>Late Ice</span>
             </Link>
             <div className="flex items-center gap-2">
             <button

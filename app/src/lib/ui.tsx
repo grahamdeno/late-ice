@@ -47,9 +47,9 @@ export function FaceoffDot({ size = 28, className = "", pulse = false }: { size?
 
 export function Wordmark({ className = "" }: { className?: string }) {
   return (
-    <span className={`inline-flex items-center gap-2 ${className}`} aria-label="late ice">
+    <span className={`inline-flex items-center gap-2 ${className}`} aria-label="Late Ice">
       <FaceoffDot size={26} />
-      <span style={{ fontWeight: 900, letterSpacing: "-0.03em", fontSize: 20 }}>late ice</span>
+      <span style={{ fontWeight: 900, letterSpacing: "-0.03em", fontSize: 20 }}>Late Ice</span>
     </span>
   );
 }

@@ -44,10 +44,15 @@
 
 * { -webkit-tap-highlight-color: transparent; }
 html, body { background: var(--ice); color: var(--white); }
+/* The page never pans sideways. Wide content (the scoresheet photo) scrolls inside its own box. */
+html { overflow-x: hidden; }
 body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
-  overscroll-behavior-y: none;
+  overflow-x: hidden;
+  overscroll-behavior: none;
+  width: 100%;
+  position: relative;
 }
 .font-display { font-family: var(--font-display); letter-spacing: 0.01em; }
 .tnum { font-variant-numeric: tabular-nums; }
