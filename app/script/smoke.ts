@@ -711,6 +711,46 @@ async function main() {
   ok(rc3.people >= 1 && (await db`SELECT COUNT(*)::int c FROM players WHERE user_id=${ivId}`)[0].c === 1, "the nightly run folds them into one player, one rating");
   ok((await db`SELECT COUNT(DISTINCT re.team_id)::int c FROM roster_entries re JOIN players p ON p.id=re.player_id WHERE p.user_id=${ivId}`)[0].c === 2, "still on both teams");
 
+  console.log("manage team: adding and editing spots, roster sizes");
+  const before = (await call("GET", `/api/teams/${hh}/manage`, undefined, graham)).json;
+  ok(before.counts && before.counts.rosterMax === 15 && before.counts.goalieMax === 2, "a league starts at 15 skaters and 2 goalies");
+  const added = await call("POST", `/api/teams/${hh}/slots`, { name: "Pat Newguy", number: "71", position: "D" }, graham);
+  ok(added.status === 200 && added.json.playerId, "captain adds a player by hand");
+  ok((await call("POST", `/api/teams/${hh}/slots`, { name: "Pat Newguy", number: "45", position: "D" }, graham)).status === 409, "the same name twice is refused");
+  ok((await call("POST", `/api/teams/${hh}/slots`, { name: "Pat", number: "46", position: "D" }, graham)).status === 400, "a first name alone is refused");
+  ok((await call("POST", `/api/teams/${hh}/slots`, { name: "Other Guy", number: "71", position: "W" }, graham)).status === 409, "a taken number is refused");
+  ok((await call("POST", `/api/teams/${hh}/slots`, { name: "Not Captain", number: "47", position: "W" }, mt)).status === 403, "only the team's captains add spots");
+  ok((await call("PATCH", `/api/teams/${hh}/slots/${added.json.playerId}`, { number: "72", position: "G" }, graham)).status === 200, "captain edits number and position of an unregistered spot");
+  const after = (await call("GET", `/api/teams/${hh}/manage`, undefined, graham)).json;
+  const pat = after.slots.find((s: any) => s.id === added.json.playerId);
+  ok(pat.number === "72" && pat.position === "G", "the edit stuck");
+  ok(after.counts.goalies === before.counts.goalies + 1 && after.counts.skaters === before.counts.skaters, "he now counts as a goalie, not a skater");
+  const lgOf = (await db`SELECT league_id FROM teams WHERE id=${hh}`)[0].league_id;
+  ok((await call("PATCH", `/api/leagues/${lgOf}`, { rosterMax: 3 }, boss)).status === 200, "staff set a smaller roster");
+  ok((await call("POST", `/api/teams/${hh}/slots`, { name: "One Too Many", number: "49", position: "W" }, graham)).status === 409, "a full roster refuses another skater");
+  ok((await call("POST", `/api/teams/${hh}/slots`, { name: "Spare Guy", number: "49", position: "W", sub: true }, graham)).status === 200, "but takes him as a sub");
+  await call("PATCH", "/api/me", { status: "ir", statusUntil: "2027-01-01" }, sam);
+  const irCounts = (await call("GET", `/api/teams/${hh}/manage`, undefined, graham)).json.counts;
+  ok(irCounts.out >= 1, "a player on IR shows as out");
+  await call("PATCH", "/api/me", { status: "active" }, sam);
+  ok((await call("PATCH", `/api/leagues/${lgOf}`, { rosterMax: 15 }, boss)).status === 200, "and back to 15");
+  ok((await call("PATCH", `/api/leagues/${lgOf}`, { rosterMax: 99 }, boss)).status === 400, "an absurd size is refused");
+
+  console.log("lineup");
+  const lgGame = await call("POST", `/api/teams/${hh}/schedule`, { date: `${ymd(4).slice(0, 4)}-${ymd(4).slice(4, 6)}-${ymd(4).slice(6)}`, time: "20:00", opponentTeamId: blId, kind: "league" }, graham);
+  ok(lgGame.status === 200, "a game to set lines for");
+  const lu = await call("GET", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`);
+  ok(lu.status === 200 && !lu.saved && lu.json.lineup.f.length === 3 && lu.json.players.length > 0, "anyone can see the lineup; it starts as a guess from who's In");
+  ok(lu.json.can.edit === false, "a visitor can't edit it");
+  const firstTwo = lu.json.players.slice(0, 2).map((p: any) => p.id);
+  const mine = { f: [[firstTwo[0], null, null], [null, null, null], [null, null, null]], d: [[firstTwo[1], null], [null, null], [null, null]], g: [null], extras: [] };
+  ok((await call("PUT", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, mine, mt)).status === 403, "only the team's captains set it");
+  ok((await call("PUT", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, { ...mine, d: [[firstTwo[0], null], [null, null], [null, null]] }, graham)).status === 400, "a player in two spots is refused");
+  ok((await call("PUT", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, { ...mine, g: [999999] }, graham)).status === 400, "someone not on the roster is refused");
+  ok((await call("PUT", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, mine, graham)).status === 200, "captain saves the lines");
+  const lu2 = (await call("GET", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, undefined, graham)).json;
+  ok(lu2.saved && lu2.lineup.f[0][0] === firstTwo[0] && lu2.can.edit === true, "and it comes back as set");
+
   console.log("subs");
   const ivSlot = (await db`SELECT p.id FROM players p WHERE p.user_id=${ivId}`)[0].id;
   ok((await call("PATCH", `/api/teams/${blId}/slots/${ivSlot}/sub`, { sub: true }, sam)).status === 403, "only that team's captains mark subs");
@@ -798,7 +838,7 @@ async function main() {
   ok(/Disallow: \//.test(robots) && /noindex/.test(await (await fetch(`${BASE}/`)).text()), "search engines are told to stay out");
 
   console.log("pages render");
-  for (const path of ["/", "/leagues", `/team/${hh}`, `/player/${mike}`, "/players", "/rink", "/scan", "/join", "/privacy", `/game/${conf.json.gameId}`, `/league/${lg}`]) {
+  for (const path of ["/", "/leagues", `/team/${hh}`, `/player/${mike}`, "/players", "/rink", "/scan", "/join", "/privacy", `/game/${conf.json.gameId}`, `/league/${lg}`, `/team/${hh}/manage`, `/team/${hh}/lineup/${lgGame.json.id}`]) {
     const r = await fetch(BASE + path);
     ok(r.status === 200, `${path} renders`);
   }

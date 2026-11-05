@@ -34,8 +34,11 @@ export const PATCH = handle<{ id: string }>(async (req, { id }) => {
   if (b.level !== undefined && !LEVELS.includes(String(b.level))) throw new HttpError(400, "Skill level is A, B, C or D.");
   const level = b.level !== undefined ? String(b.level) : l.level;
   const tag = b.tag !== undefined ? (TAGS.includes(String(b.tag)) ? String(b.tag) : null) : l.tag;
+  const lim = (v: unknown, cur: number, lo: number, hi: number, what: string) => { if (v === undefined) return cur; const n = Number(v); if (!Number.isInteger(n) || n < lo || n > hi) throw new HttpError(400, `${what} is ${lo} to ${hi}.`); return n; };
+  const rosterMax = lim(b.rosterMax, l.roster_max, 5, 40, "Skater spots");
+  const goalieMax = lim(b.goalieMax, l.goalie_max, 1, 6, "Goalie spots");
   await sql.begin(async (tx) => {
-    await q(tx, "UPDATE leagues SET name=$1, blurb=$2, level=$3, tag=$4, sort=$5 WHERE id=$6", [name, blurb, level, tag, { A: 0, B: 1, C: 2, D: 3 }[level as "A"] ?? l.sort, l.id]);
+    await q(tx, "UPDATE leagues SET name=$1, blurb=$2, level=$3, tag=$4, sort=$5, roster_max=$7, goalie_max=$8 WHERE id=$6", [name, blurb, level, tag, { A: 0, B: 1, C: 2, D: 3 }[level as "A"] ?? l.sort, l.id, rosterMax, goalieMax]);
     await P.audit(tx, u.id, "league.edit", { type: "league", id: l.id, rinkId: l.rink_id }, { name: l.name, blurb: l.blurb, level: l.level, tag: l.tag }, { name, blurb, level, tag });
   });
   return { ok: true };
