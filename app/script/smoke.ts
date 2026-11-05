@@ -653,7 +653,7 @@ async function main() {
 
   console.log("sample sheets and Demo: admins only");
   ok((await call("GET", "/api/samples", undefined, sam)).json.length === 0 && (await call("GET", "/api/samples", undefined, boss)).json.length > 0, "only admins see the sample sheets");
-  ok((await call("POST", "/api/sheets/sample/flyers-owls", undefined, sam)).status === 403, "players can't run them");
+  ok((await call("POST", "/api/sheets/sample/demo-flyers-owls", undefined, sam)).status === 403, "players can't run them");
   ok(!(await call("GET", "/api/bootstrap", undefined, sam)).json.leagues.some((l: any) => l.level === "DEMO") && (await call("GET", "/api/bootstrap", undefined, boss)).json.leagues.some((l: any) => l.level === "DEMO"), "the Demo league is hidden from everyone but admins");
 
   console.log("sign-up gate");
