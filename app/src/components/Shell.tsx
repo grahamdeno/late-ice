@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "@/lib/router";
 import { FaceoffDot, LevelPill, useFilter } from "@/lib/ui";
 import { useMe } from "@/lib/auth";
+import { RinkPicker } from "@/components/RinkPicker";
 
 function Icon({ d, active }: { d: string; active: boolean }) {
   return (
@@ -64,7 +65,9 @@ function BackToTop() {
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const [loc] = useLocation();
-  const { leagueId, setLeagueId, boot } = useFilter();
+  const { leagueId, setLeagueId, rinkId, setRinkId, boot } = useFilter();
+  const [, go] = useLocation();
+  const [picking, setPicking] = useState(false);
   const { me } = useMe();
   const [open, setOpen] = useState(false);
   const startY = useRef<number | null>(null);
@@ -104,7 +107,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
               data-testid="button-league-switcher"
               aria-expanded={open}
             >
-              {current ? <><LevelPill level={current.level === "DEMO" ? "Demo" : current.level} /> <span className="min-w-0 max-w-[110px] truncate">{current.name}</span></> : <span className="min-w-0 truncate">All leagues</span>}
+              {current ? <><LevelPill level={current.level === "DEMO" ? "Demo" : current.level} /> <span className="min-w-0 max-w-[110px] truncate">{current.name}</span></> : <span className="min-w-0 max-w-[150px] truncate" data-testid="text-pill-rink">{boot?.rink?.name ?? "Late Ice"}</span>}
               <svg className="shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" style={{ transform: open ? "rotate(180deg)" : "", transition: "transform .2s" }}><path d="M6 9l6 6 6-6" /></svg>
             </button>
             {(
@@ -129,11 +132,15 @@ export function Shell({ children }: { children: React.ReactNode }) {
                   <div className="label">Rink</div>
                   <div className="font-black text-lg mt-0.5">{boot?.rink?.name}</div>
                   <div className="text-sm text-[var(--mute)]">{boot?.region ? `${boot.region.name}, ${boot.region.state}` : ""}{boot?.season ? ` · ${boot.season.name}` : ""}</div>
+                  <button className="mt-1 text-sm font-bold text-[var(--blue)]" onClick={() => setPicking((p) => !p)} data-testid="button-change-rink">{picking ? "Keep this rink" : "Change rink"}</button>
                 </div>
-                <button onClick={() => setOpen(false)} className="h-9 w-9 rounded-full bg-[var(--ice-3)] flex items-center justify-center" aria-label="Close" data-testid="button-close-switcher">
+                <button onClick={() => { setOpen(false); setPicking(false); }} className="h-9 w-9 rounded-full bg-[var(--ice-3)] flex items-center justify-center" aria-label="Close" data-testid="button-close-switcher">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
                 </button>
               </div>
+              {picking ? (
+                <div className="mt-4"><RinkPicker value={rinkId} onPick={(id) => { setRinkId(id); setPicking(false); setOpen(false); }} onAdd={() => { setPicking(false); setOpen(false); go("/rink?add=1"); }} /></div>
+              ) : (
               <div className="grid grid-cols-3 gap-2 mt-4">
                 <button
                   className={`rounded-xl p-3 text-left border ${leagueId === null ? "border-[var(--red)] bg-[var(--red-dim)]" : "border-[var(--line)] bg-[var(--ice-3)]"}`}
@@ -155,9 +162,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
                   </button>
                 ))}
               </div>
-              <div className="mt-4 rounded-xl border border-dashed border-[var(--line)] p-3 text-xs text-[var(--mute)]">
-                Late Ice works at any rink. Players and staff add theirs from the Rink tab.
-              </div>
+              )}
+              {!picking && boot?.leagues && boot.leagues.filter((l) => l.level !== "DEMO" && l.level !== "TOURN").length === 0 && (
+                <div className="mt-3 rounded-xl border border-dashed border-[var(--line)] p-3 text-xs text-[var(--mute)]">No leagues here yet. The rink's staff or a captain can add them from the Rink tab.</div>
+              )}
             </div>
           </div>
         </div>

@@ -70,7 +70,7 @@ async function signUp(email: string, profile: { name: string; number: string; po
   if (opts.blocked) { ok(me.status === 403 && /paused/i.test(me.json?.message ?? ""), `${email} can't make an account while sign-ups are paused`); return token; }
   ok(me.status === 200 && me.json.user.profileComplete === false && me.json.user.email === email.toLowerCase() && me.json.user.phone === null, `${email} gets a new account keyed on email, no phone`);
   const rinks = await call("GET", "/api/rinks");
-  const p = await call("PATCH", "/api/me", { ...profile, homeRinkId: rinks.json[0].id }, token);
+  const p = await call("PATCH", "/api/me", { ...profile, homeRinkId: rinks.json.rinks.find((r: any) => r.name === "Polar Ice Wilmington").id }, token);
   ok(p.status === 200 && p.json.user.profileComplete, `${profile.name} profile complete`);
   ok(p.json.user.access === (inbox === "boss@example.com" ? "approved" : "waiting"), `${email} starts ${inbox === "boss@example.com" ? "let in (bootstrap admin)" : "on the waitlist"}`);
   // Most test players are let in straight away; the gate has its own checks below.
@@ -311,7 +311,7 @@ async function main() {
   ok((await call("GET", `/api/teams/${hh}`)).json.captain?.name === "Graham DeNoyer", "Graham is captain again");
 
   console.log("roles: rink staff");
-  const rinkId = (await call("GET", "/api/rinks")).json[0].id;
+  const rinkId = (await call("GET", "/api/rinks")).json.rinks.find((r: any) => r.name === "Polar Ice Wilmington").id;
   ok((await call("POST", "/api/staff/grants", { email: "mike@example.com", role: "rink_manager", scopeId: rinkId }, graham)).status === 403, "a captain can't make rink managers");
   ok((await call("POST", "/api/staff/grants", { email: "mike@example.com", role: "rink_manager", scopeId: rinkId }, boss)).status === 200, "admin makes Mike rink manager");
   ok((await call("POST", "/api/staff/grants", { email: "nobody@example.com", role: "support" }, boss)).status === 404, "granting to someone who hasn't joined is refused");
@@ -651,6 +651,23 @@ async function main() {
   ok((await call("DELETE", `/api/leagues/${nl.json.id}`, undefined, fan)).status === 409, "a league with teams can't be removed");
   const direct = await call("POST", "/api/rink-requests", { name: "Wilmington Ice House", city: "Wilmington", state: "NC", confirmNew: true }, boss);
   ok(direct.status === 200 && direct.json.created, "an admin adds a rink directly");
+
+  console.log("nationwide: rinks in the US and Canada");
+  const ca = await call("POST", "/api/rink-requests", { name: "Scotiabank Pond", city: "Toronto", state: "ON", country: "CA", confirmNew: true }, boss);
+  ok(ca.status === 200 && ca.json.created, "an admin adds a Canadian rink with its province");
+  ok((await call("POST", "/api/rink-requests", { name: "Nowhere Rink", city: "Toronto", state: "ZZ", country: "CA", confirmNew: true }, boss)).status === 400, "an unknown province is refused");
+  ok((await call("POST", "/api/rink-requests", { name: "Mix Up Rink", city: "Toronto", state: "ON", country: "US", confirmNew: true }, boss)).status === 400, "a province with the US picked is refused");
+  const caRow = (await call("GET", "/api/rinks?q=toronto")).json.rinks.find((r: any) => r.id === ca.json.rinkId);
+  ok(caRow && caRow.country === "CA" && caRow.state === "ON", "rink search finds it by city, with country and province");
+  const guess = await (await fetch(`${BASE}/api/rinks`, { headers: { "x-vercel-ip-country": "CA" } })).json();
+  ok(guess.yourCountry === "CA", "the connection's country picks where the rink picker opens");
+  const bootCa = (await call("GET", `/api/bootstrap?rink=${ca.json.rinkId}`)).json;
+  ok(bootCa.rink.id === ca.json.rinkId && bootCa.leagues.length === 0 && bootCa.region.country === "CA", "the app can look at the Toronto rink, with none of Wilmington's leagues");
+  const bootHome = (await call("GET", "/api/bootstrap", undefined, sam)).json;
+  ok(bootHome.rink.name === "Polar Ice Wilmington", "a signed-in player opens on their home rink");
+  ok((await call("GET", `/api/feed?rink=${ca.json.rinkId}`)).json.games.length === 0, "Toronto's home page has no Wilmington games");
+  ok((await call("GET", `/api/players?rink=${ca.json.rinkId}`)).json.length === 0, "nor Wilmington's players");
+  ok((await call("GET", `/api/players?rink=${rinkId}`)).json.length > 0, "Wilmington's players still show at Wilmington");
 
   console.log("standings: goal difference");
   let lgS = (await call("GET", `/api/leagues/${lg}`)).json.standings;

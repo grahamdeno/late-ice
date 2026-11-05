@@ -1,4 +1,5 @@
 "use client";
+import { COUNTRIES, guessCountry, regionLabel, regionsOf } from "@/lib/geo";
 import { useState } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -115,7 +116,7 @@ export const RINK_ROLE_LABEL: Record<string, string> = Object.fromEntries(ROLE_O
 
 /** "My rink isn't listed." Goes to the system admins; checks for a rink that's already here first. */
 export function RinkRequestForm({ onDone, admin = false }: { onDone: () => void; admin?: boolean }) {
-  const [v, setV] = useState({ name: "", city: "", state: "", website: "" });
+  const [v, setV] = useState({ name: "", city: "", state: "", website: "", country: guessCountry() as string });
   const [manage, setManage] = useState(false);
   const [role, setRole] = useState("hockey_director");
   const [matches, setMatches] = useState<any[] | null>(null);
@@ -139,9 +140,17 @@ export function RinkRequestForm({ onDone, admin = false }: { onDone: () => void;
     <form className="card p-4 space-y-2.5" onSubmit={(e) => { e.preventDefault(); submit(false); }} data-testid="form-rink-request">
       <div className="label">{admin ? "Add a rink" : "Add a rink that isn't listed"}</div>
       <input className="input w-full" placeholder="Rink name" value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} required data-testid="input-new-rink-name" />
-      <div className="grid grid-cols-[1fr_80px] gap-2">
+      <div className="flex gap-1.5">
+        {COUNTRIES.map(([k, label]) => (
+          <button type="button" key={k} onClick={() => setV({ ...v, country: k, state: "" })} data-active={v.country === k} className="chip" data-testid={`button-new-rink-country-${k}`}>{label}</button>
+        ))}
+      </div>
+      <div className="grid grid-cols-[1fr_130px] gap-2">
         <input className="input w-full min-w-0" placeholder="City" value={v.city} onChange={(e) => setV({ ...v, city: e.target.value })} required data-testid="input-new-rink-city" />
-        <input className="input w-full min-w-0 uppercase" placeholder="ST" maxLength={2} value={v.state} onChange={(e) => setV({ ...v, state: e.target.value.toUpperCase() })} required data-testid="input-new-rink-state" />
+        <select className="input w-full min-w-0" value={v.state} onChange={(e) => setV({ ...v, state: e.target.value })} required aria-label={regionLabel(v.country)} data-testid="input-new-rink-state">
+          <option value="">{regionLabel(v.country)}</option>
+          {Object.entries(regionsOf(v.country)).map(([code, n]) => <option key={code} value={code}>{n}</option>)}
+        </select>
       </div>
       <input className="input w-full" placeholder="Rink website (helps us check it)" inputMode="url" value={v.website} onChange={(e) => setV({ ...v, website: e.target.value })} />
       {!admin && (

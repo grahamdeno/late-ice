@@ -4,9 +4,9 @@ import { Link } from "@/lib/router";
 import { Delta, Empty, FaceoffDot, GameRow, Loading, Section, fmtRating, useFilter, type GameCard } from "@/lib/ui";
 
 export default function Home() {
-  const { leagueId, boot } = useFilter();
+  const { leagueId, rinkId, boot } = useFilter();
   const { data, isLoading } = useQuery<{ games: GameCard[]; movers: any[]; leaders: any[]; pending: any[] }>({
-    queryKey: [leagueId ? `/api/feed?league=${leagueId}` : "/api/feed"],
+    queryKey: [leagueId ? `/api/feed?league=${leagueId}` : rinkId ? `/api/feed?rink=${rinkId}` : "/api/feed"],
   });
   const league = boot?.leagues.find((l) => l.id === leagueId);
 

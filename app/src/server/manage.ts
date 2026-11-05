@@ -1,4 +1,5 @@
 import "server-only";
+import { validRegion } from "@/lib/geo";
 // Creating and editing rinks, leagues, seasons and teams, and the checks behind rink requests.
 import { one, q, type Tx } from "./db";
 import { HttpError, similarity } from "./services";
@@ -26,13 +27,13 @@ export function emailOnRinkDomain(email: string | null | undefined, website: str
 }
 
 /** Look the rink up on OpenStreetMap so an admin can see it's a real place. Best effort. */
-export async function mapLookup(name: string, city: string, state: string) {
+export async function mapLookup(name: string, city: string, state: string, country = "US") {
   if (process.env.LATEICE_MAP_LOOKUP === "off") return { checked: false, matches: [] as any[] };
   const qstr = [name, city, state].filter(Boolean).join(", ");
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), 6000);
   try {
-    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=3&extratags=1&addressdetails=1&countrycodes=us&q=${encodeURIComponent(qstr)}`, {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=3&extratags=1&addressdetails=1&countrycodes=${country === "CA" ? "ca" : "us"}&q=${encodeURIComponent(qstr)}`, {
       signal: ctl.signal, headers: { "user-agent": "LateIce/1.0 (rink verification; late-ice.tangomike.app)", accept: "application/json" },
     });
     if (!r.ok) return { checked: false, matches: [] };
@@ -65,15 +66,16 @@ export function seasonAround(d = new Date()) {
 
 export async function createRink(db: Tx, d: any, actor: number | null) {
   const name = clean(d.name, 80), city = clean(d.city, 60), state = clean(d.state, 2).toUpperCase();
-  if (!name || !city || !/^[A-Z]{2}$/.test(state)) throw new HttpError(400, "Rink name, city and two-letter state are needed.");
-  let region = await one<any>(db, "SELECT id FROM regions WHERE lower(name)=lower($1) AND state=$2", [city, state]);
-  if (!region) region = await one<any>(db, "INSERT INTO regions (slug, name, state) VALUES ($1,$2,$3) RETURNING id", [`${slugify(city)}-${state.toLowerCase()}-${Date.now() % 100000}`, city, state]);
+  const country = String(d.country || "US").toUpperCase() === "CA" ? "CA" : "US";
+  if (!name || !city || !validRegion(country, state)) throw new HttpError(400, country === "CA" ? "Rink name, city and province are needed." : "Rink name, city and state are needed.");
+  let region = await one<any>(db, "SELECT id FROM regions WHERE lower(name)=lower($1) AND state=$2 AND country=$3", [city, state, country]);
+  if (!region) region = await one<any>(db, "INSERT INTO regions (slug, name, state, country) VALUES ($1,$2,$3,$4) RETURNING id", [`${slugify(city)}-${state.toLowerCase()}-${country.toLowerCase()}-${Date.now() % 100000}`, city, state, country]);
   let slug = slugify(`${name} ${city}`);
   if (await one(db, "SELECT 1 FROM rinks WHERE slug=$1", [slug])) slug = `${slug}-${Date.now() % 100000}`;
   const pick = d.map?.matches?.[0];
   const rink = await one<any>(db,
-    `INSERT INTO rinks (region_id, slug, name, address, phone, website, city, state, lat, lon, created_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
-    [region!.id, slug, name, clean(d.address, 120) || pick?.address || null, clean(d.phone, 30) || pick?.phone || null, clean(d.website, 120) || pick?.website || null, city, state, pick?.lat ?? null, pick?.lon ?? null, actor]);
+    `INSERT INTO rinks (region_id, slug, name, address, phone, website, city, state, country, lat, lon, created_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+    [region!.id, slug, name, clean(d.address, 120) || pick?.address || null, clean(d.phone, 30) || pick?.phone || null, clean(d.website, 120) || pick?.website || null, city, state, country, pick?.lat ?? null, pick?.lon ?? null, actor]);
   const s = seasonAround();
   await q(db, "INSERT INTO seasons (rink_id, name, starts_on, ends_on) VALUES ($1,$2,$3,$4)", [rink.id, s.name, s.starts, s.ends]);
   return rink;

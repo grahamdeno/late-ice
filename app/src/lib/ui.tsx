@@ -9,6 +9,7 @@ export interface League { id: number; level: string; name: string; blurb: string
 export interface Boot {
   region: { id: number; name: string; state: string };
   rink: any;
+  rinkCount?: number;
   leagues: League[];
   counts: { games: number; players: number; sheets: number };
   season: { id: number; name: string; starts_on: string; ends_on: string } | null;
@@ -19,8 +20,8 @@ export interface GameCard {
   homeScore: number; awayScore: number; league: { id: number; level: string; name: string }; sheetId: number;
 }
 
-export const FilterCtx = createContext<{ leagueId: number | null; setLeagueId: (id: number | null) => void; boot?: Boot }>({
-  leagueId: null, setLeagueId: () => {},
+export const FilterCtx = createContext<{ leagueId: number | null; setLeagueId: (id: number | null) => void; rinkId: number | null; setRinkId: (id: number) => void; boot?: Boot }>({
+  leagueId: null, setLeagueId: () => {}, rinkId: null, setRinkId: () => {},
 });
 export const useFilter = () => useContext(FilterCtx);
 
