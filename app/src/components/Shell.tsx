@@ -20,6 +20,48 @@ const NAV = [
   { href: "/rink", label: "Rink", d: "M3 7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4zM3 12h18M12 3v18" },
 ];
 
+// Appears while you scroll back up on a long page; hides when you scroll down or stop.
+function BackToTop() {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    let last = window.scrollY, idle: ReturnType<typeof setTimeout> | undefined;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (y < last - 4 && y > window.innerHeight * 1.5) setShow(true);
+      else if (y > last + 4 || y < 200) setShow(false);
+      last = y;
+      clearTimeout(idle);
+      idle = setTimeout(() => setShow(false), 1200);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => { window.removeEventListener("scroll", onScroll); clearTimeout(idle); };
+  }, []);
+  const go = () => {
+    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: calm ? "auto" : "smooth" });
+    setShow(false);
+  };
+  return (
+    <button
+      onClick={go}
+      aria-label="Back to top"
+      tabIndex={show ? 0 : -1}
+      data-testid="button-back-to-top"
+      className="glass fixed left-1/2 z-40 h-10 px-4 rounded-full flex items-center gap-1.5 text-sm font-bold"
+      style={{
+        bottom: "calc(env(safe-area-inset-bottom) + 96px)",
+        transform: `translate(-50%, ${show ? "0" : "12px"})`,
+        opacity: show ? 1 : 0,
+        pointerEvents: show ? "auto" : "none",
+        transition: "opacity .2s, transform .2s",
+      }}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
+      Top
+    </button>
+  );
+}
+
 export function Shell({ children }: { children: React.ReactNode }) {
   const [loc] = useLocation();
   const { leagueId, setLeagueId, boot } = useFilter();
@@ -62,7 +104,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
               data-testid="button-league-switcher"
               aria-expanded={open}
             >
-              {current ? <><LevelPill level={current.level === "DEMO" ? "Demo" : current.level} /> <span className="min-w-0 max-w-[110px] truncate">{current.name}</span></> : <span className="min-w-0 truncate"><span className="hidden min-[380px]:inline">All </span>Wilmington</span>}
+              {current ? <><LevelPill level={current.level === "DEMO" ? "Demo" : current.level} /> <span className="min-w-0 max-w-[110px] truncate">{current.name}</span></> : <span className="min-w-0 truncate">All leagues</span>}
               <svg className="shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" style={{ transform: open ? "rotate(180deg)" : "", transition: "transform .2s" }}><path d="M6 9l6 6 6-6" /></svg>
             </button>
             {(
@@ -84,9 +126,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <div className="glass-sheet rounded-[20px] p-4 drop-in">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="label">Region · Rink</div>
-                  <div className="font-black text-lg mt-0.5">Wilmington, NC</div>
-                  <div className="text-sm text-[var(--mute)]">{boot?.rink?.name}{boot?.season ? ` · ${boot.season.name}` : ""}</div>
+                  <div className="label">Rink</div>
+                  <div className="font-black text-lg mt-0.5">{boot?.rink?.name}</div>
+                  <div className="text-sm text-[var(--mute)]">{boot?.region ? `${boot.region.name}, ${boot.region.state}` : ""}{boot?.season ? ` · ${boot.season.name}` : ""}</div>
                 </div>
                 <button onClick={() => setOpen(false)} className="h-9 w-9 rounded-full bg-[var(--ice-3)] flex items-center justify-center" aria-label="Close" data-testid="button-close-switcher">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
@@ -114,7 +156,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 ))}
               </div>
               <div className="mt-4 rounded-xl border border-dashed border-[var(--line)] p-3 text-xs text-[var(--mute)]">
-                More rinks unlock as players scan sheets. Wilmington is rink #1.
+                Late Ice works at any rink. Players and staff add theirs from the Rink tab.
               </div>
             </div>
           </div>
@@ -122,6 +164,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
       )}
 
       <main className="mx-auto max-w-[560px] min-w-0 px-4 pb-32 break-words" style={{ paddingTop: "calc(env(safe-area-inset-top) + 84px)" }}>{children}</main>
+
+      <BackToTop />
 
       <nav className="fixed bottom-0 inset-x-0 z-40" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         <div className="relative mx-auto max-w-[560px] px-4 pb-3">

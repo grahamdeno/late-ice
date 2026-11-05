@@ -16,7 +16,7 @@ export function Players() {
   const rows = (data ?? []).filter((p) => posMatch(pos, p.position) && p.name.toLowerCase().includes(qs.toLowerCase()));
   return (
     <div>
-      <div className="label">{league ? league.name : "All Wilmington"} · Late Ice Rating</div>
+      <div className="label">{league ? league.name : "All leagues"} · Late Ice Rating</div>
       <h1 className="font-display text-[40px] leading-none font-black uppercase mt-1">Players</h1>
       <p className="text-sm text-[var(--mute)] mt-2">Every player on a scanned sheet gets a rating. Win against better teams and it climbs.</p>
       <input value={qs} onChange={(e) => setQs(e.target.value)} placeholder="Find a player" className="mt-4 w-full h-11 rounded-xl bg-[var(--ice-2)] border border-[var(--line)] px-4 focus:outline-none focus:border-[var(--red)]" data-testid="input-player-search" />

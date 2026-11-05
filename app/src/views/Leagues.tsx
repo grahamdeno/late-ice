@@ -71,7 +71,7 @@ export function Leagues() {
   if (!boot) return <Loading />;
   return (
     <div>
-      <div className="label">Polar Ice Wilmington · {boot.season?.name}</div>
+      <div className="label">{boot.rink?.name} · {boot.season?.name}</div>
       <h1 className="font-display text-[40px] leading-none font-black uppercase mt-1">Standings</h1>
       <p className="text-sm text-[var(--mute)] mt-2">Two points a win, one a tie. Standings reset every season; ratings carry over.</p>
       <div className="space-y-3 mt-5">{boot.leagues.filter((l) => l.level !== "DEMO" && l.level !== "TOURN").map((l) => <LeagueCard key={l.id} id={l.id} />)}</div>
@@ -169,7 +169,7 @@ export function TeamPage({ id }: { id: string }) {
         </div>
       </div>
       {team.is_sample ? (
-        <div className="mt-3 text-xs text-[var(--mute)] px-1" data-testid="text-sample-team">Placeholder team name. Real Wilmington team names replace these as sheets come in.</div>
+        <div className="mt-3 text-xs text-[var(--mute)] px-1" data-testid="text-sample-team">Placeholder team name. Real team names replace these as sheets come in.</div>
       ) : imported ? (
         <div className="mt-3 text-xs text-[var(--mute)] px-1" data-testid="text-imported-team">Record and totals include {imported.gp} games imported from the {imported.source} as of {fmtDate(imported.as_of)}. Ratings start moving with the first scanned sheet.</div>
       ) : null}

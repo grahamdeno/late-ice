@@ -13,7 +13,7 @@ export default function Home() {
   return (
     <div>
       <div className="rise">
-        <div className="label">{league ? `${league.name} · ${boot?.season?.name ?? ""}` : `Wilmington, NC · Polar Ice${boot?.season ? ` · ${boot.season.name}` : ""}`}</div>
+        <div className="label">{league ? `${league.name} · ${boot?.season?.name ?? ""}` : `${boot?.rink?.name ?? ""}${boot?.region ? ` · ${boot.region.name}, ${boot.region.state}` : ""}${boot?.season ? ` · ${boot.season.name}` : ""}`}</div>
         <h1 className="font-display text-[clamp(34px,11.5vw,44px)] leading-[0.95] font-black uppercase mt-1">Every game counts.<br /><span className="text-[var(--red)]">Even the 11:15.</span></h1>
       </div>
 
