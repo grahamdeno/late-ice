@@ -1,0 +1,30 @@
+name: Database migrations
+
+# Applies app/supabase/migrations to the hosted Supabase database.
+# Needs one repository secret: SUPABASE_DB_URL (Supabase > Project Settings > Database >
+# Connect > Session pooler URI, port 5432, with the database password filled in. The direct
+# connection is IPv6-only and GitHub runners cannot reach it).
+# Already-applied migrations are skipped, so running it again is safe.
+on:
+  workflow_dispatch:
+  push:
+    branches: [master, nextjs-supabase]
+    paths: ["app/supabase/migrations/**", ".github/workflows/db-migrate.yml"]
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Apply migrations
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then echo "::notice::SUPABASE_DB_URL secret not set yet; skipping."; exit 0; fi
+          npx --yes supabase@2 db push --db-url "$SUPABASE_DB_URL" --include-all

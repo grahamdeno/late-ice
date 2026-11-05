@@ -6,7 +6,7 @@ import { userFromRequest } from "@/server/accounts";
 import { HttpError } from "@/server/services";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 120;
+export const maxDuration = 60;
 
 export const GET = handle(async () => {
   const out = [];

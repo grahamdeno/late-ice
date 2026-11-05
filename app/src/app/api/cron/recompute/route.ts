@@ -4,7 +4,7 @@ import { recomputeAll } from "@/server/rating";
 import { refreshDisplays } from "@/server/accounts";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 300;
+export const maxDuration = 60;
 // Vercel Cron calls this nightly with "Authorization: Bearer $CRON_SECRET".
 export const GET = handle(async (req) => {
   const secret = process.env.CRON_SECRET;
