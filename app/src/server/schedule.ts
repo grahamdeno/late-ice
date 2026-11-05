@@ -58,7 +58,7 @@ export async function syncTeamFeed(db: Tx, teamId: number, text: string) {
     }
     const removed = await q(db,
       `DELETE FROM scheduled_games WHERE team_id=$1 AND source='feed' AND starts_at > now()
-         AND external_uid NOT IN (SELECT jsonb_array_elements_text($2::jsonb)) RETURNING id`, [teamId, JSON.stringify(seen)]);
+         AND external_uid NOT IN (SELECT jsonb_array_elements_text($2::text::jsonb)) RETURNING id`, [teamId, JSON.stringify(seen)]);
     await q(db, "UPDATE team_feeds SET last_synced_at=now(), last_error=NULL, last_count=$2 WHERE team_id=$1", [teamId, events.length]);
     return { events: events.length, added, updated, removed: removed.length };
   }
@@ -124,7 +124,7 @@ export async function attendance(db: Tx, teamId: number, games: any[], viewerId:
      WHERE re.team_id=$1 AND u.merged_into IS NULL ORDER BY u.id, p.id`, [teamId]);
   const ids = games.map((g) => g.id);
   const answers = ids.length ? await q<any>(db,
-    "SELECT scheduled_game_id gid, user_id, answer FROM rsvps WHERE scheduled_game_id IN (SELECT jsonb_array_elements_text($1::jsonb)::int)", [JSON.stringify(ids)]) : [];
+    "SELECT scheduled_game_id gid, user_id, answer FROM rsvps WHERE scheduled_game_id IN (SELECT jsonb_array_elements_text($1::text::jsonb)::int)", [JSON.stringify(ids)]) : [];
   const isMember = viewerId != null && members.some((m) => m.id === viewerId);
   for (const g of games) {
     const out = { in: [] as string[], out: [] as string[], late: [] as string[], none: [] as string[] };

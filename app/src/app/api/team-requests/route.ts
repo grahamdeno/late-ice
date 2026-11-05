@@ -28,7 +28,7 @@ export const POST = handle(async (req) => {
   const dupe = existing.find((t) => similarity(t.name, name) >= 0.85);
   if (dupe) throw new HttpError(409, `${dupe.name} is already in the ${l.name}. Open it and claim your spot instead.`);
   return sql.begin(async (tx) => {
-    const r = await one<any>(tx, "INSERT INTO role_requests (kind, user_id, scope_type, scope_id, message, details) VALUES ('new_team',$1,'league',$2,$3,$4) RETURNING id",
+    const r = await one<any>(tx, "INSERT INTO role_requests (kind, user_id, scope_type, scope_id, message, details) VALUES ('new_team',$1,'league',$2,$3,$4::text::jsonb) RETURNING id",
       [u.id, l.id, clean(b.note, 300) || null, JSON.stringify({ name, color: b.color ?? null, captain })]);
     const staff = await q<{ user_id: number }>(tx,
       `SELECT DISTINCT user_id FROM role_grants WHERE revoked_at IS NULL AND ((role='rink_manager' AND scope_id=$1) OR (role='commissioner' AND scope_id=$2))`, [l.rink_id, l.id]);

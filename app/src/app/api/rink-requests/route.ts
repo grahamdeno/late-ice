@@ -36,7 +36,7 @@ export const POST = handle(async (req) => {
   }
   return sql.begin(async (tx) => {
     if (await one(tx, "SELECT 1 FROM role_requests WHERE kind='new_rink' AND status='open' AND user_id=$1 AND lower(details->>'name')=lower($2)", [u.id, d.name])) return { requested: true };
-    const r = await one<any>(tx, "INSERT INTO role_requests (kind, user_id, scope_type, scope_id, message, details) VALUES ('new_rink',$1,'system',NULL,$2,$3) RETURNING id", [u.id, details.note, JSON.stringify(details)]);
+    const r = await one<any>(tx, "INSERT INTO role_requests (kind, user_id, scope_type, scope_id, message, details) VALUES ('new_rink',$1,'system',NULL,$2,$3::text::jsonb) RETURNING id", [u.id, details.note, JSON.stringify(details)]);
     for (const a of await q<{ user_id: number }>(tx, "SELECT DISTINCT user_id FROM role_grants WHERE role='admin' AND revoked_at IS NULL")) {
       await A.notify(tx, a.user_id, { kind: "request", link: "/staff", title: `${u.name ?? u.email} asked to add ${d.name} (${d.city}, ${d.state})`, body: manage ? "They also want to manage it." : undefined });
     }
