@@ -681,8 +681,10 @@ async function main() {
   console.log("manage team: adding and editing spots, roster sizes");
   const mtBefore = (await call("GET", `/api/teams/${hh}/manage`, undefined, graham)).json;
   ok(mtBefore.counts && mtBefore.counts.rosterMax === 15 && mtBefore.counts.goalieMax === 2, "a league starts at 15 skaters and 2 goalies");
+  const lgFirst = (await db`SELECT league_id FROM teams WHERE id=${hh}`)[0].league_id;
+  ok((await call("PATCH", `/api/leagues/${lgFirst}`, { rosterMax: 40 }, boss)).status === 200, "staff raise the roster size");
   const added = await call("POST", `/api/teams/${hh}/slots`, { name: "Pat Newguy", number: "71", position: "D" }, graham);
-  ok(added.status === 200 && added.json.playerId, "captain adds a player by hand");
+  ok(added.status === 200 && added.json.playerId, "captain adds a player by hand " + added.status + " " + JSON.stringify(added.json));
   ok((await call("POST", `/api/teams/${hh}/slots`, { name: "Pat Newguy", number: "45", position: "D" }, graham)).status === 409, "the same name twice is refused");
   ok((await call("POST", `/api/teams/${hh}/slots`, { name: "Pat", number: "46", position: "D" }, graham)).status === 400, "a first name alone is refused");
   ok((await call("POST", `/api/teams/${hh}/slots`, { name: "Other Guy", number: "71", position: "W" }, graham)).status === 409, "a taken number is refused");
