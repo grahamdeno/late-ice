@@ -15,6 +15,7 @@ export interface ImportSummary {
   gamesAdded: number; gamesUpdated: number; gamesSkipped: { date: string; why: string }[];
   lines: number; unassigned: { date: string; team: string; goals: number }[]; warnings: string[];
   leagueCreated: boolean; teamsCreated: string[]; standingsRows: number; playerTotals: number;
+  level: string | null; needsLevel: boolean; tag: string | null;
 }
 
 const PALETTE = ["#EF4444", "#3B82F6", "#22C55E", "#F5B301", "#EC4899", "#14B8A6", "#A855F7", "#F97316", "#06B6D4", "#84CC16", "#F43F5E", "#6366F1"];
@@ -23,19 +24,29 @@ const LEVEL_SORT: Record<string, number> = { A: 0, B: 1, C: 2, D: 3, "40+": 4 };
 const FORBIDDEN_NAME = /^(not shown|opponent)$/i;
 
 /** Load a parsed report into one league at a rink. Call inside a transaction. */
-export async function loadReport(tx: Tx, rinkId: number, p: Parsed): Promise<ImportSummary> {
+const SKILL = ["A", "B", "C", "D"];
+
+export async function loadReport(tx: Tx, rinkId: number, p: Parsed, chosenLevel: string | null = null): Promise<ImportSummary> {
   if (!p.level && !p.leagueName) throw new HttpError(400, "The report doesn't say which league (for example \"LEAGUE C League | LEVEL C\").");
   const warnings: string[] = [];
-  // Find the league by level (or exact name); a league the rink runs that isn't here yet is created.
-  let league = p.level
-    ? await one<any>(tx, "SELECT * FROM leagues WHERE rink_id=$1 AND level=$2", [rinkId, p.level])
-    : await one<any>(tx, "SELECT * FROM leagues WHERE rink_id=$1 AND lower(name)=lower($2)", [rinkId, p.leagueName]);
+  // Skill level comes from one fixed scale. "40+" is an age tag, not a level; OTHER means staff pick one.
+  const tag = p.level === "40+" ? "40+" : null;
+  const fileLevel = p.level && SKILL.includes(p.level) ? p.level : null;
+  const level = chosenLevel && SKILL.includes(chosenLevel) ? chosenLevel : fileLevel;
+  // Find the league by its exact name first (two leagues can share a level), then by level for older reports.
+  let league = p.leagueName ? await one<any>(tx, "SELECT * FROM leagues WHERE rink_id=$1 AND lower(name)=lower($2)", [rinkId, p.leagueName]) : null;
+  if (!league && !p.leagueName && fileLevel) league = await one<any>(tx, "SELECT * FROM leagues WHERE rink_id=$1 AND level=$2", [rinkId, fileLevel]);
+  if (!league && p.leagueName && fileLevel && !chosenLevel) {
+    // A report named "C League" matches the rink's C League even if staff renamed it slightly.
+    league = await one<any>(tx, "SELECT * FROM leagues WHERE rink_id=$1 AND level=$2 AND (SELECT COUNT(*) FROM leagues x WHERE x.rink_id=$1 AND x.level=$2)=1", [rinkId, fileLevel]);
+  }
   let leagueCreated = false;
+  const needsLevel = !league && !level;
   if (!league) {
     const season = await seasonFor(tx, rinkId, null);
-    const level = p.level ?? (p.leagueName!.replace(/\s*league$/i, "").slice(0, 12) || "C");
-    league = await one<any>(tx, "INSERT INTO leagues (rink_id, level, name, season, sort) VALUES ($1,$2,$3,$4,$5) RETURNING *",
-      [rinkId, level, p.leagueName ?? `${level} League`, season?.name ?? "", LEVEL_SORT[level] ?? 5]);
+    const lv = level ?? "C"; // preview only: the import itself refuses until a level is picked
+    league = await one<any>(tx, "INSERT INTO leagues (rink_id, level, name, season, sort, tag) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *",
+      [rinkId, lv, p.leagueName ?? `${lv} League`, season?.name ?? "", LEVEL_SORT[lv] ?? 5, tag]);
     leagueCreated = true;
   }
   const teams = await q<any>(tx, "SELECT id, name FROM teams WHERE league_id=$1", [league.id]);
@@ -179,5 +190,5 @@ export async function loadReport(tx: Tx, rinkId: number, p: Parsed): Promise<Imp
     playerTotals++;
   }
   await refreshDisplays(tx);
-  return { league: league.name, teams: teamsOut, rosterAdded, rosterExisting, gamesAdded, gamesUpdated, gamesSkipped, lines, unassigned, warnings, leagueCreated, teamsCreated, standingsRows, playerTotals };
+  return { league: league.name, teams: teamsOut, rosterAdded, rosterExisting, gamesAdded, gamesUpdated, gamesSkipped, lines, unassigned, warnings, leagueCreated, teamsCreated, standingsRows, playerTotals, level: needsLevel ? null : league.level, needsLevel, tag };
 }

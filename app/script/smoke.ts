@@ -452,6 +452,22 @@ async function main() {
   const bl3 = (await call("GET", `/api/leagues/${bLg}`)).json;
   ok(bl3.standings.find((t: any) => t.name === "Port City Pilots").gp === 4 && bl3.leaders.find((x: any) => x.name === "Sam T.").pts === 8, "and doesn't double anything");
 
+  console.log("import: every league picks a skill level");
+  const mk = (head: string, team1: string, team2: string) => ["RAW REPORT - Polar Ice Wilmington", head, "STANDINGS",
+    `TEAMROW ${team1} | GP 1 | W 1 | L 0 | T 0 | OTL 0 | GF 3 | GA 1`, `TEAMROW ${team2} | GP 1 | W 0 | L 1 | T 0 | OTL 0 | GF 1 | GA 3`,
+    `GAME 2026-10-05 8:30 PM | Home: ${team1} 3 | Away: ${team2} 1 | Final`, "ROSTERS", team1, "  Al One.", "", team2, "  Bo Two."].join("\n");
+  const over40 = mk("LEAGUE 40+ League | LEVEL 40+ | SEASON Fall 2026", "E-Ride", "Dockside");
+  const p40 = await call("POST", "/api/staff/import", { text: over40, rinkId }, mt);
+  ok(p40.status === 200 && p40.json.summary.needsLevel && p40.json.summary.tag === "40+", "40+ is an age tag, so the preview asks for a skill level");
+  ok((await call("POST", "/api/staff/import", { text: over40, rinkId, apply: true }, mt)).status === 400, "it won't import without one");
+  ok((await call("POST", "/api/staff/import", { text: over40, rinkId, apply: true, level: "B" }, mt)).status === 200, "imported at B");
+  ok((await db`SELECT level, tag FROM leagues WHERE name='40+ League'`)[0].level === "B" && (await db`SELECT tag FROM leagues WHERE name='40+ League'`)[0].tag === "40+", "stored as level B, tag 40+");
+  ok((await call("POST", "/api/staff/import", { text: mk("LEAGUE Monday A League | LEVEL A | SEASON Fall 2026", "ConeHeads", "Mermen"), rinkId, apply: true }, mt)).status === 200, "Monday A League in");
+  ok((await call("POST", "/api/staff/import", { text: mk("LEAGUE Sunday A/B League | LEVEL OTHER | SEASON Fall 2026", "Kraken Beers", "Dirty Birds"), rinkId, apply: true, level: "A" }, mt)).status === 200, "Sunday A/B in at A");
+  const aLeagues = await db`SELECT name FROM leagues WHERE level='A' ORDER BY name`;
+  ok(aLeagues.length === 2 && aLeagues.some((l: any) => l.name === "Sunday A/B League") && aLeagues.some((l: any) => l.name === "Monday A League"), "two A leagues stay separate, matched by name");
+  ok((await call("POST", `/api/rinks/${rinkId}/leagues`, { name: "Wednesday Whatever" }, mt)).status === 400, "adding a league needs a skill level");
+
   console.log("shot map");
   const outsider = await signUp("outsider@example.com", { name: "Otto Side", number: "3", position: "D" });
   ok((await call("GET", `/api/teams/${hh}/shotmap`)).status === 401, "shot map needs sign-in");

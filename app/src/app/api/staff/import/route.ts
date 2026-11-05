@@ -14,7 +14,7 @@ class Preview extends Error { constructor(public summary: ImportSummary) { super
 // preview shows exactly what would change. Rink managers and admins only.
 export const POST = handle(async (req) => {
   const u = await A.requireUser(req);
-  const b = await body<{ text?: string; rinkId?: number; apply?: boolean }>(req);
+  const b = await body<{ text?: string; rinkId?: number; apply?: boolean; level?: string }>(req);
   const rinkId = Number(b.rinkId) || 0;
   await P.require_(sql, u, "rink.manage", { rinkId });
   const text = String(b.text || "");
@@ -24,8 +24,9 @@ export const POST = handle(async (req) => {
   if (!parsed.games.length && !Object.keys(parsed.rosters).length) throw new HttpError(400, "No games or rosters found. Is this the DaySmart report?");
   try {
     const summary = await sql.begin(async (tx) => {
-      const s = await loadReport(tx, rinkId, parsed);
+      const s = await loadReport(tx, rinkId, parsed, b.level ?? null);
       if (!b.apply) throw new Preview(s);
+      if (s.needsLevel) throw new HttpError(400, "Pick the league's skill level (A, B, C or D) before importing.");
       await P.audit(tx, u.id, "import.daysmart", { type: "league", rinkId }, undefined, { games: s.gamesAdded + s.gamesUpdated, roster: s.rosterAdded, lines: s.lines });
       return s;
     });

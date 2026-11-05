@@ -3,7 +3,7 @@ import { sql, q, one } from "@/server/db";
 import { currentSeason, gameCards, leaders, seasonsWithData, standings, HttpError } from "@/server/services";
 import * as A from "@/server/accounts";
 import * as P from "@/server/permissions";
-import { clean } from "@/server/manage";
+import { clean, LEVELS, TAGS } from "@/server/manage";
 
 export const dynamic = "force-dynamic";
 export const GET = handle<{ id: string }>(async (req, { id }) => {
@@ -31,9 +31,12 @@ export const PATCH = handle<{ id: string }>(async (req, { id }) => {
   const b = await body(req);
   const name = b.name !== undefined ? clean(b.name, 60) || l.name : l.name;
   const blurb = b.blurb !== undefined ? clean(b.blurb, 140) || null : l.blurb;
+  if (b.level !== undefined && !LEVELS.includes(String(b.level))) throw new HttpError(400, "Skill level is A, B, C or D.");
+  const level = b.level !== undefined ? String(b.level) : l.level;
+  const tag = b.tag !== undefined ? (TAGS.includes(String(b.tag)) ? String(b.tag) : null) : l.tag;
   await sql.begin(async (tx) => {
-    await q(tx, "UPDATE leagues SET name=$1, blurb=$2 WHERE id=$3", [name, blurb, l.id]);
-    await P.audit(tx, u.id, "league.edit", { type: "league", id: l.id, rinkId: l.rink_id }, { name: l.name, blurb: l.blurb }, { name, blurb });
+    await q(tx, "UPDATE leagues SET name=$1, blurb=$2, level=$3, tag=$4, sort=$5 WHERE id=$6", [name, blurb, level, tag, { A: 0, B: 1, C: 2, D: 3 }[level as "A"] ?? l.sort, l.id]);
+    await P.audit(tx, u.id, "league.edit", { type: "league", id: l.id, rinkId: l.rink_id }, { name: l.name, blurb: l.blurb, level: l.level, tag: l.tag }, { name, blurb, level, tag });
   });
   return { ok: true };
 });

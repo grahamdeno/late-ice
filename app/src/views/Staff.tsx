@@ -238,7 +238,13 @@ function RinkSection({ rink, run }: { rink: any; run: Run }) {
         <div key={l.id} className="card mt-2" data-testid={`card-manage-league-${l.id}`}>
           <div className="p-3.5 flex items-center gap-2 border-b border-[var(--line)]">
             <LevelPill level={l.level === "DEMO" ? "Demo" : l.level} />
-            <Link href={`/league/${l.id}`} className="font-bold text-sm flex-1 min-w-0 truncate">{l.name}</Link>
+            <Link href={`/league/${l.id}`} className="font-bold text-sm flex-1 min-w-0 truncate">{l.name}{l.tag ? <span className="text-[var(--mute)] font-medium"> · {l.tag}</span> : null}</Link>
+            {l.addTeam && l.level !== "DEMO" && (
+              <select className="input h-8 text-xs w-[64px] px-2" aria-label={`Skill level for ${l.name}`} value={["A", "B", "C", "D"].includes(l.level) ? l.level : ""} onChange={(e) => run("PATCH", `/api/leagues/${l.id}`, { level: e.target.value })} data-testid={`select-level-${l.id}`}>
+                {!["A", "B", "C", "D"].includes(l.level) && <option value="">Pick</option>}
+                {["A", "B", "C", "D"].map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+            )}
             {l.addTeam && open !== `team-${l.id}` && <AddButton label="Team" onClick={() => setOpen(`team-${l.id}`)} testid={`button-add-team-${l.id}`} />}
           </div>
           {open === `team-${l.id}` && <div className="p-3 border-b border-[var(--line)]"><AddTeamForm leagueId={l.id} leagueName={l.name} onDone={close} /></div>}
@@ -371,10 +377,11 @@ function ImportSection({ rinks }: { rinks: any[] }) {
   const [res, setRes] = useState<any>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const send = async (apply: boolean) => {
+  const [level, setLevel] = useState("");
+  const send = async (apply: boolean, lv: string = level) => {
     setBusy(true); setErr(null);
     try {
-      const r = await apiRequest("POST", "/api/staff/import", { text, rinkId, apply });
+      const r = await apiRequest("POST", "/api/staff/import", { text, rinkId, apply, level: lv || null });
       setRes(await r.json());
       if (apply) await queryClient.invalidateQueries();
     } catch (e: any) { setErr(e.message); }
@@ -411,7 +418,17 @@ function ImportSection({ rinks }: { rinks: any[] }) {
             {s.warnings.map((w: string, i: number) => <div key={i} className="text-[var(--amber)]">{w}</div>)}
           </div>
         )}
-        {s && !res.applied && <button className="btn btn-red h-11 w-full" disabled={busy} onClick={() => send(true)} data-testid="button-import-apply">{busy ? "Importing…" : "Import it"}</button>}
+        {s && !res.applied && (s.needsLevel || s.leagueCreated) && (
+          <label className="block" data-testid="field-import-level">
+            <span className="label">Skill level for {s.league}{s.tag ? ` (${s.tag})` : ""}</span>
+            <select className="input w-full mt-1" value={level || (s.needsLevel ? "" : s.level ?? "")} onChange={(e) => { setLevel(e.target.value); send(false, e.target.value); }} data-testid="select-import-level">
+              <option value="">Pick one</option>
+              <option value="A">A: top level</option><option value="B">B</option><option value="C">C</option><option value="D">D: newest players</option>
+            </select>
+            <span className="block text-[11px] text-[var(--mute)] mt-1">One scale for every rink, so standings and ratings compare fairly.</span>
+          </label>
+        )}
+        {s && !res.applied && <button className="btn btn-red h-11 w-full" disabled={busy || s.needsLevel} onClick={() => send(true)} data-testid="button-import-apply">{busy ? "Importing…" : s.needsLevel ? "Pick a level, then Preview" : "Import it"}</button>}
       </div>
     </Section>
   );
