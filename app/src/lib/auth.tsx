@@ -6,7 +6,7 @@ import { supabase } from "./supabase";
 
 export interface MeUser {
   id: number; email: string | null; phone: string | null; name: string | null; number: string | null; position: "C" | "W" | "F" | "D" | "G" | null;
-  homeRink: { id: number; name: string } | null; status: "active" | "ir" | "away"; lookingForTeam: boolean; willSub: boolean;
+  homeRink: { id: number; name: string } | null; status: "active" | "ir" | "away"; lookingForTeam: boolean; willSub: boolean; avatar: any | null;
   statusUntil: string | null; hidden: boolean; profileComplete: boolean;
 }
 export interface MeSlot {
@@ -15,6 +15,7 @@ export interface MeSlot {
   captain: { id: number; name: string } | null; isCaptain: boolean; teamRole: "captain" | "assistant_captain" | null;
   assistants: { id: number; name: string }[];
   next: any | null;
+  archetype: { archetype: string; votes: number } | null;
 }
 export interface MyRole { id: number; role: string; scopeType: string; scopeId: number | null; where: string | null }
 export interface Notice { id: number; kind: string; title: string; body: string | null; link: string | null; team_id: number | null; read_at: string | null; created_at: string }

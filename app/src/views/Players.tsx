@@ -3,6 +3,8 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@/lib/router";
 import { useMe, act, posMatch } from "@/lib/auth";
+import { Bobble } from "@/components/Bobble";
+import { ARCHETYPE_BLURB, ARCHETYPE_LABEL } from "@/components/Archetypes";
 import { BackBar, Delta, Empty, LevelPill, Loading, TeamBadge, fmtDate, fmtRating, useFilter } from "@/lib/ui";
 
 export function Players() {
@@ -65,6 +67,7 @@ function Spark({ pts }: { pts: number[] }) {
 export function PlayerPage({ id }: { id: string }) {
   const { data } = useQuery<any>({ queryKey: [`/api/players/${id}`] });
   const [openRow, setOpenRow] = useState<number | null>(null);
+  const [voteErr, setVoteErr] = useState<string | null>(null);
   if (!data) return <Loading />;
   const { player, teams, history, totals, ranks, reliability, imported } = data;
   const series = history.length ? [history[0].before, ...history.map((h: any) => h.after)] : [];
@@ -75,7 +78,8 @@ export function PlayerPage({ id }: { id: string }) {
       <BackBar href="/players" title="Player" />
       <div className="card-hi p-5">
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
+          <Bobble avatar={player.avatar} jersey={teams[0]?.color} number={teams[0]?.number} archetype={data.archetypes?.[0]?.won?.archetype} goalie={player.position === "G"} size={72} label={`${player.name}'s bobblehead`} />
+          <div className="min-w-0 flex-1">
             <h1 className="font-black text-[26px] leading-tight" data-testid="text-player-name">{player.name}</h1>
             <div className="flex flex-wrap gap-1.5 mt-2">
               {teams.map((t: any) => (
@@ -101,6 +105,26 @@ export function PlayerPage({ id }: { id: string }) {
           <div className="text-[11px] text-[var(--mute)] mt-1.5">{provisional ? `Moves fast for the first 5 games. ${5 - player.games_rated} to go.` : "Settled. Each game nudges it."}</div>
         </div>
       </div>
+
+      {data.archetypes?.some((x: any) => x.won || x.canVote) && (
+        <div className="card mt-3 divide-y divide-[var(--line)]" data-testid="card-player-archetypes">
+          {data.archetypes.filter((x: any) => x.won || x.canVote).map((x: any) => (
+            <div key={x.teamId} className="p-3.5 flex items-center gap-3 text-sm">
+              <span className="flex-1 min-w-0">
+                <span className="block font-bold">{x.won ? ARCHETYPE_LABEL[x.won.archetype] : "No archetype yet"}<span className="text-[var(--mute)] font-medium"> · {x.teamName}</span></span>
+                <span className="block text-xs text-[var(--mute)]">{x.won ? `${ARCHETYPE_BLURB[x.won.archetype]}. ${x.won.votes} teammates agree.` : `Shows once ${x.minVotes} teammates agree.`}</span>
+              </span>
+              {x.canVote && (
+                <select className="input h-9 text-sm w-[140px]" aria-label={`Your vote for ${player.name}`} value={x.mine ?? ""} onChange={async (e) => setVoteErr(await act("PUT", `/api/teams/${x.teamId}/archetypes`, { playerId: player.id, archetype: e.target.value || null }))} data-testid={`select-player-archetype-${x.teamId}`}>
+                  <option value="">Your vote</option>
+                  {Object.entries(ARCHETYPE_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                </select>
+              )}
+            </div>
+          ))}
+          {voteErr && <p className="p-3 text-xs down">{voteErr}</p>}
+        </div>
+      )}
 
       <div className="grid grid-cols-4 gap-2 mt-3 text-center">
         {[["GP", totals.gp], ["G", totals.g], ["A", totals.a], ["PIM", totals.pim]].map(([k, v]) => (

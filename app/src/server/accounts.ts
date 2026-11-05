@@ -233,7 +233,7 @@ export async function publicUser(db: Tx, u: any) {
   const rink = u.home_rink_id ? await one<any>(db, "SELECT id,name FROM rinks WHERE id=$1", [u.home_rink_id]) : null;
   return {
     id: u.id, email: u.email, phone: u.phone, name: u.name, number: u.number, position: u.position, homeRink: rink,
-    status: effectiveStatus(u), statusUntil: effectiveStatus(u) === "active" ? null : u.status_until, lookingForTeam: !!u.looking_for_team, willSub: !!u.will_sub, hidden: !!u.hidden, profileComplete: !!(u.name && u.position && u.home_rink_id),
+    status: effectiveStatus(u), statusUntil: effectiveStatus(u) === "active" ? null : u.status_until, lookingForTeam: !!u.looking_for_team, willSub: !!u.will_sub, avatar: u.avatar ?? null, hidden: !!u.hidden, profileComplete: !!(u.name && u.position && u.home_rink_id),
   };
 }
 

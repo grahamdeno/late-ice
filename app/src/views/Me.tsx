@@ -6,6 +6,7 @@ import { Empty, LevelPill, Loading, Section, TeamBadge, fmtRating } from "@/lib/
 import { ProfileForm } from "./Join";
 import { useTheme, type Theme } from "@/lib/theme";
 import { GameLine, Rsvp } from "@/components/Schedule";
+import { AvatarBuilder } from "@/components/AvatarBuilder";
 
 function Appearance() {
   const [theme, setTheme] = useTheme();
@@ -181,6 +182,10 @@ export default function MePage() {
         </Section>
       )}
 
+      {me.slots.length > 0 && (
+        <AvatarBuilder saved={u.avatar} jersey={me.slots[0].color} number={me.slots[0].number} archetype={me.slots[0].archetype ?? null} goalie={u.position === "G"} />
+      )}
+
       <Section title="Availability">
         <div className="card p-4">
           <div className="grid grid-cols-3 gap-2">
@@ -228,6 +233,7 @@ export default function MePage() {
         <span className="flex-1"><span className="block font-bold text-sm">Get help</span><span className="block text-xs text-[var(--mute)]">Questions or problems? Email us.</span></span>
         <span>›</span>
       </a>
+      <Link href="/privacy" className="block text-center text-xs text-[var(--mute)] mt-3 underline" data-testid="link-privacy">Terms and privacy</Link>
 
       <div className="mt-8 flex justify-between items-center px-1">
         <span className="text-xs text-[var(--mute)]">Signed in as {u.email ?? u.phone}</span>

@@ -3,8 +3,8 @@ import { one, q, type Tx } from "./db";
 import { HttpError, currentSeason } from "./services";
 
 export const ARCHETYPES = ["goon", "pest", "grinder", "sniper", "playmaker", "beauty", "duster", "cherry_picker", "bender", "energy"] as const;
-/** Fewest votes before an archetype shows, so one teammate can't brand someone alone. */
-export const MIN_VOTES = 2;
+/** Fewest votes before an archetype shows, so one teammate can't brand someone alone: 3 on a roster of 12 or more, else 2. */
+export const minVotes = (rosterSize: number) => (rosterSize >= 12 ? 3 : 2);
 
 async function seasonOf(db: Tx, teamId: number) {
   const t = await one<any>(db, "SELECT l.rink_id FROM teams t JOIN leagues l ON l.id=t.league_id WHERE t.id=$1", [teamId]);
@@ -17,6 +17,8 @@ export async function teamArchetypes(db: Tx, teamId: number, viewerId: number | 
   const rows = await q<any>(db,
     `SELECT player_id, archetype, COUNT(*)::int n, MAX(updated_at) last FROM archetype_votes
      WHERE team_id=$1 AND season_id IS NOT DISTINCT FROM $2 GROUP BY player_id, archetype`, [teamId, sid]);
+  const size = (await one<any>(db, "SELECT COUNT(*)::int n FROM roster_entries WHERE team_id=$1", [teamId]))?.n ?? 0;
+  const MIN_VOTES = minVotes(size);
   const won: Record<number, { archetype: string; votes: number }> = {};
   for (const r of rows.sort((a, b) => b.n - a.n || +new Date(b.last) - +new Date(a.last))) {
     if (!won[r.player_id] && r.n >= MIN_VOTES) won[r.player_id] = { archetype: r.archetype, votes: r.n };

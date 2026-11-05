@@ -213,7 +213,8 @@ async function main() {
 
   console.log("scoresheets");
   const tiny = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
-  ok((await call("POST", "/api/sheets", { image: "nope" })).status === 400, "non-image upload rejected");
+  ok((await call("POST", "/api/sheets", { image: tiny })).status === 401, "scanning needs sign-in");
+  ok((await call("POST", "/api/sheets", { image: "nope" }, sam)).status === 400, "non-image upload rejected");
   const up = await call("POST", "/api/sheets", { image: tiny }, sam);
   ok(up.status === 202 && up.json.id, "photo upload stored, reading starts in the background");
   const img = await fetch(`${BASE}/api/sheets/${up.json.id}/image`);
@@ -245,6 +246,7 @@ async function main() {
   const rc2 = await fetch(`${BASE}/api/cron/recompute`, { headers: { Authorization: `Bearer ${env.CRON_SECRET}` } });
   const rcj = await rc2.json();
   ok(rc2.status === 200 && rcj.games === 1, "nightly replay rates the one game");
+  ok(rcj.backup?.file && rcj.backup.rows > 0 && rcj.backup.tables > 10, `nightly backup written (${JSON.stringify(rcj.backup)})`);
   const ratingsAfter = await db`SELECT id, rating FROM players ORDER BY id`;
   ok(JSON.stringify(ratingsBefore) === JSON.stringify(ratingsAfter), "replay reproduces the same ratings exactly");
   const feed = await call("GET", `/api/feed?league=${demo}`);
@@ -552,10 +554,26 @@ async function main() {
   ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: samSlot.id, archetype: "wizard" }, graham)).status === 400, "only the listed archetypes");
   ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: samSlot.id, archetype: "sniper" }, graham)).status === 200, "Graham votes Sam a Sniper");
   ok(!(await call("GET", `/api/teams/${hh}`)).json.archetypes.won[samSlot.id], "one vote isn't enough to show");
+  ok(hhNow.archetypes.minVotes === (hhNow.roster.length >= 12 ? 3 : 2), "3 votes needed on a roster of 12 or more, 2 below");
   ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: samSlot.id, archetype: "sniper" }, boss)).status === 200, "a second teammate agrees");
+  const need = hhNow.archetypes.minVotes;
+  if (need === 3) ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: samSlot.id, archetype: "sniper" }, mt)).status === 200, "a third teammate agrees");
   const won = (await call("GET", `/api/teams/${hh}`)).json.archetypes.won[samSlot.id];
-  ok(won?.archetype === "sniper" && won.votes === 2, "Sam shows as a Sniper");
-  ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: samSlot.id, archetype: "sniper" }, graham)).status === 200 && (await call("GET", `/api/teams/${hh}`)).json.archetypes.won[samSlot.id].votes === 2, "voting again doesn't count twice");
+  ok(won?.archetype === "sniper" && won.votes === need, "Sam shows as a Sniper");
+  ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: samSlot.id, archetype: "sniper" }, graham)).status === 200 && (await call("GET", `/api/teams/${hh}`)).json.archetypes.won[samSlot.id].votes === need, "voting again doesn't count twice");
+  const pp = (await call("GET", `/api/players/${samSlot.id}`, undefined, graham)).json;
+  const ppa = pp.archetypes.find((x: any) => x.teamId === hh);
+  ok(ppa && ppa.won.archetype === "sniper" && ppa.mine === "sniper" && ppa.canVote, "the player page shows it, and your vote to change");
+  ok((await call("GET", `/api/players/${samSlot.id}`, undefined, sam)).json.archetypes.find((x: any) => x.teamId === hh).canVote === false, "but not on your own page");
+  ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: samSlot.id, archetype: "playmaker" }, graham)).status === 200, "anyone can change their vote any time");
+  ok((await call("GET", `/api/players/${samSlot.id}`, undefined, graham)).json.archetypes.find((x: any) => x.teamId === hh).mine === "playmaker", "the change sticks");
+
+  console.log("bobblehead");
+  const av = await call("PATCH", "/api/me", { avatar: { skin: 4, hair: 2, helmet: "#EEF3F8", guard: "visor", beard: "full", style: "flow", eyeBlack: true } }, sam);
+  ok(av.status === 200 && av.json.user.avatar.guard === "visor" && av.json.user.avatar.style === "flow", "Sam builds his bobblehead");
+  const bad = await call("PATCH", "/api/me", { avatar: { skin: 99, helmet: "javascript:x", guard: "mask" } }, sam);
+  ok(bad.json.user.avatar.skin === 2 && bad.json.user.avatar.helmet === "team" && bad.json.user.avatar.guard === "cage", "unknown parts fall back to the defaults");
+  ok((await call("GET", `/api/teams/${hh}`)).json.roster.find((r: any) => r.id === samSlot.id).avatar?.guard === "cage", "the roster carries it");
   ok((await call("DELETE", `/api/teams/${hh}/schedule/${g1.id}`, undefined, boss)).status === 400, "a calendar game can't be deleted, only marked canceled");
   ok((await call("PATCH", `/api/teams/${hh}/schedule/${g1.id}`, { status: "canceled" }, boss)).status === 200, "marked canceled");
   ok((await call("GET", `/api/teams/${hh}/schedule`)).json.games.find((g: any) => g.id === g1.id).status === "canceled", "shows as canceled");
@@ -623,7 +641,7 @@ async function main() {
   ok((await call("PATCH", "/api/me", { status: "ir", statusUntil: "2026-12-01" }, sam)).json.user.status === "ir", "set injured reserve");
 
   console.log("pages render");
-  for (const path of ["/", "/leagues", `/team/${hh}`, `/player/${mike}`, "/players", "/rink", "/scan", "/join", `/game/${conf.json.gameId}`, `/league/${lg}`]) {
+  for (const path of ["/", "/leagues", `/team/${hh}`, `/player/${mike}`, "/players", "/rink", "/scan", "/join", "/privacy", `/game/${conf.json.gameId}`, `/league/${lg}`]) {
     const r = await fetch(BASE + path);
     ok(r.status === 200, `${path} renders`);
   }

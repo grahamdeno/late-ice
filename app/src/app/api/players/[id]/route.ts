@@ -1,3 +1,4 @@
+import { teamArchetypes } from "@/server/archetypes";
 import { handle, body, num } from "@/server/http";
 import { sql, q, one } from "@/server/db";
 import { gameCard, HttpError } from "@/server/services";
@@ -9,7 +10,8 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
   if (!raw) throw new HttpError(404, "Player not found");
   const me = await userFromRequest(req);
   const { name_key: _k, name: _n, user_id: uid, display_name, start_rating: _s, ...rest } = raw;
-  const p = { ...rest, name: display_name, registered: !!uid, mine: !!me && me.id === uid };
+  const owner = uid ? await one<any>(sql, "SELECT avatar FROM users WHERE id=$1", [uid]) : null;
+  const p = { ...rest, name: display_name, registered: !!uid, mine: !!me && me.id === uid, avatar: owner?.avatar ?? null };
   const teams = await q<any>(sql, "SELECT t.id, t.name, t.color, t.logo, re.number, l.level, l.id league_id FROM roster_entries re JOIN teams t ON t.id=re.team_id JOIN leagues l ON l.id=t.league_id WHERE re.player_id=$1", [raw.id]);
   const history = [];
   for (const h of await q<any>(sql, "SELECT rh.*, g.played_on FROM rating_history rh JOIN games g ON g.id=rh.game_id WHERE rh.player_id=$1 ORDER BY rh.id", [raw.id])) {
@@ -28,5 +30,10 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
   for (const l of await q<any>(sql, "SELECT il.*, g.played_on FROM imported_game_lines il JOIN games g ON g.id=il.game_id WHERE il.player_id=$1 ORDER BY g.played_on DESC", [raw.id])) {
     importedGames.push({ goals: l.goals, assists: l.assists, game: await gameCard(sql, await one(sql, "SELECT * FROM games WHERE id=$1", [l.game_id])) });
   }
-  return { player: p, teams, history, importedGames, totals, imported: imp.gp ? imp : null, lines, ranks, reliability: Math.min(100, raw.games_rated * 10) };
+  const archetypes = [];
+  for (const t of teams) {
+    const ta = await teamArchetypes(sql, t.id, me?.id ?? null);
+    archetypes.push({ teamId: t.id, teamName: t.name, won: ta.won[raw.id] ?? null, mine: ta.mine[raw.id] ?? null, canVote: ta.voter && !ta.own.includes(raw.id), minVotes: ta.minVotes });
+  }
+  return { player: p, teams, archetypes, history, importedGames, totals, imported: imp.gp ? imp : null, lines, ranks, reliability: Math.min(100, raw.games_rated * 10) };
 });

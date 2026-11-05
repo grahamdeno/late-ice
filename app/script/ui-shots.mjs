@@ -237,6 +237,10 @@ try {
   if (myTeam) { await page.goto(`${BASE}/team/${myTeam}`); await page.waitForTimeout(1200); await shoot(page, "team-schedule"); }
   await page.goto(`${BASE}/players`); await page.waitForTimeout(1000);
   await page.getByTestId("button-pos-D").click(); await shoot(page, "players-defense");
+  await api(page, "PATCH", "/api/me", { avatar: { skin: 3, hair: 1, helmet: "team", guard: "cage", beard: "full", style: "flow", eyeBlack: false } });
+  await page.goto(`${BASE}/me`); await page.waitForTimeout(1200);
+  await page.getByTestId("card-avatar-builder").scrollIntoViewIfNeeded().catch(() => {});
+  await shoot(page, "me-bobblehead");
   // Light mode: the phone's setting, then the profile override.
   await page.emulateMedia({ colorScheme: "light" });
   for (const [path, name] of [["/", "light-home"], ["/leagues", "light-leagues"], [myTeam ? `/team/${myTeam}` : "/leagues", "light-team"], ["/players", "light-players"], ["/me", "light-me"], ["/staff", "light-staff"]]) {

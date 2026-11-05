@@ -103,6 +103,7 @@ export default function Join() {
           </label>
           {err && <p className="text-sm down" data-testid="text-error">{err}</p>}
           <button className="btn btn-red w-full h-12" disabled={busy || !normEmail(email)} data-testid="button-send-code">{busy ? "Sending…" : "Email me a code"}</button>
+          <p className="text-[11px] text-[var(--mute)] text-center">By joining you agree to the <Link href="/privacy" className="underline">terms and privacy</Link>.</p>
         </form>
       )}
 

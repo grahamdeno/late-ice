@@ -4,6 +4,8 @@ import { HttpError } from "@/server/services";
 import * as A from "@/server/accounts";
 import { teamRoleOf } from "@/server/permissions";
 import { attendance, nextGame } from "@/server/schedule";
+import { cleanAvatar } from "@/lib/avatar";
+import { teamArchetypes } from "@/server/archetypes";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +20,8 @@ export const GET = handle(async (req) => {
     const teamRole = await teamRoleOf(sql, u.id, s.team_id);
     const ng = await nextGame(sql, s.team_id);
     if (ng) await attendance(sql, s.team_id, [ng], u.id, false);
-    slots.push({ ...s, next: ng, captain: await A.captainOf(sql, s.team_id), isCaptain: teamRole === "captain", teamRole, assistants: await A.assistantsOf(sql, s.team_id) });
+    const arch = (await teamArchetypes(sql, s.team_id, u.id)).won[s.id] ?? null;
+    slots.push({ ...s, archetype: arch, next: ng, captain: await A.captainOf(sql, s.team_id), isCaptain: teamRole === "captain", teamRole, assistants: await A.assistantsOf(sql, s.team_id) });
   }
   // Teams this person runs: captain or assistant captain.
   const captainTeams = await q(sql,
@@ -58,9 +61,11 @@ export const PATCH = handle(async (req) => {
   if (b.hidden !== undefined) next.hidden = b.hidden ? 1 : 0;
   if (b.lookingForTeam !== undefined) next.looking_for_team = !!b.lookingForTeam;
   if (b.willSub !== undefined) next.will_sub = !!b.willSub;
+  const avatar = b.avatar !== undefined ? cleanAvatar(b.avatar) : undefined;
   const saved = await sql.begin(async (tx) => {
     await q(tx, "UPDATE users SET name=$1, number=$2, position=$3, home_rink_id=$4, status=$5, status_until=$6, hidden=$7, looking_for_team=$8, will_sub=$9 WHERE id=$10",
       [next.name, next.number, next.position, next.home_rink_id, next.status, next.status_until, next.hidden, !!next.looking_for_team, !!next.will_sub, u.id]);
+    if (avatar !== undefined) await q(tx, "UPDATE users SET avatar=$1::text::jsonb WHERE id=$2", [avatar ? JSON.stringify(avatar) : null, u.id]);
     if (next.position && next.position !== u.position) await q(tx, "UPDATE players SET position=$1 WHERE user_id=$2", [next.position, u.id]);
     for (const p of await q<{ id: number }>(tx, "SELECT id FROM players WHERE user_id=$1", [u.id])) await A.refreshDisplay(tx, p.id);
     return one(tx, "SELECT * FROM users WHERE id=$1", [u.id]);
