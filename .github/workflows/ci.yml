@@ -12,6 +12,7 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: app
@@ -20,33 +21,54 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-          cache-dependency-path: app/package-lock.json
-      - run: npm ci
-      - name: Type check
-        run: npm run check
-      - name: Build
+
+      - name: Install
+        run: if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
+
+      - name: Commit the lockfile if it was just created
+        if: github.event_name == 'push'
+        run: |
+          if [ -n "$(git status --porcelain package-lock.json)" ]; then
+            git config user.name "ci" && git config user.email "ci@users.noreply.github.com"
+            git add package-lock.json && git commit -qm "Add package-lock.json [ci]" && git push
+          fi
+
+      - name: Start local Supabase (Postgres, Auth, Storage)
+        run: |
+          npx supabase start -x studio,imgproxy,realtime,edge-runtime,logflare,vector,postgres-meta
+          npx supabase status -o env > /tmp/sb.env
+          get() { grep "^$1=" /tmp/sb.env | head -1 | cut -d= -f2- | tr -d '"'; }
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$(get API_URL)"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(get ANON_KEY)"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$(get SERVICE_ROLE_KEY)"
+            echo "DATABASE_URL=$(get DB_URL)"
+            echo "CRON_SECRET=ci-secret"
+          } >> "$GITHUB_ENV"
+
+      - name: Build (includes the type check)
         run: npm run build
+
       - name: Smoke test (API end to end)
-        run: if [ -f script/smoke.ts ]; then npx tsx script/smoke.ts; else echo "no smoke test yet"; fi
+        run: npx tsx script/smoke.ts
+
+      - name: Reset the database for the UI walkthrough
+        run: npx supabase db reset
+
       - name: UI walkthrough screenshots
         run: |
           npm i --no-save playwright@1
           npx playwright install --with-deps chromium
           node script/ui-shots.mjs
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: ui-shots
-          path: app/shots/
-          if-no-files-found: ignore
+
       - name: Publish screenshots to the ci-shots branch
         if: always() && github.event_name == 'push'
         working-directory: .
         run: |
           [ -d app/shots ] || exit 0
-          mkdir -p /tmp/s && cp app/shots/*.png /tmp/s/
+          mkdir -p /tmp/s && cp app/shots/*.png /tmp/s/ 2>/dev/null || exit 0
           git config user.name "ci" && git config user.email "ci@users.noreply.github.com"
-          git checkout --orphan ci-shots && git rm -rfq . && rm -rf app
+          git stash -u -q || true
+          git checkout -q --orphan ci-shots && git rm -rfq . && rm -rf app
           cp /tmp/s/*.png . && git add *.png && git commit -qm "UI shots for ${GITHUB_SHA::7}"
           git push -f origin ci-shots
