@@ -1,0 +1,13 @@
+name: Pooler probe
+on: push
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: sudo apt-get -qq install -y postgresql-client >/dev/null
+      - name: Which pooler hosts project vvuwbycbqqtshexhegnm (wrong password on purpose)
+        run: |
+          for h in aws-0-us-east-1.pooler.supabase.com aws-1-us-east-1.pooler.supabase.com; do
+            out=$(PGPASSWORD=not-the-password PGCONNECT_TIMEOUT=10 psql "host=$h port=5432 dbname=postgres user=postgres.vvuwbycbqqtshexhegnm sslmode=require" -c 'select 1' 2>&1 || true)
+            echo "RESULT $h :: $out"
+          done
