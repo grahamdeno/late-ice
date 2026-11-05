@@ -45,7 +45,10 @@
 * { -webkit-tap-highlight-color: transparent; }
 html, body { background: var(--ice); color: var(--white); }
 /* The page never pans sideways. Wide content (the scoresheet photo) scrolls inside its own box. */
-html { overflow-x: hidden; }
+html { overflow-x: hidden; touch-action: pan-y pinch-zoom; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+@supports (overflow: clip) { html, body { overflow-x: clip; } }
+/* iPhones zoom in (and the page slides sideways) when a field under 16px gets focus. */
+input, select, textarea { font-size: max(16px, 1em) !important; }
 body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
