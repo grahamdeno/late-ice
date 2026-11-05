@@ -39,6 +39,7 @@ npm run dev            # http://localhost:5000, needs Anthropic API credentials 
 | `app/` | Wilmington pilot app: scoresheet OCR, standings, ratings |
 | `mockup/index.html` | Interactive mockup of the game-night flow. It's a single file: open it in any browser. |
 | `docs/game-night-flow.png` | Storyboard of the six steps |
+| `docs/ADOPTION-BASICS.md` | The basics the app must answer before people adopt it: onboarding, rosters, rinks, trust, privacy |
 | `docs/MVP-PLAN.md` | MVP plan: market context, competitors, rating design, phased features, go-to-market, business model, tech stack |
 | `branding/BRANDING.md` | 10 brand directions with logo marks |
 | `branding/logos/` | SVG logo marks |
