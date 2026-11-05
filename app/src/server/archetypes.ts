@@ -19,14 +19,26 @@ export async function teamArchetypes(db: Tx, teamId: number, viewerId: number | 
      WHERE team_id=$1 AND season_id IS NOT DISTINCT FROM $2 GROUP BY player_id, archetype`, [teamId, sid]);
   const size = (await one<any>(db, "SELECT COUNT(*)::int n FROM roster_entries WHERE team_id=$1 AND NOT is_sub", [teamId]))?.n ?? 0;
   const MIN_VOTES = minVotes(size);
-  const won: Record<number, { archetype: string; votes: number }> = {};
+  const won: Record<number, { archetype: string; votes: number; self?: boolean; teamVote?: string | null }> = {};
   for (const r of rows.sort((a, b) => b.n - a.n || +new Date(b.last) - +new Date(a.last))) {
     if (!won[r.player_id] && r.n >= MIN_VOTES) won[r.player_id] = { archetype: r.archetype, votes: r.n };
+  }
+  // A player's own pick (system admin only) wins over the vote; the vote is kept alongside so it still shows.
+  for (const o of await q<any>(db, "SELECT p.id, u.archetype_self FROM roster_entries re JOIN players p ON p.id=re.player_id JOIN users u ON u.id=p.user_id WHERE re.team_id=$1 AND u.archetype_self IS NOT NULL", [teamId])) {
+    const voted = won[o.id];
+    won[o.id] = { archetype: o.archetype_self, votes: voted?.votes ?? 0, self: true, teamVote: voted?.archetype ?? null };
   }
   const mine: Record<number, string> = {};
   if (viewerId) for (const r of await q<any>(db, "SELECT player_id, archetype FROM archetype_votes WHERE team_id=$1 AND season_id IS NOT DISTINCT FROM $2 AND voter_user_id=$3", [teamId, sid, viewerId])) mine[r.player_id] = r.archetype;
   const own = viewerId ? (await q<any>(db, "SELECT p.id FROM players p JOIN roster_entries re ON re.player_id=p.id WHERE p.user_id=$1 AND re.team_id=$2 AND NOT re.is_sub", [viewerId, teamId])).map((r) => r.id as number) : [];
   return { won, mine, voter: own.length > 0, own, minVotes: MIN_VOTES };
+}
+
+/** Set or clear your own archetype. System admin only. */
+export async function setOwnArchetype(db: Tx, userId: number, archetype: string | null) {
+  if (archetype !== null && !(ARCHETYPES as readonly string[]).includes(archetype)) throw new HttpError(400, "Pick one of the archetypes.");
+  if (!(await one(db, "SELECT 1 FROM role_grants WHERE user_id=$1 AND role='admin' AND revoked_at IS NULL", [userId]))) throw new HttpError(403, "Your teammates pick yours.");
+  await q(db, "UPDATE users SET archetype_self=$1 WHERE id=$2", [archetype, userId]);
 }
 
 export async function castVote(db: Tx, teamId: number, voterId: number, playerId: number, archetype: string | null) {

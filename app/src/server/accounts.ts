@@ -254,7 +254,7 @@ export async function publicUser(db: Tx, u: any) {
   const rink = u.home_rink_id ? await one<any>(db, "SELECT id,name FROM rinks WHERE id=$1", [u.home_rink_id]) : null;
   return {
     id: u.id, email: u.email, phone: u.phone, name: u.name, number: u.number, position: u.position, homeRink: rink,
-    access: (await isApproved(db, u)) ? "approved" : u.access, status: effectiveStatus(u), statusUntil: effectiveStatus(u) === "active" ? null : u.status_until, lookingForTeam: !!u.looking_for_team, willSub: !!u.will_sub, avatar: u.avatar ?? null, hidden: !!u.hidden, profileComplete: !!(u.name && u.position && u.home_rink_id),
+    access: (await isApproved(db, u)) ? "approved" : u.access, status: effectiveStatus(u), statusUntil: effectiveStatus(u) === "active" ? null : u.status_until, lookingForTeam: !!u.looking_for_team, willSub: !!u.will_sub, avatar: u.avatar ?? null, archetypeSelf: u.archetype_self ?? null, hidden: !!u.hidden, profileComplete: !!(u.name && u.position && u.home_rink_id),
   };
 }
 
@@ -308,6 +308,9 @@ export async function unlinkSlot(db: Tx, playerId: number) {
 /** Unlinked slots at the user's home rink that look like them: name similarity, number as a tiebreaker. */
 export async function suggestionsFor(db: Tx, u: any) {
   if (!u?.name || !u.home_rink_id) return [];
+  // Once you hold a spot, only a near-certain match on another team shows (next season's import, say). Everything else is a manual find.
+  const myTeams = (await q<any>(db, "SELECT re.team_id FROM roster_entries re JOIN players p ON p.id=re.player_id WHERE p.user_id=$1", [u.id])).map((r) => r.team_id as number);
+  const strictOnly = myTeams.length > 0;
   const rows = await q<any>(db,
     `SELECT p.id, p.name, p.display_name, p.rating, re.number, t.id team_id, t.name team_name, t.color, t.logo, l.level
      FROM roster_entries re JOIN players p ON p.id=re.player_id JOIN teams t ON t.id=re.team_id JOIN leagues l ON l.id=t.league_id
@@ -322,10 +325,21 @@ export async function suggestionsFor(db: Tx, u: any) {
       if (u.number && r.number && u.number === r.number) score += 0.2;
       return { ...r, score };
     })
-    .filter((r) => r.score >= 0.6)
+    .filter((r) => (strictOnly ? r.score >= 0.95 && !myTeams.includes(r.team_id) && !!u.number && r.number === u.number : r.score >= 0.6))
     .sort((a, b) => b.score - a.score)
-    .slice(0, 5)
+    .slice(0, strictOnly ? 2 : 5)
     .map(({ name: _real, display_name, ...r }) => ({ ...r, name: display_name }));
+}
+
+/** Manual find: unclaimed spots anywhere by name, for a second team or a sub spot. */
+export async function findSpots(db: Tx, u: any, text: string) {
+  const t = text.trim().toLowerCase().slice(0, 40);
+  if (t.length < 2) return [];
+  return (await q<any>(db,
+    `SELECT p.id, p.display_name AS name, re.number, t.id team_id, t.name team_name, t.color, t.logo, l.level, r.name rink
+     FROM roster_entries re JOIN players p ON p.id=re.player_id JOIN teams t ON t.id=re.team_id JOIN leagues l ON l.id=t.league_id JOIN rinks r ON r.id=l.rink_id
+     WHERE p.user_id IS NULL AND l.level NOT IN ('DEMO','TOURN') AND (lower(p.display_name) LIKE $1 OR lower(p.name) LIKE $1 OR lower(t.name) LIKE $1)
+     ORDER BY (l.rink_id = $2) DESC, t.name, re.number NULLS LAST LIMIT 20`, [`%${t}%`, u.home_rink_id ?? 0]));
 }
 
 /** New slot for a registered player being drafted, or their existing one. */

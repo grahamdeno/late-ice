@@ -163,6 +163,10 @@ async function main() {
   const mine = team.json.roster.find((r: any) => r.id === sug.id);
   ok(mine.name === "Graham DeNoyer" && mine.registered === true, "claimed slot shows full name and registered");
   ok((await call("POST", `/api/teams/${hh}/captain`, undefined, graham)).status === 200, "take the captain role");
+  ok(!(await call("GET", "/api/me", undefined, graham)).json.suggestions.some((s: any) => s.team_id === hh), "once you hold a spot, the same team isn't suggested again");
+  const found = await call("GET", "/api/me/spots?q=hammer", undefined, graham);
+  ok(found.status === 200 && Array.isArray(found.json.spots), "find your spot by hand, by team name");
+  ok((await call("GET", "/api/me/spots?q=x", undefined, graham)).json.spots.length === 0, "one letter isn't a search");
   ok((await call("GET", `/api/teams/${hh}`)).json.captain?.name === "Graham DeNoyer", "team shows the captain");
   const p = await call("GET", `/api/players/${sug.id}`, undefined, graham);
   ok(p.json.player.mine === true && p.json.player.registered === true && p.json.player.name_key === undefined, "player page knows it's mine and hides internals");
@@ -591,9 +595,21 @@ async function main() {
   const pp = (await call("GET", `/api/players/${samSlot.id}`, undefined, graham)).json;
   const ppa = pp.archetypes.find((x: any) => x.teamId === hh);
   ok(ppa && ppa.won.archetype === "sniper" && ppa.mine === "sniper" && ppa.canVote, "the player page shows it, and your vote to change");
+  ok(pp.archetype?.archetype === "sniper" && !pp.archetype.self, "the player card shows his archetype");
   ok((await call("GET", `/api/players/${samSlot.id}`, undefined, sam)).json.archetypes.find((x: any) => x.teamId === hh).canVote === false, "but not on your own page");
   ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: samSlot.id, archetype: "playmaker" }, graham)).status === 200, "anyone can change their vote any time");
   ok((await call("GET", `/api/players/${samSlot.id}`, undefined, graham)).json.archetypes.find((x: any) => x.teamId === hh).mine === "playmaker", "the change sticks");
+
+  console.log("archetypes: the admin picks his own");
+  ok((await call("PATCH", "/api/me", { archetypeSelf: "sniper" }, sam)).status === 403, "a player can't pick his own");
+  ok((await call("PATCH", "/api/me", { archetypeSelf: "wizard" }, boss)).status === 400, "only the listed archetypes");
+  const bossSet = await call("PATCH", "/api/me", { archetypeSelf: "bender" }, boss);
+  ok(bossSet.status === 200 && bossSet.json.user.archetypeSelf === "bender", "the system admin picks Bender for himself");
+  const bossPid = (await db`SELECT p.id FROM players p JOIN users u ON u.id=p.user_id WHERE u.email='boss@example.com'`)[0].id;
+  const bossCard = (await call("GET", `/api/players/${bossPid}`)).json;
+  ok(bossCard.archetype?.archetype === "bender" && bossCard.archetype.self === true, "his card shows it, marked as his own pick");
+  ok((await call("GET", `/api/teams/${hh}`)).json.archetypes.won[bossPid]?.archetype === "bender", "the roster shows it too");
+  ok((await call("PATCH", "/api/me", { archetypeSelf: null }, boss)).json.user.archetypeSelf === null, "and he can hand it back to the team");
 
   console.log("bobblehead");
   const av = await call("PATCH", "/api/me", { avatar: { skin: 4, hair: 2, helmet: "#EEF3F8", guard: "visor", beard: "full", style: "flow", eyeBlack: true } }, sam);
