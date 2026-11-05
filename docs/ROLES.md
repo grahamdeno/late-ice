@@ -53,6 +53,13 @@ Rink staff powers apply only inside their scope (their league or their rink).
 | Add or edit a manual game (tournament, exhibition) | | own | own | | ✓ | ✓ | | ✓ |
 | Connect a rink-wide calendar feed | | | | | | ✓ | | ✓ |
 | Set lines, see team RSVPs | | own | own | | | | | |
+| Answer In / Late / Out for a game | own | own | own | | | | | |
+| **Rinks, leagues and teams** | | | | | | | | |
+| Ask to add a missing rink, or to start a team | ✓ signed in | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Add a rink, approve a new rink or its first manager | | | | | | | | ✓ |
+| Edit the rink profile, add leagues and seasons | | | | | | ✓ | | ✓ |
+| Rename a league | | | | | ✓ | ✓ | | ✓ |
+| Add a team, approve a team request, remove an empty team | | | | | ✓ | ✓ | | ✓ |
 | **Games and sheets** | | | | | | | | |
 | Scan a sheet | ✓ signed in | ✓ | ✓ | ✓ official | ✓ | ✓ | | ✓ |
 | Dispute a game (within 72 hours) | own | own | own | | | | | |
@@ -188,3 +195,16 @@ Row level security stays as it is: on, with no policies. The browser key still r
 8. Matrix tests in the smoke test.
 
 Scorekeeper official scans and the dispute window ride along with the "scan attribution and disputes" item already in the build order.
+
+
+## New rinks and their first manager
+
+Any signed-in player can ask to add a rink that isn't listed. The request goes to system admins only. The card shows:
+
+- A public map lookup (OpenStreetMap) for the name and city, with whether it's tagged as an ice rink.
+- The rink's website.
+- If the person also wants to manage it: their role at the rink, and two checks. Either check is enough.
+  1. They signed in with an email on the rink's own web domain (free mail like Gmail never counts).
+  2. An admin called the rink's public number (from its website or the map listing, never one the requester gave) and taps "Confirmed by phone".
+
+Admins can approve the manager, approve the rink only, or decline. The server refuses a manager approval with neither check. A request to manage a rink that's already listed uses the same two checks.
