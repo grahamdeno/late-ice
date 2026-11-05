@@ -13,7 +13,7 @@ export async function rosterCounts(db: Tx, teamId: number) {
   const out = (s: any) => s.status && ["ir", "away"].includes(s.status) && (!s.status_until || s.status_until >= today);
   const active = rows.filter((r) => !r.is_sub && !out(r));
   return {
-    rosterMax: lim?.roster_max ?? 15, goalieMax: lim?.goalie_max ?? 2,
+    rosterMax: lim?.roster_max ?? 25, goalieMax: lim?.goalie_max ?? 2,
     skaters: active.filter((r) => r.position !== "G").length,
     goalies: active.filter((r) => r.position === "G").length,
     out: rows.filter((r) => !r.is_sub && out(r)).length,

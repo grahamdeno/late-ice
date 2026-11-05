@@ -251,7 +251,7 @@ function RinkSection({ rink, run }: { rink: any; run: Run }) {
             <div className="px-3.5 py-2 flex items-center gap-2 text-xs text-[var(--mute)] border-b border-[var(--line)]" data-testid={`row-roster-size-${l.id}`}>
               <span className="flex-1">Roster size</span>
               <label className="flex items-center gap-1">Skaters
-                <input className="input h-8 w-14 text-center tnum text-xs" inputMode="numeric" defaultValue={l.roster_max ?? 15} onBlur={(e) => Number(e.target.value) !== (l.roster_max ?? 15) && run("PATCH", `/api/leagues/${l.id}`, { rosterMax: Number(e.target.value) })} aria-label={`Skater spots for ${l.name}`} data-testid={`input-roster-max-${l.id}`} />
+                <input className="input h-8 w-14 text-center tnum text-xs" inputMode="numeric" defaultValue={l.roster_max ?? 25} onBlur={(e) => Number(e.target.value) !== (l.roster_max ?? 25) && run("PATCH", `/api/leagues/${l.id}`, { rosterMax: Number(e.target.value) })} aria-label={`Skater spots for ${l.name}`} data-testid={`input-roster-max-${l.id}`} />
               </label>
               <label className="flex items-center gap-1">Goalies
                 <input className="input h-8 w-12 text-center tnum text-xs" inputMode="numeric" defaultValue={l.goalie_max ?? 2} onBlur={(e) => Number(e.target.value) !== (l.goalie_max ?? 2) && run("PATCH", `/api/leagues/${l.id}`, { goalieMax: Number(e.target.value) })} aria-label={`Goalie spots for ${l.name}`} data-testid={`input-goalie-max-${l.id}`} />

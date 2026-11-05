@@ -713,7 +713,7 @@ async function main() {
 
   console.log("manage team: adding and editing spots, roster sizes");
   const mtBefore = (await call("GET", `/api/teams/${hh}/manage`, undefined, graham)).json;
-  ok(mtBefore.counts && mtBefore.counts.rosterMax === 15 && mtBefore.counts.goalieMax === 2, "a league starts at 15 skaters and 2 goalies");
+  ok(mtBefore.counts && mtBefore.counts.rosterMax === 25 && mtBefore.counts.goalieMax === 2, "a league starts at 25 skaters and 2 goalies");
   const lgFirst = (await db`SELECT league_id FROM teams WHERE id=${hh}`)[0].league_id;
   ok((await call("PATCH", `/api/leagues/${lgFirst}`, { rosterMax: 40 }, boss)).status === 200, "staff raise the roster size");
   const added = await call("POST", `/api/teams/${hh}/slots`, { name: "Pat Newguy", number: "71", position: "D" }, graham);
@@ -743,9 +743,9 @@ async function main() {
   console.log("lineup");
   const lgGame = await call("POST", `/api/teams/${hh}/schedule`, { date: `${ymd(4).slice(0, 4)}-${ymd(4).slice(4, 6)}-${ymd(4).slice(6)}`, time: "20:00", opponentTeamId: blId, kind: "league" }, graham);
   ok(lgGame.status === 200, "a game to set lines for");
-  const lu = await call("GET", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`);
-  ok(lu.status === 200 && !lu.saved && lu.json.lineup.f.length === 3 && lu.json.players.length > 0, "anyone can see the lineup; it starts as a guess from who's In");
-  ok(lu.json.can.edit === false, "a visitor can't edit it");
+  ok((await call("GET", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`)).status === 403, "before the captain sets it, outsiders see nothing");
+  const lu = await call("GET", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, undefined, graham);
+  ok(lu.status === 200 && !lu.json.saved && lu.json.lineup.f.length === 3 && lu.json.players.length > 0, "the team sees a first guess from who's In");
   const firstTwo = lu.json.players.slice(0, 2).map((p: any) => p.id);
   const lineupBody = { f: [[firstTwo[0], null, null], [null, null, null], [null, null, null]], d: [[firstTwo[1], null], [null, null], [null, null]], g: [null], extras: [] };
   ok((await call("PUT", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, lineupBody, nobody)).status === 403, "only the team's captains set it");
@@ -754,6 +754,8 @@ async function main() {
   ok((await call("PUT", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, lineupBody, graham)).status === 200, "captain saves the lines");
   const lu2 = (await call("GET", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, undefined, graham)).json;
   ok(lu2.saved && lu2.lineup.f[0][0] === firstTwo[0] && lu2.can.edit === true, "and it comes back as set");
+  const pub = await call("GET", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`);
+  ok(pub.status === 200 && pub.json.can.edit === false && pub.json.players.length === 2 && pub.json.players.every((p: any) => p.answer === null), "once set, outsiders see only the placed players and no In or Out answers");
 
   console.log("subs");
   const ivSlot = (await db`SELECT p.id FROM players p WHERE p.user_id=${ivId}`)[0].id;

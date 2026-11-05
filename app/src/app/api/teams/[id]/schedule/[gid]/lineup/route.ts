@@ -1,7 +1,7 @@
 import { handle, body, num } from "@/server/http";
 import { sql, q, one } from "@/server/db";
 import { HttpError } from "@/server/services";
-import { requireUser, requireTeam, userFromRequest, userCan, logAction } from "@/server/accounts";
+import { requireUser, requireTeam, userFromRequest, userCan, logAction, onTeam } from "@/server/accounts";
 import { teamArchetypes } from "@/server/archetypes";
 
 export const dynamic = "force-dynamic";
@@ -55,14 +55,20 @@ export const GET = handle<{ id: string; gid: string }>(async (req, { id, gid }) 
   const teamId = num(id);
   const { t, g } = await load(teamId, num(gid));
   const u = await userFromRequest(req).catch(() => null);
-  const players = await available(teamId, g);
+  const edit = await userCan(sql, u, "roster.manage", { teamId, leagueId: t.league_id, rinkId: t.rink_id });
+  const member = edit || (!!u && (await onTeam(sql, u.id, teamId)));
   const saved = g.lineup_json ? (JSON.parse(g.lineup_json) as Lineup) : null;
+  // Who said In or Out is the team's business. Outsiders see only a lineup the captain has set, with no answers.
+  if (!member && !saved) throw new HttpError(403, "The lineup shows here once the captain sets it.");
+  const all = await available(teamId, g);
+  const placed = saved ? new Set([...saved.f.flat(), ...saved.d.flat(), ...saved.g, ...saved.extras].filter((v) => v !== null)) : null;
+  const players = member ? all : all.filter((p) => placed!.has(p.id)).map((p) => ({ ...p, answer: null }));
   const opponent = g.opponent_team_id ? await one<any>(sql, "SELECT name, color, logo FROM teams WHERE id=$1", [g.opponent_team_id]) : null;
   return {
     team: { id: t.id, name: t.name, color: t.color, logo: t.logo, level: t.level },
     game: { id: g.id, date: g.local_date, time: g.local_time, location: g.location, kind: g.kind, isHome: g.is_home, opponent: opponent?.name ?? g.opponent_name ?? null, opponentColor: opponent?.color ?? null },
     players, lineup: saved ?? autoFill(players), saved: !!saved, setAt: g.lineup_at,
-    can: { edit: await userCan(sql, u, "roster.manage", { teamId, leagueId: t.league_id, rinkId: t.rink_id }) },
+    can: { edit },
   };
 });
 
