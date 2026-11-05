@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "@/lib/router";
-import { useMe, act, signOut, POSITION_LABEL, STATUS_LABEL } from "@/lib/auth";
+import { useMe, act, signOut, POSITION_LABEL, STATUS_LABEL, ROLE_LABEL } from "@/lib/auth";
 import { Empty, LevelPill, Loading, Section, TeamBadge, fmtRating } from "@/lib/ui";
 import { ProfileForm } from "./Join";
 
@@ -41,10 +41,41 @@ export default function MePage() {
           </div>
           <button className="btn btn-ghost h-9 text-sm" onClick={() => setEditing((e) => !e)} data-testid="button-edit-profile">{editing ? "Close" : "Edit"}</button>
         </div>
+        {me.roles.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-3" data-testid="list-roles">
+            {me.roles.map((r) => (
+              <span key={r.id} className="chip h-7 text-[11px]">{ROLE_LABEL[r.role] ?? r.role}{r.where ? ` · ${r.where}` : ""}</span>
+            ))}
+          </div>
+        )}
         {u.hidden && <div className="mt-3 text-xs text-[var(--mute)]">Your name is hidden. Teammates and the public see your number only.</div>}
       </div>
       {editing && <ProfileForm submitLabel="Save" onDone={() => setEditing(false)} />}
       {err && <p className="text-sm down mt-3 px-1" data-testid="text-error">{err}</p>}
+
+      {me.staff && (
+        <Link href="/staff" className="card-hi mt-3 p-4 flex items-center gap-3" data-testid="link-staff">
+          <span className="flex-1"><span className="block font-bold">Staff page</span><span className="block text-xs text-[var(--mute)]">Rinks, requests, support and roles.</span></span>
+          <span>›</span>
+        </Link>
+      )}
+
+      {me.handoffs.length > 0 && (
+        <Section title="Captaincy offered">
+          <div className="space-y-2">
+            {me.handoffs.map((h) => (
+              <div key={h.id} className="card p-4" data-testid={`card-handoff-${h.id}`}>
+                <div className="font-bold text-sm">{h.from_name} wants you to captain {h.team_name}</div>
+                <p className="text-xs text-[var(--mute)] mt-0.5">You'd run the roster, assistants and schedule. {h.from_name} stays on the team as a player.</p>
+                <div className="grid grid-cols-2 gap-2 mt-3">
+                  <button className="btn btn-ghost h-10" onClick={() => run("POST", `/api/requests/${h.id}`, { decision: "decline" })} data-testid={`button-decline-handoff-${h.id}`}>Decline</button>
+                  <button className="btn btn-red h-10" onClick={() => run("POST", `/api/requests/${h.id}`, { decision: "accept" })} data-testid={`button-accept-handoff-${h.id}`}>Accept</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
 
       {me.notifications.length > 0 && (
         <Section title="Notifications" action={me.unread ? <span className="label text-[var(--red)]">{me.unread} new</span> : undefined}>
@@ -94,7 +125,7 @@ export default function MePage() {
                   <span className="flex-1 min-w-0">
                     <span className="flex items-center gap-2"><LevelPill level={s.level === "DEMO" ? "Demo" : s.level} /><span className="font-bold truncate">{s.team_name}</span></span>
                     <span className="block text-xs text-[var(--mute)] mt-0.5">
-                      {s.number ? `#${s.number}` : "No number"}{s.isCaptain ? " · Captain" : s.captain ? ` · Captain: ${s.captain.name}` : " · No captain yet"}
+                      {s.number ? `#${s.number}` : "No number"}{s.isCaptain ? " · Captain" : s.teamRole === "assistant_captain" ? " · Assistant captain" : s.captain ? ` · Captain: ${s.captain.name}` : " · No captain yet"}
                     </span>
                   </span>
                   <span className="text-right">
@@ -104,7 +135,7 @@ export default function MePage() {
                 </Link>
                 <div className="flex flex-wrap gap-2 mt-3">
                   <Link href={`/player/${s.id}`} className="btn btn-ghost h-9 text-sm">Rating history</Link>
-                  {s.isCaptain && <Link href={`/team/${s.team_id}`} className="btn btn-red h-9 text-sm" data-testid={`button-manage-${s.team_id}`}>Manage roster</Link>}
+                  {s.teamRole && <Link href={`/team/${s.team_id}`} className="btn btn-red h-9 text-sm" data-testid={`button-manage-${s.team_id}`}>Manage roster</Link>}
                   {!s.captain && <button className="btn btn-ghost h-9 text-sm" onClick={() => run("POST", `/api/teams/${s.team_id}/captain`)} data-testid={`button-become-captain-${s.team_id}`}>I'm the captain</button>}
                   {s.source === "draft" && !s.isCaptain && <button className="btn btn-ghost h-9 text-sm" onClick={() => confirm(`Leave ${s.team_name}?`) && run("POST", `/api/me/decline/${s.team_id}`)} data-testid={`button-decline-${s.team_id}`}>Not my team</button>}
                 </div>
@@ -155,6 +186,11 @@ export default function MePage() {
           </button>
         </div>
       </Section>
+
+      <a href={`mailto:support@tangomike.app?subject=${encodeURIComponent("Late Ice help")}&body=${encodeURIComponent(`\n\n---\nApp: Late Ice\nAccount: ${u.id}`)}`} className="card mt-6 p-4 flex items-center gap-3" data-testid="link-help">
+        <span className="flex-1"><span className="block font-bold text-sm">Get help</span><span className="block text-xs text-[var(--mute)]">Email support. Your account number is filled in.</span></span>
+        <span>›</span>
+      </a>
 
       <div className="mt-8 flex justify-between items-center px-1">
         <span className="text-xs text-[var(--mute)]">Signed in as {u.email ?? u.phone}</span>

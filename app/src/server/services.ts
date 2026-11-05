@@ -86,7 +86,7 @@ export async function suggest(db: Tx, r: OcrResult) {
   const dup = r.date && home.teamId && away.teamId
     ? await one<{ id: number }>(
         db,
-        "SELECT id FROM games WHERE played_on=$1 AND ((home_team_id=$2 AND away_team_id=$3) OR (home_team_id=$3 AND away_team_id=$2))",
+        "SELECT id FROM games WHERE source='sheet' AND played_on=$1 AND ((home_team_id=$2 AND away_team_id=$3) OR (home_team_id=$3 AND away_team_id=$2))",
         [r.date, home.teamId, away.teamId],
       )
     : undefined;
@@ -104,6 +104,21 @@ async function resolvePlayer(db: Tx, teamId: number, number: string | null, name
   if (number) {
     const r = await one<any>(db, "SELECT p.* FROM roster_entries re JOIN players p ON p.id=re.player_id WHERE re.team_id=$1 AND re.number=$2", [teamId, number]);
     if (r && (!name || similarity(r.name, name) > 0.55)) return r.id as number;
+  }
+  // An imported "Adam Y." spot on this team is the "Adam Young" on the sheet.
+  if (name && /\s/.test(name.trim())) {
+    const parts = name.trim().split(/\s+/);
+    const short = `${parts[0]} ${parts[parts.length - 1][0]}.`.toLowerCase();
+    const hits = await q<any>(db,
+      "SELECT p.* FROM roster_entries re JOIN players p ON p.id=re.player_id WHERE re.team_id=$1 AND re.number IS NULL AND lower(p.name)=$2 LIMIT 2",
+      [teamId, short]);
+    const r = hits.length === 1 ? hits[0] : null; // two "Ben M." on one team: don't guess
+    if (r) {
+      // Keep the fuller name from the sheet; the public display stays first name and last initial.
+      await q(db, "UPDATE players SET name=$1, name_key=$2 WHERE id=$3 AND user_id IS NULL", [name, nameKey(name), r.id]);
+      await q(db, "UPDATE roster_entries SET number=$1 WHERE team_id=$2 AND player_id=$3", [number, teamId, r.id]);
+      return r.id as number;
+    }
   }
   // Same name elsewhere: reuse only an unclaimed record. A sheet never attaches stats to a
   // registered person by itself; that takes a claim or a captain's match.
@@ -150,10 +165,12 @@ export async function confirmSheet(db: Tx, sheetId: number, input: ConfirmInput)
 
   if (d.date) {
     const dup = await one<any>(
-      db, "SELECT id FROM games WHERE played_on=$1 AND ((home_team_id=$2 AND away_team_id=$3) OR (home_team_id=$3 AND away_team_id=$2))",
+      db, "SELECT id, source FROM games WHERE played_on=$1 AND ((home_team_id=$2 AND away_team_id=$3) OR (home_team_id=$3 AND away_team_id=$2))",
       [d.date, homeId, awayId],
     );
-    if (dup) throw new HttpError(409, "This game was already scanned by someone else.", { gameId: dup.id });
+    // A scanned sheet replaces an imported result for the same game.
+    if (dup?.source && dup.source !== "sheet") await replaceImported(db, dup.id);
+    else if (dup) throw new HttpError(409, "This game was already scanned by someone else.", { gameId: dup.id });
   }
 
   const hs = d.home.total ?? d.home.goals.length;
@@ -199,12 +216,32 @@ export async function confirmSheet(db: Tx, sheetId: number, input: ConfirmInput)
   return gameId;
 }
 
+/**
+ * Remove an imported result before its real sheet goes in. The season baselines (team_imports,
+ * player_imports) already include that game, so take it back out of them; otherwise it counts twice.
+ */
+async function replaceImported(db: Tx, gameId: number) {
+  const g = await one<any>(db, "SELECT * FROM games WHERE id=$1", [gameId]);
+  if (!g) return;
+  for (const [teamId, mine, theirs] of [[g.home_team_id, g.home_score, g.away_score], [g.away_team_id, g.away_score, g.home_score]]) {
+    const col = mine > theirs ? "w" : mine < theirs ? "l" : "t";
+    await q(db, `UPDATE team_imports SET gp=gp-1, ${col}=${col}-1 WHERE id=(SELECT id FROM team_imports WHERE team_id=$1 AND season_id IS NOT DISTINCT FROM $2 AND gp>0 AND ${col}>0 LIMIT 1)`, [teamId, g.season_id]);
+  }
+  for (const l of await q<any>(db, "SELECT * FROM imported_game_lines WHERE game_id=$1", [gameId])) {
+    await q(db,
+      `UPDATE player_imports SET g=GREATEST(0,g-$3), a=GREATEST(0,a-$4), gp=GREATEST(0,gp-1)
+       WHERE id=(SELECT id FROM player_imports WHERE player_id=$1 AND team_id=$2 AND season_id IS NOT DISTINCT FROM $5 LIMIT 1)`,
+      [l.player_id, l.team_id, l.goals, l.assists, g.season_id]);
+  }
+  await q(db, "DELETE FROM games WHERE id=$1", [gameId]);
+}
+
 /* ---------- read models ---------- */
 
 export async function teamRecord(db: Tx, teamId: number, seasonId: number | null = null) {
   const sq = seasonId ? " AND season_id=$2" : "";
   const sp = seasonId ? [seasonId] : [];
-  const gs = await q<any>(db, `SELECT * FROM games WHERE (home_team_id=$1 OR away_team_id=$1)${sq}`, [teamId, ...sp]);
+  const gs = await q<any>(db, `SELECT * FROM games WHERE (home_team_id=$1 OR away_team_id=$1) AND source='sheet'${sq}`, [teamId, ...sp]);
   const imp = await one<any>(db, `SELECT SUM(gp) gp, SUM(w) w, SUM(l) l, SUM(t) t FROM team_imports WHERE team_id=$1${sq}`, [teamId, ...sp]);
   let w = imp?.w ?? 0, l = imp?.l ?? 0, t = imp?.t ?? 0, gf = 0, ga = 0;
   for (const g of gs) {
@@ -253,7 +290,7 @@ export async function gameCard(db: Tx, g: any) {
   const a = await one<any>(db, "SELECT id,name,color,logo FROM teams WHERE id=$1", [g.away_team_id]);
   const l = await one<any>(db, "SELECT id,level,name FROM leagues WHERE id=$1", [g.league_id]);
   const s = g.season_id ? await one<any>(db, "SELECT id,name FROM seasons WHERE id=$1", [g.season_id]) : null;
-  return { id: g.id, season: s, playedOn: g.played_on, startTime: g.start_time, home: h, away: a, homeScore: g.home_score, awayScore: g.away_score, league: l, sheetId: g.sheet_id };
+  return { id: g.id, season: s, playedOn: g.played_on, startTime: g.start_time, home: h, away: a, homeScore: g.home_score, awayScore: g.away_score, league: l, sheetId: g.sheet_id, source: g.source ?? "sheet" };
 }
 export async function gameCards(db: Tx, games: any[]) {
   const out = [];

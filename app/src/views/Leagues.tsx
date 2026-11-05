@@ -1,6 +1,7 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
 import { CaptainPanel } from "@/components/CaptainPanel";
+import { ShotMap } from "@/components/ShotMap";
 import { Link } from "@/lib/router";
 import { useState } from "react";
 import { BackBar, Empty, GameRow, LevelPill, Loading, Section, TeamBadge, fmtDate, fmtRating, useFilter } from "@/lib/ui";
@@ -151,14 +152,14 @@ export function TeamPage({ id }: { id: string }) {
       ) : imported ? (
         <div className="mt-3 text-xs text-[var(--mute)] px-1" data-testid="text-imported-team">Record and totals include {imported.gp} games imported from the {imported.source} as of {fmtDate(imported.as_of)}. Ratings start moving with the first scanned sheet.</div>
       ) : null}
-      <CaptainPanel team={team} captain={data.captain} />
+      <CaptainPanel team={team} captain={data.captain} assistants={data.assistants} />
       <Section title="Roster" action={<span className="label">{roster.length} players</span>}>
         {roster.length ? (
           <div className="card divide-y divide-[var(--line)]">
             {roster.map((p: any) => (
               <Link key={p.id} href={`/player/${p.id}`} className="flex items-center gap-3 px-4 py-3 text-sm" data-testid={`row-roster-${p.id}`}>
                 <span className="tnum text-[var(--mute)] w-8">{p.number ? `#${p.number}` : ""}</span>
-                <span className="flex-1 truncate font-bold">{p.name}{p.position === "G" && <span className="text-[var(--mute)] font-medium"> · G</span>}{p.registered ? <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-[var(--green,#38D996)] align-middle" title="Registered" /> : null}</span>
+                <span className="flex-1 truncate font-bold">{p.name}{p.position === "G" && <span className="text-[var(--mute)] font-medium"> · G</span>}{p.registered ? <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-[var(--green,#38D996)] align-middle" title="Registered" /> : null}{p.badge ? <span className="ml-1.5 inline-flex h-4 w-4 rounded-full bg-[var(--ice-3)] border border-[var(--line)] text-[9px] font-black items-center justify-center align-middle" title={p.badge === "C" ? "Captain" : "Assistant captain"} data-testid={`badge-${p.badge}-${p.id}`}>{p.badge}</span> : null}</span>
                 <span className="tnum text-[var(--mute)]">{p.gp}GP {p.g}G {p.a}A</span>
                 <span className="tnum font-display text-lg w-12 text-right">{fmtRating(p.rating)}</span>
               </Link>
@@ -166,6 +167,7 @@ export function TeamPage({ id }: { id: string }) {
           </div>
         ) : <Empty title="Roster fills itself" body="Players are added straight from the scoresheet the first time this team's game is scanned." />}
       </Section>
+      <ShotMap teamId={team.id} />
       <Section title="Games">
         {games.length ? <div className="space-y-3">{games.map((g: any) => <GameRow key={g.id} g={g} />)}</div> : <Empty title="No games yet" body="Snap the sheet after this team's next game." />}
       </Section>

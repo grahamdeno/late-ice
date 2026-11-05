@@ -111,6 +111,26 @@ export function PlayerPage({ id }: { id: string }) {
         </div>
       )}
 
+      {data.importedGames?.length > 0 && (
+        <>
+          <h2 className="font-black text-[17px] mt-7 mb-3 px-1">Game by game <span className="label ml-1">From DaySmart</span></h2>
+          <div className="card divide-y divide-[var(--line)]" data-testid="list-imported-games">
+            {data.importedGames.map((x: any) => {
+              const mineHome = teams.some((t: any) => t.id === x.game.home.id);
+              const opp = mineHome ? x.game.away : x.game.home;
+              const sc = mineHome ? [x.game.homeScore, x.game.awayScore] : [x.game.awayScore, x.game.homeScore];
+              return (
+                <Link key={x.game.id} href={`/game/${x.game.id}`} className="flex items-center gap-3 p-3.5 text-sm">
+                  <span className={`h-8 w-8 rounded-lg flex items-center justify-center font-black text-xs ${sc[0] > sc[1] ? "bg-[rgba(56,217,150,.15)] up" : sc[0] < sc[1] ? "bg-[rgba(255,107,107,.15)] down" : "bg-[var(--ice-3)]"}`}>{sc[0] > sc[1] ? "W" : sc[0] < sc[1] ? "L" : "T"}</span>
+                  <span className="flex-1 min-w-0"><span className="block font-bold truncate">{sc[0]}–{sc[1]} vs {opp.name}</span><span className="block text-xs text-[var(--mute)]">{fmtDate(x.game.playedOn)}</span></span>
+                  <span className="tnum text-[var(--mute)]">{x.goals}G {x.assists}A</span>
+                </Link>
+              );
+            })}
+          </div>
+        </>
+      )}
+
       <h2 className="font-black text-[17px] mt-7 mb-3 px-1">Why it moved</h2>
       {history.length === 0 ? <Empty title="No rated games yet" body="Ratings start after the first scanned game." /> : (
         <div className="space-y-2">

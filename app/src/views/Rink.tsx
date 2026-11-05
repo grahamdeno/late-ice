@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@/lib/router";
 import { FaceoffDot, LevelPill, Loading, Section, TeamBadge, fmtRating } from "@/lib/ui";
+import { useMe, act } from "@/lib/auth";
 
 export default function Rink() {
   const { data } = useQuery<any>({ queryKey: ["/api/rink"] });
@@ -84,6 +85,8 @@ export default function Rink() {
         </Section>
       )}
 
+      <RinkAccess rinkId={rink.id} rinkName={rink.name} />
+
       <Section title="Region">
         <div className="card p-4 flex items-center gap-3">
           <FaceoffDot size={36} />
@@ -93,6 +96,38 @@ export default function Rink() {
           </div>
         </div>
       </Section>
+    </div>
+  );
+}
+
+/** "Run this rink?" The request goes to an admin, who confirms with the rink by phone. */
+function RinkAccess({ rinkId, rinkName }: { rinkId: number; rinkName: string }) {
+  const { me } = useMe();
+  const [open, setOpen] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [done, setDone] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const runs = me?.roles?.some((r) => r.role === "rink_manager" && r.scopeId === rinkId);
+  if (runs) {
+    return <Link href="/staff" className="card mt-6 p-4 flex items-center gap-3" data-testid="link-rink-staff"><span className="flex-1 font-bold text-sm">Manage {rinkName}</span><span>›</span></Link>;
+  }
+  return (
+    <div className="card mt-6 p-4" data-testid="card-rink-access">
+      <div className="font-bold text-sm">Run this rink?</div>
+      <p className="text-xs text-[var(--mute)] mt-0.5">Hockey directors and league staff can manage seasons, leagues, scorekeepers and disputes here.</p>
+      {done ? (
+        <p className="text-xs mt-3" data-testid="text-rink-access-sent">Request sent. We'll call the rink's listed number to confirm, then you'll see a Staff page on your profile.</p>
+      ) : !me ? (
+        <Link href="/join" className="btn btn-ghost h-10 mt-3 inline-flex">Join first</Link>
+      ) : !open ? (
+        <button className="btn btn-ghost h-10 mt-3" onClick={() => setOpen(true)} data-testid="button-rink-access">Request access</button>
+      ) : (
+        <form className="mt-3 space-y-2" onSubmit={async (e) => { e.preventDefault(); const r = await act("POST", "/api/rink-access", { rinkId, message: msg }); setErr(r); if (!r) setDone(true); }}>
+          <textarea className="input w-full h-20 py-2" placeholder="Your role at the rink and the best number to reach you" value={msg} onChange={(e) => setMsg(e.target.value)} data-testid="input-rink-access" />
+          {err && <p className="text-sm down">{err}</p>}
+          <button className="btn btn-red h-10 w-full" data-testid="button-rink-access-send">Send request</button>
+        </form>
+      )}
     </div>
   );
 }

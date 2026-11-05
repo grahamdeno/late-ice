@@ -12,11 +12,14 @@ export interface MeUser {
 export interface MeSlot {
   id: number; name: string; rating: number; games_rated: number; position: string; number: string | null; source: string;
   team_id: number; team_name: string; color: string; logo: string | null; league_id: number; level: string; league_name: string;
-  captain: { id: number; name: string } | null; isCaptain: boolean;
+  captain: { id: number; name: string } | null; isCaptain: boolean; teamRole: "captain" | "assistant_captain" | null;
+  assistants: { id: number; name: string }[];
 }
+export interface MyRole { id: number; role: string; scopeType: string; scopeId: number | null; where: string | null }
 export interface Notice { id: number; kind: string; title: string; body: string | null; link: string | null; team_id: number | null; read_at: string | null; created_at: string }
 export interface Me {
-  user: MeUser; slots: MeSlot[]; captainTeams: { id: number; name: string; color: string; logo: string | null; level: string; rink_id: number }[];
+  user: MeUser; slots: MeSlot[]; captainTeams: { id: number; name: string; color: string; logo: string | null; level: string; rink_id: number; role: "captain" | "assistant_captain" }[];
+  roles: MyRole[]; staff: boolean; handoffs: { id: number; team_id: number; team_name: string; from_name: string }[];
   notifications: Notice[]; unread: number;
   suggestions: { id: number; name: string; rating: number; number: string | null; team_id: number; team_name: string; color: string; logo: string | null; level: string; score: number }[];
 }
@@ -90,4 +93,8 @@ export async function act(method: string, url: string, body?: unknown): Promise<
 }
 
 export const POSITION_LABEL: Record<string, string> = { F: "Forward", D: "Defense", G: "Goalie" };
+export const ROLE_LABEL: Record<string, string> = {
+  assistant_captain: "Assistant captain", captain: "Captain", scorekeeper: "Scorekeeper", commissioner: "League commissioner",
+  rink_manager: "Rink manager", support: "Support", admin: "Admin",
+};
 export const STATUS_LABEL: Record<string, string> = { available: "Available", ir: "Injured reserve", away: "Away", resting: "Resting" };

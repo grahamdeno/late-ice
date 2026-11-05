@@ -17,7 +17,7 @@ export const POST = handle<{ teamId: string }>(async (req, { teamId: tid }) => {
     await A.logAction(tx, teamId, u.id, "decline", re.player_id, u.id);
     const cap = await A.captainOf(tx, teamId);
     if (cap && cap.id !== u.id) await A.notify(tx, cap.id, { kind: "decline", teamId, link: `/team/${teamId}`, title: `${u.name} declined ${t.name}` });
-    await q(tx, "DELETE FROM team_roles WHERE team_id=$1 AND user_id=$2", [teamId, u.id]);
+    await A.leaveTeamRoles(tx, u.id, teamId, u.id);
   });
   return { ok: true };
 });
