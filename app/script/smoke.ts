@@ -380,7 +380,7 @@ async function main() {
     "Not A Real Team FC",
     "  Nobody N.",
   ].join("\n");
-  const before = (await call("GET", `/api/teams/${hh}`)).json;
+  const hhBefore = (await call("GET", `/api/teams/${hh}`)).json;
   const ptsOf = async (name: string) => (await call("GET", `/api/leagues/${lg}`)).json.leaders.find((x: any) => x.name === name)?.pts ?? 0;
   const adamPts = await ptsOf("Adam Y.");
   ok((await call("POST", "/api/staff/import", { text: report, rinkId, apply: true }, graham)).status === 403, "a captain can't import");
@@ -394,7 +394,7 @@ async function main() {
   ok(ap.status === 200 && ap.json.applied && ap.json.summary.gamesAdded === 2, "import applied");
   let after = (await call("GET", `/api/teams/${hh}`)).json;
   ok(after.games.filter((g: any) => g.source === "daysmart").length === 2, "imported games show on the team page");
-  ok(JSON.stringify(after.record) === JSON.stringify(before.record), "standings don't count imported games twice");
+  ok(JSON.stringify(after.record) === JSON.stringify(hhBefore.record), "standings don't count imported games twice");
   ok((await ptsOf("Adam Y.")) === adamPts, "season points don't count imported games twice");
   const blRoster = (await call("GET", `/api/teams/${(await db`SELECT id FROM teams WHERE name='Blue Liners'`)[0].id}`)).json.roster;
   ok(blRoster.some((r: any) => r.name === "Zed Q.") && blRoster.some((r: any) => r.name === "Ana B."), "opponent roster spots added, all-caps fixed and shown as first name and last initial");
@@ -404,8 +404,8 @@ async function main() {
   ok(igPage.json.unassigned.home === 1 && igPage.json.unassigned.away === 0, "game page counts the goal with no scorer");
   const adamId = after.roster.find((r: any) => r.name === "Adam Y.").id;
   ok((await call("GET", `/api/players/${adamId}`)).json.importedGames.length === 1, "player page shows the game log");
-  const again = await call("POST", "/api/staff/import", { text: report, rinkId, apply: true }, mt);
-  ok(again.json.summary.gamesAdded === 0 && again.json.summary.gamesUpdated === 2 && again.json.summary.rosterAdded === 0, "importing again changes nothing new");
+  const reimport = await call("POST", "/api/staff/import", { text: report, rinkId, apply: true }, mt);
+  ok(reimport.json.summary.gamesAdded === 0 && reimport.json.summary.gamesUpdated === 2 && reimport.json.summary.rosterAdded === 0, "importing again changes nothing new");
 
   console.log("shot map");
   const outsider = await signUp("outsider@example.com", { name: "Otto Side", number: "3", position: "D" });
@@ -438,7 +438,7 @@ async function main() {
   after = (await call("GET", `/api/teams/${hh}`)).json;
   ok(!after.games.some((g: any) => g.source === "daysmart" && g.playedOn === "2026-09-06") && after.games.some((g: any) => g.id === c2.json.gameId), "it replaced the imported game");
   ok(after.roster.filter((r: any) => r.name === "Adam Y.").length === 1 && after.roster.find((r: any) => r.name === "Adam Y.").number === "19", "\"Adam Young\" #19 on the sheet is the imported \"Adam Y.\" spot, no duplicate");
-  ok(after.record.w === before.record.w && after.record.l === before.record.l && after.record.gp === before.record.gp, "record still adds up: the game moved from the baseline to the sheet");
+  ok(after.record.w === hhBefore.record.w && after.record.l === hhBefore.record.l && after.record.gp === hhBefore.record.gp, "record still adds up: the game moved from the baseline to the sheet");
   ok((await ptsOf("Adam Y.")) === adamPts, "Adam's points still add up (2G 1A, counted once)");
 
   console.log("status and sign-out");
