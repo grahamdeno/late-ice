@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 // Take an open captaincy, or file a contest that goes to league or rink staff.
 export const POST = handle<{ id: string }>(async (req, { id }) => {
-  const u = await A.requireUser(req);
+  const u = await A.requireApproved(req);
   const teamId = num(id);
   const b = await body(req);
   return sql.begin(async (tx) => {

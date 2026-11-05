@@ -5,6 +5,7 @@ import { Link, useLocation } from "@/lib/router";
 import { useMe, act, ROLE_LABEL } from "@/lib/auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { BackBar, Empty, LevelPill, Loading, Section, TeamBadge } from "@/lib/ui";
+import { AddButton, AddLeagueForm, AddSeasonForm, AddTeamForm, EditRinkForm, RinkRequestForm, RINK_ROLE_LABEL } from "@/components/ManageForms";
 
 const when = (s: string) => new Date(s).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
@@ -17,14 +18,14 @@ export default function Staff() {
 
   useEffect(() => { if (!loading && !me) nav("/join"); }, [loading, me, nav]);
   if (loading || !me) return <Loading />;
-  if (error) return <div><BackBar href="/me" title="Staff" /><Empty title="Staff only" body={(error as any).message} /></div>;
+  if (error) return <div><BackBar href="/me" title="Profile" /><Empty title="Staff only" body={(error as any).message} /></div>;
   if (!data) return <Loading />;
   const run = async (method: string, url: string, body?: unknown) => { const e = await act(method, url, body); setErr(e); return !e; };
 
   return (
     <div>
-      <BackBar href="/me" title="Staff" />
-      <h1 className="font-black text-2xl">Staff</h1>
+      <BackBar href="/me" title="Profile" />
+      <h1 className="font-black text-2xl">Manage</h1>
       <div className="flex flex-wrap gap-1.5 mt-2">
         {data.roles.filter((r: any) => !["captain", "assistant_captain"].includes(r.role)).map((r: any) => (
           <span key={r.id} className="chip h-7 text-[11px]">{ROLE_LABEL[r.role]}{r.where ? ` · ${r.where}` : ""}</span>
@@ -33,6 +34,7 @@ export default function Staff() {
       {err && <p className="text-sm down mt-3" data-testid="text-error">{err}</p>}
 
       <Requests run={run} />
+      <Signups run={run} />
       {data.isSupport || data.isAdmin ? <SupportDesk run={run} isAdmin={data.isAdmin} /> : null}
       {data.rinks.map((r: any) => <RinkSection key={r.id} rink={r} run={run} />)}
       {data.rinks.some((r: any) => r.manage) && <ImportSection rinks={data.rinks.filter((r: any) => r.manage)} />}
@@ -51,12 +53,13 @@ function Requests({ run }: { run: Run }) {
     <Section title="Waiting on you" action={<span className="label text-[var(--red)]">{data.length}</span>}>
       <div className="space-y-2">
         {data.map((r) => (
+          r.kind === "new_rink" || r.kind === "rink_manager" ? <RinkRequestCard key={r.id} r={r} run={run} /> : (
           <div key={r.id} className="card p-4" data-testid={`card-request-${r.id}`}>
             <div className="font-bold text-sm">
-              {r.kind === "rink_manager" ? `${r.requester ?? r.requester_email} wants to manage ${r.rink_name}` : `${r.requester} says they're the captain of ${r.team_name}`}
+              {r.kind === "new_team" ? `${r.requester ?? r.requester_email} wants to add ${r.details?.name} to the ${r.league_name}` : `${r.requester} says they're the captain of ${r.team_name}`}
             </div>
             <p className="text-xs text-[var(--mute)] mt-0.5">
-              {r.kind === "rink_manager" ? `${r.requester_email}. Call the rink to confirm before approving.` : `Current captain: ${r.target ?? "none"}. Approving makes ${r.requester} captain.`}
+              {r.kind === "new_team" ? (r.details?.captain ? `They'd be its captain. ` : "") + "Check the name is spelled the way the league spells it." : `Current captain: ${r.target ?? "none"}. Approving makes ${r.requester} captain.`}
               {r.message ? ` Note: "${r.message}"` : ""}
             </p>
             <div className="grid grid-cols-2 gap-2 mt-3">
@@ -64,9 +67,82 @@ function Requests({ run }: { run: Run }) {
               <button className="btn btn-red h-10" onClick={() => run("POST", `/api/staff/requests/${r.id}`, { decision: "approve" })} data-testid={`button-approve-request-${r.id}`}>Approve</button>
             </div>
           </div>
+          )
         ))}
       </div>
     </Section>
+  );
+}
+
+/** New accounts waiting to be let in. */
+function Signups({ run }: { run: Run }) {
+  const { data } = useQuery<any[]>({ queryKey: ["/api/staff/signups"] });
+  if (!data?.length) return null;
+  return (
+    <Section title="New sign-ups" action={<span className="label text-[var(--red)]">{data.length}</span>}>
+      <div className="card divide-y divide-[var(--line)]">
+        {data.map((u) => (
+          <div key={u.id} className="p-3.5 flex items-center gap-3" data-testid={`row-signup-${u.id}`}>
+            <span className="flex-1 min-w-0">
+              <span className="block font-bold text-sm truncate">{u.name ?? "No name yet"}{u.number ? ` #${u.number}` : ""}</span>
+              <span className="block text-xs text-[var(--mute)] truncate">{u.email}{u.rink ? ` · ${u.rink}` : ""}{u.teams ? ` · ${u.teams}` : ""}</span>
+            </span>
+            <button className="btn btn-ghost h-9 text-xs" onClick={() => confirm(`Remove ${u.name ?? u.email}? They can't get in after this.`) && run("POST", `/api/staff/signups/${u.id}`, { decision: "remove" })} data-testid={`button-remove-signup-${u.id}`}>Remove</button>
+            <button className="btn btn-red h-9 text-xs" onClick={() => run("POST", `/api/staff/signups/${u.id}`, { decision: "approve" })} data-testid={`button-approve-signup-${u.id}`}>Let in</button>
+          </div>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+function Check({ ok, children }: { ok: boolean | null; children: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-2 text-xs">
+      <span className={`mt-0.5 h-4 w-4 shrink-0 rounded-full flex items-center justify-center text-[10px] font-black ${ok ? "bg-[var(--up)] text-white" : ok === false ? "bg-[var(--ice-3)] text-[var(--mute)] border border-[var(--line)]" : "bg-[var(--ice-3)] text-[var(--amber)]"}`}>{ok ? "✓" : ok === false ? "–" : "?"}</span>
+      <span className="min-w-0 break-words">{children}</span>
+    </div>
+  );
+}
+
+/** A new rink, or someone asking to run one: everything an admin needs to check, on one card. */
+function RinkRequestCard({ r, run }: { r: any; run: Run }) {
+  const d = r.details ?? {};
+  const isNew = r.kind === "new_rink";
+  const wantsManager = isNew ? !!d.manage : true;
+  const m = d.map?.matches?.[0];
+  const site = isNew ? d.website : r.rink_website;
+  const phone = isNew ? m?.phone ?? null : r.rink_phone;
+  const onDomain = isNew ? d.emailOnDomain : r.email_on_domain;
+  const phoneOk = !!r.phone_confirmed_at;
+  return (
+    <div className="card p-4" data-testid={`card-request-${r.id}`}>
+      <div className="font-bold text-sm">{isNew ? `Add ${d.name} (${d.city}, ${d.state})` : `${r.requester ?? r.requester_email} wants to manage ${r.rink_name}`}</div>
+      <p className="text-xs text-[var(--mute)] mt-0.5">
+        From {r.requester ?? "someone"} · {r.requester_email}{wantsManager ? ` · ${RINK_ROLE_LABEL[d.role] ?? "role not given"}` : ""}{r.message ? ` · "${r.message}"` : ""}
+      </p>
+      <div className="mt-3 space-y-1.5">
+        {isNew && (
+          <Check ok={d.map?.checked ? !!m?.isRink : null}>
+            {d.map?.checked ? (m ? <>Map: <a className="text-[var(--blue)]" href={m.osm} target="_blank" rel="noreferrer">{m.name}</a>, {m.address}{m.isRink ? "" : " (not tagged as a rink)"}</> : "Not found on the map. Check the website.") : "Map lookup didn't run. Check the website."}
+          </Check>
+        )}
+        {site && <Check ok={null}>Website: <a className="text-[var(--blue)]" href={/^https?:/.test(site) ? site : `https://${site}`} target="_blank" rel="noreferrer">{site}</a></Check>}
+        {wantsManager && <Check ok={!!onDomain}>{onDomain ? "Signed in with an email on the rink's own domain" : "Email isn't on the rink's domain"}</Check>}
+        {wantsManager && (
+          <Check ok={phoneOk}>
+            {phoneOk ? `Confirmed by phone (${r.phone_confirmed_name ?? "admin"})` : <>Call the rink's public number{phone ? <>: <a className="text-[var(--blue)]" href={`tel:${phone}`}>{phone}</a></> : " (from its website)"}, not one they gave you.</>}
+            {!phoneOk && <button className="ml-2 text-[var(--blue)] font-bold" onClick={() => run("POST", `/api/staff/requests/${r.id}/phone`)} data-testid={`button-phone-ok-${r.id}`}>Confirmed by phone</button>}
+          </Check>
+        )}
+      </div>
+      <div className={`grid gap-2 mt-3 ${isNew && wantsManager ? "grid-cols-3" : "grid-cols-2"}`}>
+        <button className="btn btn-ghost h-10 text-sm" onClick={() => run("POST", `/api/staff/requests/${r.id}`, { decision: "decline" })} data-testid={`button-decline-request-${r.id}`}>Decline</button>
+        {isNew && wantsManager && <button className="btn btn-ghost h-10 text-sm" onClick={() => run("POST", `/api/staff/requests/${r.id}`, { decision: "approve_rink" })} data-testid={`button-approve-rink-only-${r.id}`}>Rink only</button>}
+        <button className="btn btn-red h-10 text-sm" disabled={wantsManager && !onDomain && !phoneOk} onClick={() => run("POST", `/api/staff/requests/${r.id}`, { decision: "approve" })} data-testid={`button-approve-request-${r.id}`}>{wantsManager ? "Approve manager" : "Add rink"}</button>
+      </div>
+      {wantsManager && !onDomain && !phoneOk && <p className="text-[11px] text-[var(--mute)] mt-2">Approving a manager needs one check: their email on the rink's domain, or your call to the rink.</p>}
+    </div>
   );
 }
 
@@ -153,22 +229,42 @@ function RinkSection({ rink, run }: { rink: any; run: Run }) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("scorekeeper");
   const [league, setLeague] = useState<number | null>(rink.leagues[0]?.id ?? null);
+  const [open, setOpen] = useState<string | null>(null);
+  const close = () => setOpen(null);
   return (
-    <Section title={rink.name}>
+    <Section title={rink.name} action={rink.can?.edit && open !== "rink" ? <button className="text-sm text-[var(--blue)] font-bold" onClick={() => setOpen("rink")} data-testid={`button-edit-rink-${rink.id}`}>Edit</button> : undefined}>
+      {open === "rink" ? <div className="mb-3"><EditRinkForm rink={rink} onDone={close} /></div> : (rink.address || rink.phone) ? <p className="text-xs text-[var(--mute)] -mt-1 mb-2 px-1">{[rink.address, rink.phone].filter(Boolean).join(" · ")}</p> : null}
       {rink.leagues.map((l: any) => (
-        <div key={l.id} className="card mt-2">
-          <div className="p-3.5 flex items-center gap-2 border-b border-[var(--line)]"><LevelPill level={l.level === "DEMO" ? "Demo" : l.level} /><span className="font-bold text-sm">{l.name}</span></div>
+        <div key={l.id} className="card mt-2" data-testid={`card-manage-league-${l.id}`}>
+          <div className="p-3.5 flex items-center gap-2 border-b border-[var(--line)]">
+            <LevelPill level={l.level === "DEMO" ? "Demo" : l.level} />
+            <Link href={`/league/${l.id}`} className="font-bold text-sm flex-1 min-w-0 truncate">{l.name}</Link>
+            {l.addTeam && open !== `team-${l.id}` && <AddButton label="Team" onClick={() => setOpen(`team-${l.id}`)} testid={`button-add-team-${l.id}`} />}
+          </div>
+          {open === `team-${l.id}` && <div className="p-3 border-b border-[var(--line)]"><AddTeamForm leagueId={l.id} leagueName={l.name} onDone={close} /></div>}
           <div className="divide-y divide-[var(--line)]">
+            {l.teams.length === 0 && <p className="p-3 text-xs text-[var(--mute)]">No teams yet.</p>}
             {l.teams.map((t: any) => (
-              <Link key={t.id} href={`/team/${t.id}`} className="flex items-center gap-3 p-3 text-sm" data-testid={`row-staff-team-${t.id}`}>
-                <TeamBadge team={t} size={24} />
-                <span className="flex-1 min-w-0 truncate font-bold">{t.name}</span>
-                <span className="text-xs text-[var(--mute)]">{t.is_sample ? "placeholder" : t.captain ? `C: ${t.captain}` : "no captain"} · {t.registered}/{t.roster}</span>
-              </Link>
+              <div key={t.id} className="flex items-center gap-3 p-3 text-sm">
+                <Link href={`/team/${t.id}`} className="flex items-center gap-3 flex-1 min-w-0" data-testid={`row-staff-team-${t.id}`}>
+                  <TeamBadge team={t} size={24} />
+                  <span className="flex-1 min-w-0 truncate font-bold">{t.name}</span>
+                  <span className="text-xs text-[var(--mute)] shrink-0">{t.captain ? `C: ${t.captain}` : "no captain"} · {t.registered}/{t.roster}</span>
+                </Link>
+                {t.removable && <button className="text-xs text-[var(--mute)] shrink-0" onClick={() => confirm(`Remove ${t.name}? It has no games or players.`) && run("DELETE", `/api/teams/${t.id}`)} data-testid={`button-remove-team-${t.id}`}>Remove</button>}
+              </div>
             ))}
           </div>
         </div>
       ))}
+      {rink.can?.addLeague && (open === "league" ? <div className="mt-3"><AddLeagueForm rinkId={rink.id} onDone={close} /></div> : <div className="mt-3 px-1"><AddButton label="League" onClick={() => setOpen("league")} testid={`button-add-league-${rink.id}`} /></div>)}
+      {rink.can?.seasons && (
+        <div className="card mt-3 p-4">
+          <div className="flex items-center justify-between mb-1"><span className="label">Seasons</span>{open !== "season" && <AddButton label="Season" onClick={() => setOpen("season")} testid={`button-add-season-${rink.id}`} />}</div>
+          {open === "season" && <div className="my-2"><AddSeasonForm rinkId={rink.id} onDone={close} /></div>}
+          {rink.seasons.length ? rink.seasons.map((s: any) => <div key={s.id} className="text-sm py-1 flex justify-between gap-2"><span className="font-bold">{s.name}</span><span className="text-xs text-[var(--mute)] tnum">{s.starts_on} to {s.ends_on}</span></div>) : <p className="text-xs text-[var(--mute)]">No seasons yet.</p>}
+        </div>
+      )}
       {rink.manage && (
         <div className="card mt-3 p-4">
           <div className="label mb-2">Rink staff</div>
@@ -205,8 +301,17 @@ function AdminSection({ data, run }: { data: any; run: Run }) {
   const [rink, setRink] = useState<number | null>(data.allRinks[0]?.id ?? null);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [addRink, setAddRink] = useState(false);
+  const { data: settings } = useQuery<{ signupsPaused: boolean }>({ queryKey: ["/api/staff/settings"] });
   return (
     <Section title="Admin">
+      <div className="card p-4 mb-3 flex items-center gap-3" data-testid="card-signup-switch">
+        <span className="flex-1"><span className="block font-bold text-sm">Pause new sign-ups</span><span className="block text-xs text-[var(--mute)]">{settings?.signupsPaused ? "Paused. Nobody new can make an account. Existing players still sign in." : "Open. New accounts wait for an invite or your OK."}</span></span>
+        <button role="switch" aria-checked={!!settings?.signupsPaused} aria-label="Pause new sign-ups" onClick={() => run("PUT", "/api/staff/settings", { signupsPaused: !settings?.signupsPaused })} className={`h-7 w-12 shrink-0 rounded-full relative transition-colors ${settings?.signupsPaused ? "bg-[var(--red-btn)]" : "bg-[var(--ice-3)] border border-[var(--line)]"}`} data-testid="switch-pause-signups">
+          <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${settings?.signupsPaused ? "left-[22px]" : "left-0.5"}`} />
+        </button>
+      </div>
+      <div className="mb-3">{addRink ? <RinkRequestForm admin onDone={() => setAddRink(false)} /> : <AddButton label="Rink" onClick={() => setAddRink(true)} testid="button-add-rink" />}</div>
       <div className="card p-4">
         <div className="label mb-2">System staff</div>
         {data.systemStaff.map((s: any) => (
@@ -279,7 +384,7 @@ function ImportSection({ rinks }: { rinks: any[] }) {
   return (
     <Section title="Import from DaySmart">
       <div className="card p-4 space-y-3" data-testid="card-import">
-        <p className="text-xs text-[var(--mute)]">Upload the report Grok collected. You'll see a preview before anything is saved. Rosters become unclaimed spots; games show as imported results that don't change standings or ratings.</p>
+        <p className="text-xs text-[var(--mute)]">Upload the report Grok collected, one league at a time. You'll see a preview before anything is saved. Leagues and teams that aren't here yet are added, rosters become unclaimed spots, and standings and season totals come from the league's own pages.</p>
         {rinks.length > 1 && (
           <select className="input w-full text-sm" value={rinkId} onChange={(e) => setRinkId(Number(e.target.value))}>
             {rinks.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
@@ -295,7 +400,9 @@ function ImportSection({ rinks }: { rinks: any[] }) {
         <button className="btn btn-ghost h-11 w-full" disabled={busy || text.length < 50} onClick={() => send(false)} data-testid="button-import-preview">{busy && !res ? "Reading…" : "Preview"}</button>
         {s && (
           <div className="rounded-xl border border-[var(--line)] p-3 text-xs space-y-1.5" data-testid="import-summary">
-            <div className="font-bold text-sm">{res.applied ? "Imported" : "Preview"} · {s.league}</div>
+            <div className="font-bold text-sm">{res.applied ? "Imported" : "Preview"} · {s.league}{s.leagueCreated ? " (new league)" : ""}</div>
+            {s.teamsCreated?.length > 0 && <div className="text-[var(--amber)]">New teams: {s.teamsCreated.join(", ")}. Check the spelling before importing.</div>}
+            {(s.standingsRows > 0 || s.playerTotals > 0) && <div>{s.standingsRows} standings rows · {s.playerTotals} player season totals</div>}
             <div>{s.gamesAdded} new games, {s.gamesUpdated} updated{s.gamesSkipped.length ? `, ${s.gamesSkipped.length} skipped` : ""} · {s.lines} player lines</div>
             <div>{s.rosterAdded} new roster spots, {s.rosterExisting} already here</div>
             <div className="text-[var(--mute)]">Teams: {s.teams.map((t: any) => t.source === t.team ? t.team : `${t.source} → ${t.team}`).join(", ")}</div>

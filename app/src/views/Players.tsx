@@ -2,30 +2,39 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@/lib/router";
-import { useMe, act } from "@/lib/auth";
+import { useMe, act, posMatch } from "@/lib/auth";
+import { Bobble } from "@/components/Bobble";
+import { ARCHETYPE_BLURB, ARCHETYPE_LABEL } from "@/components/Archetypes";
 import { BackBar, Delta, Empty, LevelPill, Loading, TeamBadge, fmtDate, fmtRating, useFilter } from "@/lib/ui";
 
 export function Players() {
   const { leagueId, boot } = useFilter();
   const [qs, setQs] = useState("");
+  const [pos, setPos] = useState("skaters");
   const { data } = useQuery<any[]>({ queryKey: [leagueId ? `/api/players?league=${leagueId}` : "/api/players"] });
   const league = boot?.leagues.find((l) => l.id === leagueId);
-  const rows = (data ?? []).filter((p) => p.name.toLowerCase().includes(qs.toLowerCase()));
+  const rows = (data ?? []).filter((p) => posMatch(pos, p.position) && p.name.toLowerCase().includes(qs.toLowerCase()));
   return (
     <div>
       <div className="label">{league ? league.name : "All Wilmington"} · Late Ice Rating</div>
       <h1 className="font-display text-[40px] leading-none font-black uppercase mt-1">Players</h1>
       <p className="text-sm text-[var(--mute)] mt-2">Every player on a scanned sheet gets a rating. Win against better teams and it climbs.</p>
       <input value={qs} onChange={(e) => setQs(e.target.value)} placeholder="Find a player" className="mt-4 w-full h-11 rounded-xl bg-[var(--ice-2)] border border-[var(--line)] px-4 focus:outline-none focus:border-[var(--red)]" data-testid="input-player-search" />
+      <div className="flex gap-1.5 mt-3 overflow-x-auto scrollbar-none -mx-4 px-4">
+        {([["skaters", "Skaters"], ["C", "Center"], ["W", "Wing"], ["D", "Defense"], ["G", "Goalie"]] as const).map(([k, label]) => (
+          <button key={k} onClick={() => setPos(k)} data-active={pos === k} className="chip shrink-0" data-testid={`button-pos-${k}`}>{label}</button>
+        ))}
+      </div>
+      {pos === "C" || pos === "W" ? <p className="text-[11px] text-[var(--mute)] mt-2">Shows players who picked {pos === "C" ? "center" : "wing"} on their profile. Imported spots are just "forward" until someone claims them.</p> : null}
       {!data ? <Loading /> : rows.length === 0 ? (
-        <div className="mt-4"><Empty title={qs ? "No match" : "No players yet"} body={qs ? "Try another spelling." : "Players appear the moment their first scoresheet is scanned."} /></div>
+        <div className="mt-4"><Empty title={qs ? "No match" : pos !== "skaters" ? "Nobody at this position yet" : "No players yet"} body={qs ? "Try another spelling." : pos !== "skaters" ? "Players set their position on their profile." : "Players appear the moment their first scoresheet is scanned."} /></div>
       ) : (
         <div className="card divide-y divide-[var(--line)] mt-4">
           {rows.map((p, i) => (
             <Link key={p.id} href={`/player/${p.id}`} className="flex items-center gap-3 px-4 py-3" data-testid={`row-player-${p.id}`}>
               <span className="w-6 text-center font-display text-lg text-[var(--mute)]">{i + 1}</span>
               <span className="flex-1 min-w-0">
-                <span className="block font-bold truncate">{p.name}{p.position === "G" && <span className="text-[var(--mute)] font-medium"> · G</span>}</span>
+                <span className="block font-bold truncate">{p.name}{p.position && p.position !== "F" && <span className="text-[var(--mute)] font-medium"> · {p.position}</span>}</span>
                 <span className="block text-xs text-[var(--mute)] truncate">{p.teams} · {p.levels}</span>
               </span>
               <span className="text-right">
@@ -50,7 +59,7 @@ function Spark({ pts }: { pts: number[] }) {
     <svg viewBox={`0 0 ${W} ${H + 6}`} className="w-full h-20 mt-3" preserveAspectRatio="none" aria-label="Rating over time">
       <path d={`${d} L${W} ${H + 6} L0 ${H + 6}Z`} fill="rgba(255,59,59,.12)" />
       <path d={d} fill="none" stroke="#FF3B3B" strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
-      {xy.map(([x, y], i) => <circle key={i} cx={x} cy={y} r="3.5" fill="#05070B" stroke="#FF3B3B" strokeWidth="2" vectorEffect="non-scaling-stroke" />)}
+      {xy.map(([x, y], i) => <circle key={i} cx={x} cy={y} r="3.5" style={{ fill: "var(--ice)", stroke: "var(--red)" }} strokeWidth="2" vectorEffect="non-scaling-stroke" />)}
     </svg>
   );
 }
@@ -58,6 +67,7 @@ function Spark({ pts }: { pts: number[] }) {
 export function PlayerPage({ id }: { id: string }) {
   const { data } = useQuery<any>({ queryKey: [`/api/players/${id}`] });
   const [openRow, setOpenRow] = useState<number | null>(null);
+  const [voteErr, setVoteErr] = useState<string | null>(null);
   if (!data) return <Loading />;
   const { player, teams, history, totals, ranks, reliability, imported } = data;
   const series = history.length ? [history[0].before, ...history.map((h: any) => h.after)] : [];
@@ -68,7 +78,8 @@ export function PlayerPage({ id }: { id: string }) {
       <BackBar href="/players" title="Player" />
       <div className="card-hi p-5">
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
+          <Bobble avatar={player.avatar} jersey={teams[0]?.color} number={teams[0]?.number} archetype={data.archetypes?.[0]?.won?.archetype} goalie={player.position === "G"} size={72} label={`${player.name}'s bobblehead`} />
+          <div className="min-w-0 flex-1">
             <h1 className="font-black text-[26px] leading-tight" data-testid="text-player-name">{player.name}</h1>
             <div className="flex flex-wrap gap-1.5 mt-2">
               {teams.map((t: any) => (
@@ -94,6 +105,26 @@ export function PlayerPage({ id }: { id: string }) {
           <div className="text-[11px] text-[var(--mute)] mt-1.5">{provisional ? `Moves fast for the first 5 games. ${5 - player.games_rated} to go.` : "Settled. Each game nudges it."}</div>
         </div>
       </div>
+
+      {data.archetypes?.some((x: any) => x.won || x.canVote) && (
+        <div className="card mt-3 divide-y divide-[var(--line)]" data-testid="card-player-archetypes">
+          {data.archetypes.filter((x: any) => x.won || x.canVote).map((x: any) => (
+            <div key={x.teamId} className="p-3.5 flex items-center gap-3 text-sm">
+              <span className="flex-1 min-w-0">
+                <span className="block font-bold">{x.won ? ARCHETYPE_LABEL[x.won.archetype] : "No archetype yet"}<span className="text-[var(--mute)] font-medium"> · {x.teamName}</span></span>
+                <span className="block text-xs text-[var(--mute)]">{x.won ? `${ARCHETYPE_BLURB[x.won.archetype]}. ${x.won.votes} teammates agree.` : `Shows once ${x.minVotes} teammates agree.`}</span>
+              </span>
+              {x.canVote && (
+                <select className="input h-9 text-sm w-[140px]" aria-label={`Your vote for ${player.name}`} value={x.mine ?? ""} onChange={async (e) => setVoteErr(await act("PUT", `/api/teams/${x.teamId}/archetypes`, { playerId: player.id, archetype: e.target.value || null }))} data-testid={`select-player-archetype-${x.teamId}`}>
+                  <option value="">Your vote</option>
+                  {Object.entries(ARCHETYPE_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                </select>
+              )}
+            </div>
+          ))}
+          {voteErr && <p className="p-3 text-xs down">{voteErr}</p>}
+        </div>
+      )}
 
       <div className="grid grid-cols-4 gap-2 mt-3 text-center">
         {[["GP", totals.gp], ["G", totals.g], ["A", totals.a], ["PIM", totals.pim]].map(([k, v]) => (

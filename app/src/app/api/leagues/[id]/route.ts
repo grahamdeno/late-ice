@@ -1,6 +1,9 @@
 import { handle, body, num } from "@/server/http";
 import { sql, q, one } from "@/server/db";
 import { currentSeason, gameCards, leaders, seasonsWithData, standings, HttpError } from "@/server/services";
+import * as A from "@/server/accounts";
+import * as P from "@/server/permissions";
+import { clean } from "@/server/manage";
 
 export const dynamic = "force-dynamic";
 export const GET = handle<{ id: string }>(async (req, { id }) => {
@@ -13,5 +16,38 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
   const season = (sid ? await one(sql, "SELECT * FROM seasons WHERE id=$1", [sid]) : null) ?? cur;
   const games = await gameCards(sql, await q(sql, "SELECT * FROM games WHERE league_id=$1 AND ($2::int IS NULL OR season_id=$2) ORDER BY played_on DESC NULLS LAST, id DESC", [l.id, sid]));
   const imports = await one<any>(sql, "SELECT MAX(as_of) as_of, MAX(source) source, SUM(gp) gp FROM team_imports ti JOIN teams t ON t.id=ti.team_id WHERE t.league_id=$1 AND ti.season_id=$2", [l.id, sid]);
-  return { league: l, season, seasons, standings: await standings(sql, l.id, sid), leaders: await leaders(sql, l.id, 10, sid), games, imported: imports?.gp ? imports : null };
+  const u = await A.userFromRequest(req).catch(() => null);
+  const scope = { leagueId: l.id, rinkId: l.rink_id };
+  const can = { addTeam: await P.can(sql, u, "team.create", scope), edit: await P.can(sql, u, "league.edit", scope), remove: await P.can(sql, u, "league.create", scope) };
+  return { league: l, season, seasons, standings: await standings(sql, l.id, sid), leaders: await leaders(sql, l.id, 10, sid), games, imported: imports?.gp ? imports : null, can, signedIn: !!u };
+});
+
+/** Rename a league or change its one-line description. */
+export const PATCH = handle<{ id: string }>(async (req, { id }) => {
+  const u = await A.requireUser(req);
+  const l = await one<any>(sql, "SELECT * FROM leagues WHERE id=$1", [num(id)]);
+  if (!l) throw new HttpError(404, "League not found");
+  await P.require_(sql, u, "league.edit", { leagueId: l.id, rinkId: l.rink_id });
+  const b = await body(req);
+  const name = b.name !== undefined ? clean(b.name, 60) || l.name : l.name;
+  const blurb = b.blurb !== undefined ? clean(b.blurb, 140) || null : l.blurb;
+  await sql.begin(async (tx) => {
+    await q(tx, "UPDATE leagues SET name=$1, blurb=$2 WHERE id=$3", [name, blurb, l.id]);
+    await P.audit(tx, u.id, "league.edit", { type: "league", id: l.id, rinkId: l.rink_id }, { name: l.name, blurb: l.blurb }, { name, blurb });
+  });
+  return { ok: true };
+});
+
+/** Remove a league, only while it has no teams. */
+export const DELETE = handle<{ id: string }>(async (req, { id }) => {
+  const u = await A.requireUser(req);
+  const l = await one<any>(sql, "SELECT * FROM leagues WHERE id=$1", [num(id)]);
+  if (!l) throw new HttpError(404, "League not found");
+  await P.require_(sql, u, "league.create", { leagueId: l.id, rinkId: l.rink_id });
+  if (await one(sql, "SELECT 1 FROM teams WHERE league_id=$1", [l.id]) || await one(sql, "SELECT 1 FROM games WHERE league_id=$1", [l.id])) throw new HttpError(409, "Remove its teams first.");
+  await sql.begin(async (tx) => {
+    await q(tx, "DELETE FROM leagues WHERE id=$1", [l.id]);
+    await P.audit(tx, u.id, "league.remove", { type: "league", id: l.id, rinkId: l.rink_id }, { name: l.name }, undefined);
+  });
+  return { ok: true };
 });

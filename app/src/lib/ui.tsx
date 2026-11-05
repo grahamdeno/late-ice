@@ -39,7 +39,7 @@ export function FaceoffDot({ size = 28, className = "", pulse = false }: { size?
     <svg viewBox="0 0 64 64" width={size} height={size} className={className} aria-hidden="true">
       <circle cx="32" cy="32" r="20" fill="none" stroke="#FF3B3B" strokeWidth="3.5" />
       <g stroke="#FF3B3B" strokeWidth="3.5" strokeLinecap="round"><path d="M12 27H5M12 37H5M52 27h7M52 37h7" /></g>
-      <g stroke="#EEF3F8" strokeWidth="2.5" strokeLinecap="round" fill="none"><path d="M24 24v4h-5M40 24v4h5M24 40v-4h-5M40 40v-4h5" /></g>
+      <g style={{ stroke: "var(--white)" }} strokeWidth="2.5" strokeLinecap="round" fill="none"><path d="M24 24v4h-5M40 24v4h5M24 40v-4h-5M40 40v-4h5" /></g>
       <circle cx="32" cy="32" r="5" fill="#FF3B3B" className={pulse ? "pulse-dot" : ""} />
     </svg>
   );
@@ -92,7 +92,7 @@ export function Delta({ d, className = "" }: { d: number | null | undefined; cla
 export function GameRow({ g }: { g: GameCard }) {
   const homeWon = g.homeScore >= g.awayScore, awayWon = g.awayScore >= g.homeScore;
   return (
-    <Link href={`/game/${g.id}`} className="card block p-4 hover:border-[#2a3446] transition-colors" data-testid={`card-game-${g.id}`}>
+    <Link href={`/game/${g.id}`} className="card block p-4 hover:border-[var(--line-2)] transition-colors" data-testid={`card-game-${g.id}`}>
       <div className="flex items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-2 min-w-0 text-xs text-[var(--mute)] whitespace-nowrap overflow-hidden">
           <LevelPill level={g.league.level === "DEMO" ? "Demo" : g.league.level} /> <span>{fmtDate(g.playedOn)}</span>{g.startTime && <span>· {g.startTime}</span>}

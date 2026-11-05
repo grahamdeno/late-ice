@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@/lib/router";
 import { apiRequest } from "@/lib/queryClient";
 import { FaceoffDot, img } from "@/lib/ui";
+import { useMe } from "@/lib/auth";
 
 /** Shrink big phone photos before upload. Keeps handwriting legible, cuts upload time. */
 async function toDataUrl(file: File, max = 2200): Promise<string> {
@@ -21,6 +22,7 @@ async function toDataUrl(file: File, max = 2200): Promise<string> {
 
 export default function Scan() {
   const [, nav] = useLocation();
+  const { me, loading } = useMe();
   const cam = useRef<HTMLInputElement>(null);
   const lib = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -36,15 +38,32 @@ export default function Scan() {
       const { id } = await r.json();
       nav(`/sheet/${id}`);
     } catch (e: any) {
-      setErr(e?.status === 413 ? e.message : "Upload failed. Check your signal and try again.");
+      setErr([401, 413, 429].includes(e?.status) ? e.message : "Upload failed. Check your signal and try again.");
       setBusy(false);
     }
   };
   const sample = async (id: string) => {
-    setBusy(true);
-    const r = await apiRequest("POST", `/api/sheets/sample/${id}`);
-    nav(`/sheet/${(await r.json()).id}`);
+    setBusy(true); setErr(null);
+    try {
+      const r = await apiRequest("POST", `/api/sheets/sample/${id}`);
+      nav(`/sheet/${(await r.json()).id}`);
+    } catch (e: any) { setErr(e.message); setBusy(false); }
   };
+
+  if (!loading && !me) {
+    return (
+      <div>
+        <div className="label">Post-game · 30 seconds</div>
+        <h1 className="font-display text-[40px] leading-none font-black uppercase mt-1">Snap the sheet</h1>
+        <div className="card-hi mt-5 p-5 text-center" data-testid="card-scan-signin">
+          <div className="flex justify-center mb-3"><FaceoffDot size={44} /></div>
+          <div className="font-bold">Sign in to scan</div>
+          <p className="text-sm text-[var(--mute)] mt-1">Scans are tied to a player so wrong sheets can be traced and fixed. It takes a minute, and it's free.</p>
+          <Link href="/join" className="btn btn-red h-11 mt-4 inline-flex" data-testid="button-scan-join">Join or sign in</Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -53,7 +72,7 @@ export default function Scan() {
       <p className="text-[var(--mute)] mt-2">Grab the scoresheet off the scorer's table. One photo puts the game, the goals and everyone's rating on the books.</p>
 
       <div className="card-hi mt-5 p-4">
-        <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-[var(--line)] flex items-center justify-center" style={{ background: "repeating-linear-gradient(0deg,#0b0f16 0 22px,#0e131c 22px 23px)" }}>
+        <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-[var(--line)] flex items-center justify-center" style={{ background: "repeating-linear-gradient(0deg,var(--ice-2) 0 22px,var(--ice-3) 22px 23px)" }}>
           {["top-3 left-3 border-t-4 border-l-4 rounded-tl-xl", "top-3 right-3 border-t-4 border-r-4 rounded-tr-xl", "bottom-3 left-3 border-b-4 border-l-4 rounded-bl-xl", "bottom-3 right-3 border-b-4 border-r-4 rounded-br-xl"].map((c) => (
             <span key={c} className={`absolute h-8 w-8 border-[var(--red)] ${c}`} />
           ))}

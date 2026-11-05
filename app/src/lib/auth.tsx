@@ -5,8 +5,8 @@ import { apiRequest, getQueryFn, queryClient, setToken } from "./queryClient";
 import { supabase } from "./supabase";
 
 export interface MeUser {
-  id: number; email: string | null; phone: string | null; name: string | null; number: string | null; position: "F" | "D" | "G" | null;
-  homeRink: { id: number; name: string } | null; status: "available" | "ir" | "away" | "resting";
+  id: number; email: string | null; phone: string | null; name: string | null; number: string | null; position: "C" | "W" | "F" | "D" | "G" | null;
+  homeRink: { id: number; name: string } | null; access: "approved" | "waiting" | "removed"; status: "active" | "ir" | "away"; lookingForTeam: boolean; willSub: boolean; avatar: any | null;
   statusUntil: string | null; hidden: boolean; profileComplete: boolean;
 }
 export interface MeSlot {
@@ -14,6 +14,8 @@ export interface MeSlot {
   team_id: number; team_name: string; color: string; logo: string | null; league_id: number; level: string; league_name: string;
   captain: { id: number; name: string } | null; isCaptain: boolean; teamRole: "captain" | "assistant_captain" | null;
   assistants: { id: number; name: string }[];
+  next: any | null;
+  archetype: { archetype: string; votes: number } | null;
 }
 export interface MyRole { id: number; role: string; scopeType: string; scopeId: number | null; where: string | null }
 export interface Notice { id: number; kind: string; title: string; body: string | null; link: string | null; team_id: number | null; read_at: string | null; created_at: string }
@@ -24,6 +26,7 @@ export interface Me {
   suggestions: { id: number; name: string; rating: number; number: string | null; team_id: number; team_name: string; color: string; logo: string | null; level: string; score: number }[];
 }
 
+export const INVITE_KEY = "lateice.invite";
 const AuthCtx = createContext<{ ready: boolean; token: string }>({ ready: false, token: "" });
 
 /** Keeps the Supabase session token in sync with the API client. */
@@ -48,6 +51,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     return () => { alive = false; sub.subscription.unsubscribe(); };
   }, []);
+  // Signed in after opening a team's invite link: use it once, then forget it.
+  useEffect(() => {
+    if (!state.token) return;
+    let invite: string | null = null;
+    try { invite = localStorage.getItem(INVITE_KEY); } catch { /* storage off */ }
+    if (!invite) return;
+    apiRequest("POST", "/api/invites/accept", { token: invite })
+      .then(() => queryClient.invalidateQueries())
+      .catch(() => {})
+      .finally(() => { try { localStorage.removeItem(INVITE_KEY); } catch { /* storage off */ } });
+  }, [state.token]);
   return <AuthCtx.Provider value={state}>{children}</AuthCtx.Provider>;
 }
 
@@ -92,9 +106,16 @@ export async function act(method: string, url: string, body?: unknown): Promise<
   }
 }
 
-export const POSITION_LABEL: Record<string, string> = { F: "Forward", D: "Defense", G: "Goalie" };
+export const POSITION_LABEL: Record<string, string> = { C: "Center", W: "Wing", F: "Forward", D: "Defense", G: "Goalie" };
+/** Position filters. "F" covers center, wing and forwards who haven't said which. */
+export function posMatch(filter: string, pos: string | null | undefined) {
+  if (filter === "all") return true;
+  if (filter === "skaters") return pos !== "G";
+  if (filter === "F") return pos === "C" || pos === "W" || pos === "F";
+  return pos === filter;
+}
 export const ROLE_LABEL: Record<string, string> = {
   assistant_captain: "Assistant captain", captain: "Captain", scorekeeper: "Scorekeeper", commissioner: "League commissioner",
   rink_manager: "Rink manager", support: "Support", admin: "Admin",
 };
-export const STATUS_LABEL: Record<string, string> = { available: "Available", ir: "Injured reserve", away: "Away", resting: "Resting" };
+export const STATUS_LABEL: Record<string, string> = { active: "Active", available: "Active", ir: "Injured reserve", away: "Away" };

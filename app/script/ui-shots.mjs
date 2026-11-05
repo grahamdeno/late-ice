@@ -123,7 +123,7 @@ try {
   if (!(await page.getByTestId("button-resend").isDisabled())) errors.push("resend should be on cooldown");
   // Start over with a fresh page; the server allows a new code after 1 second locally.
   await page.waitForTimeout(1500);
-  await join(page, "graham@example.com", "Graham DeNoyer", "12", "F");
+  await join(page, "graham@example.com", "Graham DeNoyer", "12", "C");
   await shoot(page, "join-profile");
   await page.getByTestId("button-save-profile").click();
   await page.waitForURL(/\/me$/);
@@ -185,6 +185,13 @@ try {
   const boot = await api(page, "GET", "/api/bootstrap");
   const imp = await api(page, "POST", "/api/staff/import", { text: FIXTURE, rinkId: boot.json.rink.id, apply: true });
   if (imp.status !== 200) errors.push(`fixture import failed: ${imp.status} ${JSON.stringify(imp.json)}`);
+  const meNow = await api(page, "GET", "/api/me");
+  const myTeam = meNow.json?.slots?.[0]?.team_id;
+  if (myTeam) {
+    const d = new Date(Date.now() + 4 * 86400000).toISOString().slice(0, 10);
+    const add = await api(page, "POST", `/api/teams/${myTeam}/schedule`, { date: d, time: "21:15", opponentName: "Raleigh Rebels", kind: "tournament", location: "Wake Competition Center" });
+    if (add.status !== 200) errors.push(`adding a game failed: ${add.status} ${JSON.stringify(add.json)}`);
+  } else errors.push("graham has no team for the schedule check");
   const hrefs = async (pg, path, prefix, k = 1) => {
     await pg.goto(BASE + path); await pg.waitForTimeout(1200);
     return (await pg.$$eval(`a[href^="${prefix}"]`, (as) => as.map((a) => a.getAttribute("href")))).filter((h, i, arr) => arr.indexOf(h) === i).slice(0, k);
@@ -215,9 +222,37 @@ try {
     await page.goto(BASE + "/"); await page.waitForTimeout(900);
     await page.getByTestId("button-league-switcher").click();
     await widthCheck(page, "league switcher");
+    if (w === 390) {
+      // With the sheet open, scrolling must not move the page underneath.
+      const top = () => page.evaluate(() => document.querySelector("main").getBoundingClientRect().top);
+      const t0 = await top();
+      await page.mouse.move(195, 700); await page.mouse.wheel(0, 900); await page.waitForTimeout(500);
+      if (Math.abs((await top()) - t0) > 1) errors.push("page scrolled under the open top sheet");
+      await page.getByTestId("button-close-switcher").click();
+    }
   }
   await page.setViewportSize({ width: 375, height: 760 });
   await page.goto(BASE + "/"); await shoot(page, "home-375");
+  await page.setViewportSize({ width: 390, height: 844 });
+  if (myTeam) { await page.goto(`${BASE}/team/${myTeam}`); await page.waitForTimeout(1200); await shoot(page, "team-schedule"); }
+  await page.goto(`${BASE}/players`); await page.waitForTimeout(1000);
+  await page.getByTestId("button-pos-D").click(); await shoot(page, "players-defense");
+  await api(page, "PATCH", "/api/me", { avatar: { skin: 3, hair: 1, helmet: "team", guard: "cage", beard: "full", style: "flow", eyeBlack: false } });
+  await page.goto(`${BASE}/me`); await page.waitForTimeout(1200);
+  await page.getByTestId("card-avatar-builder").scrollIntoViewIfNeeded().catch(() => {});
+  await shoot(page, "me-bobblehead");
+  // Light mode: the phone's setting, then the profile override.
+  await page.emulateMedia({ colorScheme: "light" });
+  for (const [path, name] of [["/", "light-home"], ["/leagues", "light-leagues"], [myTeam ? `/team/${myTeam}` : "/leagues", "light-team"], ["/players", "light-players"], ["/me", "light-me"], ["/staff", "light-staff"]]) {
+    await page.goto(BASE + path); await page.waitForTimeout(1100); await shoot(page, name);
+  }
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.goto(`${BASE}/me`); await page.waitForTimeout(1000);
+  await page.getByTestId("button-theme-light").click();
+  await page.reload(); await page.waitForTimeout(1000);
+  if ((await page.evaluate(() => document.documentElement.dataset.theme)) !== "light") errors.push("picking Light on the profile didn't stick");
+  await shoot(page, "light-me-override");
+  await page.getByTestId("button-theme-auto").click();
   await page.goto(BASE + "/staff"); await shoot(page, "staff-375");
   const pubW = await browser.newContext({ viewport: { width: 320, height: 700 } });
   const pw = await pubW.newPage();

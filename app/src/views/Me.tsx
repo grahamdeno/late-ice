@@ -4,6 +4,23 @@ import { Link, useLocation } from "@/lib/router";
 import { useMe, act, signOut, POSITION_LABEL, STATUS_LABEL, ROLE_LABEL } from "@/lib/auth";
 import { Empty, LevelPill, Loading, Section, TeamBadge, fmtRating } from "@/lib/ui";
 import { ProfileForm } from "./Join";
+import { useTheme, type Theme } from "@/lib/theme";
+import { GameLine, Rsvp } from "@/components/Schedule";
+import { AvatarBuilder } from "@/components/AvatarBuilder";
+
+function Appearance() {
+  const [theme, setTheme] = useTheme();
+  return (
+    <Section title="Appearance">
+      <div className="card p-1.5 grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Appearance">
+        {([["auto", "Match phone"], ["light", "Light"], ["dark", "Dark"]] as [Theme, string][]).map(([k, label]) => (
+          <button key={k} role="radio" aria-checked={theme === k} onClick={() => setTheme(k)} className={`h-10 rounded-xl text-sm font-bold ${theme === k ? "bg-[var(--red-btn)] text-white" : "text-[var(--mute)]"}`} data-testid={`button-theme-${k}`}>{label}</button>
+        ))}
+      </div>
+      <p className="text-[11px] text-[var(--mute)] mt-2 px-1">Saved on this phone.</p>
+    </Section>
+  );
+}
 
 function timeAgo(s: string) {
   const t = new Date(s).getTime();
@@ -32,6 +49,12 @@ export default function MePage() {
 
   return (
     <div>
+      {u.access === "waiting" && (
+        <div className="card mb-3 p-4 border-[var(--amber)]/50" data-testid="card-waitlist">
+          <div className="font-bold text-sm">You're on the waitlist</div>
+          <p className="text-xs text-[var(--mute)] mt-0.5">You can look around. To claim your spot, scan sheets and vote, open your captain's invite link, or wait for staff to let you in.</p>
+        </div>
+      )}
       <div className="card-hi p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -55,7 +78,7 @@ export default function MePage() {
 
       {me.staff && (
         <Link href="/staff" className="card-hi mt-3 p-4 flex items-center gap-3" data-testid="link-staff">
-          <span className="flex-1"><span className="block font-bold">Staff page</span><span className="block text-xs text-[var(--mute)]">Rinks, requests, support and roles.</span></span>
+          <span className="flex-1"><span className="block font-bold">Manage</span><span className="block text-xs text-[var(--mute)]">Requests, rinks, leagues, teams and staff.</span></span>
           <span>›</span>
         </Link>
       )}
@@ -133,6 +156,15 @@ export default function MePage() {
                     <span className="block text-[10px] label">LIR</span>
                   </span>
                 </Link>
+                {s.next && (
+                  <Link href={`/team/${s.team_id}`} className="block mt-3 rounded-xl border border-[var(--line)] p-2.5" data-testid={`next-game-${s.team_id}`}>
+                    <span className="block label mb-1.5">Next game</span>
+                    <GameLine g={s.next} />
+                  </Link>
+                )}
+                {s.next && s.next.rsvp?.member && (
+                  <div className="mt-2"><Rsvp g={s.next} /></div>
+                )}
                 <div className="flex flex-wrap gap-2 mt-3">
                   <Link href={`/player/${s.id}`} className="btn btn-ghost h-9 text-sm">Rating history</Link>
                   {s.teamRole && <Link href={`/team/${s.team_id}`} className="btn btn-red h-9 text-sm" data-testid={`button-manage-${s.team_id}`}>Manage roster</Link>}
@@ -156,24 +188,40 @@ export default function MePage() {
         </Section>
       )}
 
+      {me.slots.length > 0 && (
+        <AvatarBuilder saved={u.avatar} jersey={me.slots[0].color} number={me.slots[0].number} archetype={me.slots[0].archetype ?? null} goalie={u.position === "G"} />
+      )}
+
       <Section title="Availability">
         <div className="card p-4">
-          <div className="grid grid-cols-2 gap-2">
-            {(["available", "ir", "away", "resting"] as const).map((s) => (
-              <button key={s} className={`h-11 rounded-xl border text-sm font-bold ${u.status === s ? "border-[var(--red)] bg-[var(--red-dim)]" : "border-[var(--line)] bg-[var(--ice-3)]"}`} onClick={() => run("PATCH", "/api/me", { status: s, statusUntil: until || null })} data-testid={`button-status-${s}`}>
+          <div className="grid grid-cols-3 gap-2">
+            {(["active", "ir", "away"] as const).map((s) => (
+              <button key={s} className={`h-12 px-1 rounded-xl border text-[13px] leading-tight font-bold ${u.status === s ? "border-[var(--red)] bg-[var(--red-dim)]" : "border-[var(--line)] bg-[var(--ice-3)]"}`} onClick={() => run("PATCH", "/api/me", { status: s, statusUntil: until || null })} data-testid={`button-status-${s}`}>
                 {STATUS_LABEL[s]}
               </button>
             ))}
           </div>
           {(u.status === "ir" || u.status === "away") && (
             <label className="block mt-3">
-              <span className="label">Expected back</span>
+              <span className="label">Back on</span>
               <input type="date" className="input w-full mt-1.5" value={until} onChange={(e) => setUntil(e.target.value)} onBlur={() => run("PATCH", "/api/me", { status: u.status, statusUntil: until || null })} data-testid="input-status-until" />
             </label>
           )}
-          <p className="text-[11px] text-[var(--mute)] mt-3">Your captains see this. It never touches your rating, and injured reserve freezes it.</p>
+          <p className="text-[11px] text-[var(--mute)] mt-3">{u.status === "active" ? "Answer In, Out or Late on each game. Injured reserve and Away keep your roster spot and mark you out until the date you set, then switch back on their own." : `You're marked out of games${u.statusUntil ? ` until ${u.statusUntil}` : ""}. Your roster spot stays, and your rating doesn't move while you're out.`}</p>
+          <div className="mt-4 divide-y divide-[var(--line)] border-t border-[var(--line)]">
+            {([["lookingForTeam", "Looking for a team", "Captains at your rink see you in their draft pool."], ["willSub", "Will sub", "Other teams can ask you to fill in."]] as const).map(([k, label, hint]) => (
+              <div key={k} className="flex items-center gap-3 pt-3 pb-1">
+                <span className="flex-1"><span className="block font-bold text-sm">{label}</span><span className="block text-xs text-[var(--mute)]">{hint}</span></span>
+                <button role="switch" aria-checked={u[k]} aria-label={label} onClick={() => run("PATCH", "/api/me", { [k]: !u[k] })} className={`h-7 w-12 shrink-0 rounded-full relative transition-colors ${u[k] ? "bg-[var(--red-btn)]" : "bg-[var(--ice-3)] border border-[var(--line)]"}`} data-testid={`switch-${k}`}>
+                  <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${u[k] ? "left-[22px]" : "left-0.5"}`} />
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       </Section>
+
+      <Appearance />
 
       <Section title="Privacy">
         <div className="card p-4 flex items-center gap-3">
@@ -188,9 +236,10 @@ export default function MePage() {
       </Section>
 
       <a href={`mailto:support@tangomike.app?subject=${encodeURIComponent("Late Ice help")}&body=${encodeURIComponent(`\n\n---\nApp: Late Ice\nAccount: ${u.id}`)}`} className="card mt-6 p-4 flex items-center gap-3" data-testid="link-help">
-        <span className="flex-1"><span className="block font-bold text-sm">Get help</span><span className="block text-xs text-[var(--mute)]">Email support. Your account number is filled in.</span></span>
+        <span className="flex-1"><span className="block font-bold text-sm">Get help</span><span className="block text-xs text-[var(--mute)]">Questions or problems? Email us.</span></span>
         <span>›</span>
       </a>
+      <Link href="/privacy" className="block text-center text-xs text-[var(--mute)] mt-3 underline" data-testid="link-privacy">Terms and privacy</Link>
 
       <div className="mt-8 flex justify-between items-center px-1">
         <span className="text-xs text-[var(--mute)]">Signed in as {u.email ?? u.phone}</span>

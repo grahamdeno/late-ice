@@ -2,6 +2,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { CaptainPanel } from "@/components/CaptainPanel";
 import { ShotMap } from "@/components/ShotMap";
+import { Schedule } from "@/components/Schedule";
+import { AddButton, AddTeamForm } from "@/components/ManageForms";
+import { ArchetypeChip, ArchetypeVotes } from "@/components/Archetypes";
+import { Bobble } from "@/components/Bobble";
+import { act } from "@/lib/auth";
+import { useLocation } from "@/lib/router";
 import { Link } from "@/lib/router";
 import { useState } from "react";
 import { BackBar, Empty, GameRow, LevelPill, Loading, Section, TeamBadge, fmtDate, fmtRating, useFilter } from "@/lib/ui";
@@ -30,11 +36,16 @@ function StandingsTable({ rows, compact = false }: { rows: any[]; compact?: bool
             </td>
             <td className="text-center text-[var(--mute)]">{t.gp}</td>
             <td className="text-center">{t.w}-{t.l}-{t.t}</td>
-            {!compact && <td className={`text-center ${t.diff > 0 ? "up" : t.diff < 0 ? "down" : "text-[var(--mute)]"}`}>{t.diff > 0 ? "+" : ""}{t.diff}</td>}
+            {!compact && <td className={`text-center ${t.diff > 0 ? "up" : t.diff < 0 ? "down" : "text-[var(--mute)]"}`}>{t.diff == null ? "–" : `${t.diff > 0 ? "+" : ""}${t.diff}`}</td>}
             <td className="text-right pr-4 font-display text-lg">{t.pts}</td>
           </tr>
         ))}
       </tbody>
+      {!compact && (
+        <tfoot>
+          <tr><td colSpan={5} className="px-4 pt-3 pb-1 text-[11px] text-[var(--mute)] text-left font-sans">GP games played · W-L-T wins, losses, ties · DIFF goals for minus goals against · PTS 2 for a win, 1 for a tie</td></tr>
+        </tfoot>
+      )}
     </table>
   );
 }
@@ -62,16 +73,18 @@ export function Leagues() {
       <div className="label">Polar Ice Wilmington · {boot.season?.name}</div>
       <h1 className="font-display text-[40px] leading-none font-black uppercase mt-1">Standings</h1>
       <p className="text-sm text-[var(--mute)] mt-2">Two points a win, one a tie. Standings reset every season; ratings carry over.</p>
-      <div className="space-y-3 mt-5">{boot.leagues.map((l) => <LeagueCard key={l.id} id={l.id} />)}</div>
+      <div className="space-y-3 mt-5">{boot.leagues.filter((l) => l.level !== "DEMO").map((l) => <LeagueCard key={l.id} id={l.id} />)}</div>
     </div>
   );
 }
 
 export function LeaguePage({ id }: { id: string }) {
   const [seasonId, setSeasonId] = useState<number | null>(null);
+  const [adding, setAdding] = useState(false);
   const { data } = useQuery<any>({ queryKey: [seasonId ? `/api/leagues/${id}?season=${seasonId}` : `/api/leagues/${id}`] });
   if (!data) return <Loading />;
   const { league, season, seasons } = data;
+  const can = data.can ?? {};
   return (
     <div>
       <BackBar href="/leagues" title="Standings" />
@@ -85,7 +98,12 @@ export function LeaguePage({ id }: { id: string }) {
           ))}
         </div>
       )}
-      <div className="card overflow-hidden mt-5"><StandingsTable rows={data.standings} /></div>
+      <div className="flex items-center justify-end mt-4 min-h-[20px]">
+        {!adding && (can.addTeam ? <AddButton label="Team" onClick={() => setAdding(true)} testid="button-league-add-team" />
+          : data.signedIn ? <button className="text-sm text-[var(--blue)] font-bold" onClick={() => setAdding(true)} data-testid="button-start-team">Start a team</button> : null)}
+      </div>
+      {adding && <div className="mt-2"><AddTeamForm leagueId={league.id} leagueName={league.name} request={!can.addTeam} onDone={() => setAdding(false)} /></div>}
+      <div className="card overflow-hidden mt-2"><StandingsTable rows={data.standings} /></div>
       {data.imported && (
         <p className="text-[11px] text-[var(--mute)] mt-2 px-1" data-testid="text-imported-note">
           Includes {data.imported.gp / 2} games imported from the {data.imported.source}, as of {fmtDate(data.imported.as_of)}. Goal totals start with the first scanned sheet.
@@ -124,6 +142,8 @@ export function LeaguePage({ id }: { id: string }) {
 
 export function TeamPage({ id }: { id: string }) {
   const { data } = useQuery<any>({ queryKey: [`/api/teams/${id}`] });
+  const [, nav] = useLocation();
+  const [removeErr, setRemoveErr] = useState<string | null>(null);
   if (!data) return <Loading />;
   const { team, league, record, roster, games, rating, season, imported } = data;
   return (
@@ -139,7 +159,7 @@ export function TeamPage({ id }: { id: string }) {
           </div>
         </div>
         <div className="grid grid-cols-4 gap-2 mt-5 text-center">
-          {[["Record", `${record.w}-${record.l}-${record.t}`], ["Points", record.pts], ["GF-GA", record.scanned ? `${record.gf}-${record.ga}` : "–"], ["Rating", fmtRating(rating)]].map(([k, v]) => (
+          {[["Record", `${record.w}-${record.l}-${record.t}`], ["Points", record.pts], ["GF-GA", record.gf != null && record.gp ? `${record.gf}-${record.ga}` : "–"], ["Rating", fmtRating(rating)]].map(([k, v]) => (
             <div key={k as string} className="rounded-xl bg-[var(--ice-3)] py-2.5">
               <div className="font-display text-xl tnum">{v}</div>
               <div className="text-[10px] label">{k}</div>
@@ -153,13 +173,15 @@ export function TeamPage({ id }: { id: string }) {
         <div className="mt-3 text-xs text-[var(--mute)] px-1" data-testid="text-imported-team">Record and totals include {imported.gp} games imported from the {imported.source} as of {fmtDate(imported.as_of)}. Ratings start moving with the first scanned sheet.</div>
       ) : null}
       <CaptainPanel team={team} captain={data.captain} assistants={data.assistants} />
+      <Schedule teamId={team.id} />
       <Section title="Roster" action={<span className="label">{roster.length} players</span>}>
         {roster.length ? (
           <div className="card divide-y divide-[var(--line)]">
             {roster.map((p: any) => (
               <Link key={p.id} href={`/player/${p.id}`} className="flex items-center gap-3 px-4 py-3 text-sm" data-testid={`row-roster-${p.id}`}>
+                <Bobble avatar={p.avatar} jersey={team.color} archetype={data.archetypes?.won?.[p.id]?.archetype} goalie={p.position === "G"} size={30} />
                 <span className="tnum text-[var(--mute)] w-8">{p.number ? `#${p.number}` : ""}</span>
-                <span className="flex-1 truncate font-bold">{p.name}{p.position === "G" && <span className="text-[var(--mute)] font-medium"> · G</span>}{p.registered ? <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-[var(--green,#38D996)] align-middle" title="Registered" /> : null}{p.badge ? <span className="ml-1.5 inline-flex h-4 w-4 rounded-full bg-[var(--ice-3)] border border-[var(--line)] text-[9px] font-black items-center justify-center align-middle" title={p.badge === "C" ? "Captain" : "Assistant captain"} data-testid={`badge-${p.badge}-${p.id}`}>{p.badge}</span> : null}</span>
+                <span className="flex-1 truncate font-bold">{p.name}{p.position === "G" && <span className="text-[var(--mute)] font-medium"> · G</span>}{p.registered ? <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-[var(--green,#38D996)] align-middle" title="Registered" /> : null}{p.badge ? <span className="ml-1.5 inline-flex h-4 w-4 rounded-full bg-[var(--ice-3)] border border-[var(--line)] text-[9px] font-black items-center justify-center align-middle" title={p.badge === "C" ? "Captain" : "Assistant captain"} data-testid={`badge-${p.badge}-${p.id}`}>{p.badge}</span> : null}<ArchetypeChip a={data.archetypes?.won?.[p.id]} /></span>
                 <span className="tnum text-[var(--mute)]">{p.gp}GP {p.g}G {p.a}A</span>
                 <span className="tnum font-display text-lg w-12 text-right">{fmtRating(p.rating)}</span>
               </Link>
@@ -167,10 +189,17 @@ export function TeamPage({ id }: { id: string }) {
           </div>
         ) : <Empty title="Roster fills itself" body="Players are added straight from the scoresheet the first time this team's game is scanned." />}
       </Section>
+      <ArchetypeVotes teamId={team.id} roster={roster} data={data.archetypes} />
       <ShotMap teamId={team.id} />
       <Section title="Games">
         {games.length ? <div className="space-y-3">{games.map((g: any) => <GameRow key={g.id} g={g} />)}</div> : <Empty title="No games yet" body="Snap the sheet after this team's next game." />}
       </Section>
+      {data.can?.remove && (
+        <div className="mt-8 text-center">
+          <button className="text-xs text-[var(--mute)] underline" onClick={async () => { if (!confirm(`Remove ${team.name}? It has no games or players, so nothing else changes.`)) return; const e = await act("DELETE", `/api/teams/${team.id}`); setRemoveErr(e); if (!e) nav(`/league/${league.id}`); }} data-testid="button-remove-team">Remove this team</button>
+          {removeErr && <p className="text-xs down mt-1">{removeErr}</p>}
+        </div>
+      )}
     </div>
   );
 }

@@ -22,7 +22,9 @@ export const GET = handle(async (req) => {
   if (!isAdmin && !isSupport && !rinkIds.length) throw new HttpError(403, "The staff page is for rink staff, support and admins.");
   const rinks = [];
   for (const rinkId of rinkIds) {
-    const rink = await one<any>(sql, "SELECT id, name FROM rinks WHERE id=$1", [rinkId]);
+    const rink = await one<any>(sql, "SELECT id, name, address, phone, website, sheets, city, state FROM rinks WHERE id=$1", [rinkId]);
+    const can = { edit: await P.can(sql, u, "rink.manage", { rinkId }), addLeague: await P.can(sql, u, "league.create", { rinkId }), seasons: await P.can(sql, u, "season.manage", { rinkId }) };
+    const seasons = await q(sql, "SELECT id, name, starts_on, ends_on FROM seasons WHERE rink_id=$1 ORDER BY starts_on DESC", [rinkId]);
     const manage = await P.can(sql, u, "rink.staff", { rinkId });
     const leagues = [];
     for (const l of await q<any>(sql, "SELECT id, level, name FROM leagues WHERE rink_id=$1 ORDER BY sort", [rinkId])) {
@@ -31,14 +33,17 @@ export const GET = handle(async (req) => {
         `SELECT t.id, t.name, t.color, t.is_sample,
            (SELECT u.name FROM role_grants g JOIN users u ON u.id=g.user_id WHERE g.role='captain' AND g.scope_id=t.id AND g.revoked_at IS NULL LIMIT 1) captain,
            (SELECT COUNT(*) FROM roster_entries re JOIN players p ON p.id=re.player_id WHERE re.team_id=t.id AND p.user_id IS NOT NULL)::int registered,
-           (SELECT COUNT(*) FROM roster_entries re WHERE re.team_id=t.id)::int roster
+           (SELECT COUNT(*) FROM roster_entries re WHERE re.team_id=t.id)::int roster,
+           (SELECT COUNT(*) FROM games g WHERE g.home_team_id=t.id OR g.away_team_id=t.id)::int games,
+           (SELECT COUNT(*) FROM team_imports ti WHERE ti.team_id=t.id)::int imports
          FROM teams t WHERE t.league_id=$1 ORDER BY t.name`, [l.id]);
-      leagues.push({ ...l, teams });
+      const addTeam = await P.can(sql, u, "team.create", { leagueId: l.id, rinkId });
+      leagues.push({ ...l, teams: teams.map((t: any) => ({ ...t, removable: addTeam && !t.games && !t.roster && !t.imports })), addTeam });
     }
     const staff = manage ? await q<any>(sql,
       `SELECT g.id, g.role, g.scope_id, u.id user_id, u.name, u.email, l.name league FROM role_grants g JOIN users u ON u.id=g.user_id LEFT JOIN leagues l ON g.scope_type='league' AND l.id=g.scope_id
        WHERE g.revoked_at IS NULL AND ((g.scope_type='rink' AND g.scope_id=$1) OR (g.scope_type='league' AND l.rink_id=$1)) ORDER BY g.role, u.name`, [rinkId]) : [];
-    rinks.push({ ...rink, manage, leagues, staff });
+    rinks.push({ ...rink, manage, can, seasons, leagues, staff });
   }
   const systemStaff = isAdmin ? await q(sql,
     "SELECT g.id, g.role, u.id user_id, u.name, u.email FROM role_grants g JOIN users u ON u.id=g.user_id WHERE g.scope_type='system' AND g.revoked_at IS NULL ORDER BY g.role, u.name") : [];

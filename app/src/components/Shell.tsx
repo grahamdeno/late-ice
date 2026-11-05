@@ -1,12 +1,12 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "@/lib/router";
 import { FaceoffDot, LevelPill, useFilter } from "@/lib/ui";
 import { useMe } from "@/lib/auth";
 
 function Icon({ d, active }: { d: string; active: boolean }) {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? "#EEF3F8" : "#6B7686"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{ stroke: active ? "var(--white)" : "var(--dim)" }} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d={d} />
     </svg>
   );
@@ -27,20 +27,30 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const startY = useRef<number | null>(null);
   const current = boot?.leagues.find((l) => l.id === leagueId);
+
+  // While the top sheet is open the page underneath stays put (iPhone ignores overflow:hidden alone).
+  useEffect(() => {
+    if (!open) return;
+    const y = window.scrollY, b = document.body.style;
+    const prev = { position: b.position, top: b.top, left: b.left, right: b.right, overflow: b.overflow };
+    Object.assign(b, { position: "fixed", top: `-${y}px`, left: "0", right: "0", overflow: "hidden" });
+    return () => { Object.assign(b, prev); window.scrollTo(0, y); };
+  }, [open]);
   const isActive = (href: string) => (href === "/" ? loc === "/" : loc.startsWith(href) || (href === "/leagues" && loc.startsWith("/league")));
 
   return (
     <div className="min-h-[100dvh] rink-bg w-full overflow-x-clip">
       <header
         className="fixed top-0 inset-x-0 z-40"
-        style={{ paddingTop: "env(safe-area-inset-top)" }}
+        // Pulling on the bar opens the sheet; it never drags the page with it.
+        style={{ paddingTop: "env(safe-area-inset-top)", touchAction: "none" }}
         onTouchStart={(e) => (startY.current = e.touches[0].clientY)}
         onTouchMove={(e) => {
           if (startY.current !== null && e.touches[0].clientY - startY.current > 36) { setOpen(true); startY.current = null; }
         }}
       >
         <div className="mx-auto max-w-[560px] px-4">
-          <div className="mt-2 h-14 rounded-2xl flex items-center justify-between gap-2 px-3 overflow-hidden border border-[var(--line)]" style={{ background: "rgba(11,15,22,.86)", backdropFilter: "blur(14px)" }}>
+          <div className="mt-2 h-14 rounded-2xl flex items-center justify-between gap-2 px-3 overflow-hidden border border-[var(--line)]" style={{ background: "var(--bar)", backdropFilter: "blur(14px)" }}>
             <Link href="/" className="flex items-center gap-2 shrink-0" data-testid="link-home-logo" aria-label="Late Ice home">
               <FaceoffDot size={26} />
               <span className="whitespace-nowrap" style={{ fontWeight: 900, letterSpacing: "-0.03em", fontSize: 19 }}>Late Ice</span>
@@ -63,13 +73,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
             )}
             </div>
           </div>
-          <div className="flex justify-center"><div className="mt-1 h-1 w-10 rounded-full bg-[#263042]" /></div>
+          <div className="flex justify-center"><div className="mt-1 h-1 w-10 rounded-full bg-[var(--grip)]" /></div>
         </div>
       </header>
 
       {open && (
-        <div className="fixed inset-0 z-50" onClick={() => setOpen(false)} data-testid="overlay-switcher">
-          <div className="absolute inset-0 bg-black/60" />
+        <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain" style={{ touchAction: "pan-y" }} onClick={() => setOpen(false)} data-testid="overlay-switcher">
+          <div className="fixed inset-0 bg-black/60" style={{ touchAction: "none" }} />
           <div className="relative mx-auto max-w-[560px] px-4" style={{ paddingTop: "calc(env(safe-area-inset-top) + 8px)" }} onClick={(e) => e.stopPropagation()}>
             <div className="card-hi p-4 drop-in">
               <div className="flex items-center justify-between">
@@ -91,7 +101,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                   <div className="font-black">All</div>
                   <div className="text-xs text-[var(--mute)]">Every league</div>
                 </button>
-                {boot?.leagues.map((l) => (
+                {boot?.leagues.filter((l) => l.level !== "DEMO").map((l) => (
                   <button
                     key={l.id}
                     className={`rounded-xl p-3 text-left border ${leagueId === l.id ? "border-[var(--red)] bg-[var(--red-dim)]" : "border-[var(--line)] bg-[var(--ice-3)]"}`}
@@ -116,7 +126,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <nav className="fixed bottom-0 inset-x-0 z-40" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         <div className="absolute inset-x-0 bottom-0 h-28 pointer-events-none" style={{ background: "linear-gradient(transparent, var(--ice) 55%)" }} />
         <div className="relative mx-auto max-w-[560px] px-4 pb-3">
-          <div className="h-16 rounded-2xl grid grid-cols-5 items-center border border-[var(--line)]" style={{ background: "rgba(11,15,22,.92)", backdropFilter: "blur(14px)" }}>
+          <div className="h-16 rounded-2xl grid grid-cols-5 items-center border border-[var(--line)]" style={{ background: "var(--bar-2)", backdropFilter: "blur(14px)" }}>
             {NAV.map((n) =>
               n.href === "/scan" ? (
                 <Link key={n.href} href="/scan" className="flex justify-center" data-testid="nav-scan" aria-label="Scan scoresheet">
@@ -127,7 +137,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
               ) : (
                 <Link key={n.href} href={n.href} className="flex flex-col items-center gap-1" data-testid={`nav-${n.label.toLowerCase()}`}>
                   <Icon d={n.d} active={isActive(n.href)} />
-                  <span className={`text-[10px] font-bold ${isActive(n.href) ? "text-[var(--white)]" : "text-[#6B7686]"}`}>{n.label}</span>
+                  <span className={`text-[11px] font-bold ${isActive(n.href) ? "text-[var(--white)]" : "text-[var(--dim)]"}`}>{n.label}</span>
                 </Link>
               ),
             )}

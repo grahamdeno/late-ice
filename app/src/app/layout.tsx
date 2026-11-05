@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   title: "Late Ice · Wilmington",
   description: "Beer league hockey, counted. Snap the scoresheet, get your rating.",
   manifest: "/manifest.webmanifest",
+  // Closed pilot: stay out of search results. People find it through an invite.
+  robots: { index: false, follow: false, nocache: true, googleBot: { index: false, follow: false } },
   icons: {
     icon: [{ url: "/favicon.svg", type: "image/svg+xml" }, { url: "/favicon-32.png", sizes: "32x32", type: "image/png" }],
     apple: "/apple-touch-icon.png",
@@ -17,13 +19,18 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#05070B",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f3f5f8" },
+    { media: "(prefers-color-scheme: dark)", color: "#05070B" },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Apply the saved look before first paint so the page never flashes the wrong colors. */}
+        <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem("lateice.theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}` }} />
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link href="https://api.fontshare.com/v2/css?f[]=satoshi@500,700,900&display=swap" rel="stylesheet" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />

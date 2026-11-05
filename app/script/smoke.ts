@@ -3,6 +3,7 @@
 // path, photo storage, and the nightly rating replay. CI runs it after `next build`.
 import { spawn, type ChildProcess } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { createServer } from "node:http";
 import postgres from "postgres";
 import { createClient } from "@supabase/supabase-js";
 // @ts-ignore plain JS helper
@@ -22,7 +23,7 @@ function ok(cond: unknown, msg: string): asserts cond {
 }
 
 async function start() {
-  srv = spawn("npx", ["next", "start", "-p", String(PORT)], { env: { ...env, NODE_ENV: "production", BOOTSTRAP_ADMIN_EMAIL: "boss@example.com" }, stdio: ["ignore", "ignore", "inherit"] });
+  srv = spawn("npx", ["next", "start", "-p", String(PORT)], { env: { ...env, NODE_ENV: "production", BOOTSTRAP_ADMIN_EMAIL: "boss@example.com", ALLOW_LOCAL_FEEDS: "1", LATEICE_MAP_LOOKUP: "off" }, stdio: ["ignore", "ignore", "inherit"] });
   for (let i = 0; i < 200; i++) {
     try { const r = await fetch(`${BASE}/api/bootstrap`); if (r.ok) return; } catch {}
     await new Promise((r) => setTimeout(r, 200));
@@ -50,7 +51,7 @@ async function call(method: string, url: string, body?: unknown, token?: string)
 }
 
 /** Sign in by emailed code (read from the local mail catcher) and register. */
-async function signUp(email: string, profile: { name: string; number: string; position: string }) {
+async function signUp(email: string, profile: { name: string; number: string; position: string }, opts: { waitlist?: boolean; blocked?: boolean } = {}) {
   const sb = createClient(env.NEXT_PUBLIC_SUPABASE_URL!, env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false } });
   const inbox = email.toLowerCase();
   const before = await lastMailId(inbox);
@@ -66,10 +67,14 @@ async function signUp(email: string, profile: { name: string; number: string; po
   ok(!!again.error, "a used code can't be reused");
   const token = v.data.session!.access_token;
   const me = await call("GET", "/api/me", undefined, token);
+  if (opts.blocked) { ok(me.status === 403 && /paused/i.test(me.json?.message ?? ""), `${email} can't make an account while sign-ups are paused`); return token; }
   ok(me.status === 200 && me.json.user.profileComplete === false && me.json.user.email === email.toLowerCase() && me.json.user.phone === null, `${email} gets a new account keyed on email, no phone`);
   const rinks = await call("GET", "/api/rinks");
   const p = await call("PATCH", "/api/me", { ...profile, homeRinkId: rinks.json[0].id }, token);
   ok(p.status === 200 && p.json.user.profileComplete, `${profile.name} profile complete`);
+  ok(p.json.user.access === (inbox === "boss@example.com" ? "approved" : "waiting"), `${email} starts ${inbox === "boss@example.com" ? "let in (bootstrap admin)" : "on the waitlist"}`);
+  // Most test players are let in straight away; the gate has its own checks below.
+  if (!opts.waitlist) await db`UPDATE users SET access='approved' WHERE email=${inbox}`;
   return token;
 }
 
@@ -212,7 +217,8 @@ async function main() {
 
   console.log("scoresheets");
   const tiny = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
-  ok((await call("POST", "/api/sheets", { image: "nope" })).status === 400, "non-image upload rejected");
+  ok((await call("POST", "/api/sheets", { image: tiny })).status === 401, "scanning needs sign-in");
+  ok((await call("POST", "/api/sheets", { image: "nope" }, sam)).status === 400, "non-image upload rejected");
   const up = await call("POST", "/api/sheets", { image: tiny }, sam);
   ok(up.status === 202 && up.json.id, "photo upload stored, reading starts in the background");
   const img = await fetch(`${BASE}/api/sheets/${up.json.id}/image`);
@@ -230,9 +236,10 @@ async function main() {
   await db`UPDATE sheets SET extracted_json=${JSON.stringify(data)} WHERE id=${sheet.id}`;
   const sv = await call("GET", `/api/sheets/${sheet.id}`);
   ok(sv.json.suggestion?.home?.teamId && sv.json.suggestion?.away?.teamId, "reader result is matched to the Demo teams");
-  const conf = await call("POST", `/api/sheets/${sheet.id}/confirm`, { leagueId: demo, homeTeamId: sv.json.suggestion.home.teamId, awayTeamId: sv.json.suggestion.away.teamId, data });
+  ok((await call("POST", `/api/sheets/${sheet.id}/confirm`, { leagueId: demo, homeTeamId: sv.json.suggestion.home.teamId, awayTeamId: sv.json.suggestion.away.teamId, data })).status === 401, "confirming needs sign-in");
+  const conf = await call("POST", `/api/sheets/${sheet.id}/confirm`, { leagueId: demo, homeTeamId: sv.json.suggestion.home.teamId, awayTeamId: sv.json.suggestion.away.teamId, data }, sam);
   ok(conf.status === 200 && conf.json.gameId, "confirming the sheet creates the game");
-  const again = await call("POST", `/api/sheets/${sheet.id}/confirm`, { leagueId: demo, homeTeamId: sv.json.suggestion.home.teamId, awayTeamId: sv.json.suggestion.away.teamId, data });
+  const again = await call("POST", `/api/sheets/${sheet.id}/confirm`, { leagueId: demo, homeTeamId: sv.json.suggestion.home.teamId, awayTeamId: sv.json.suggestion.away.teamId, data }, sam);
   ok(again.status === 409, "the same sheet can't be confirmed twice");
   const game = await call("GET", `/api/games/${conf.json.gameId}`);
   ok(game.json.homeScore === 4 && game.json.awayScore === 3, "final score 4-3 from the sheet");
@@ -244,6 +251,7 @@ async function main() {
   const rc2 = await fetch(`${BASE}/api/cron/recompute`, { headers: { Authorization: `Bearer ${env.CRON_SECRET}` } });
   const rcj = await rc2.json();
   ok(rc2.status === 200 && rcj.games === 1, "nightly replay rates the one game");
+  ok(rcj.backup?.file && rcj.backup.rows > 0 && rcj.backup.tables > 10, `nightly backup written (${JSON.stringify(rcj.backup)})`);
   const ratingsAfter = await db`SELECT id, rating FROM players ORDER BY id`;
   ok(JSON.stringify(ratingsBefore) === JSON.stringify(ratingsAfter), "replay reproduces the same ratings exactly");
   const feed = await call("GET", `/api/feed?league=${demo}`);
@@ -386,8 +394,8 @@ async function main() {
   ok((await call("POST", "/api/staff/import", { text: report, rinkId, apply: true }, graham)).status === 403, "a captain can't import");
   const pv = await call("POST", "/api/staff/import", { text: report, rinkId }, mt);
   ok(pv.status === 200 && pv.json.applied === false && pv.json.summary.gamesAdded === 2, "rink manager previews: 2 games");
-  ok(pv.json.summary.rosterAdded === 3 && pv.json.summary.rosterExisting === 2, "preview: 3 new roster spots, 2 already here");
-  ok(pv.json.summary.warnings.some((w: string) => w.includes("Not A Real Team FC")), "preview flags a team that doesn't match");
+  ok(pv.json.summary.rosterAdded === 4 && pv.json.summary.rosterExisting === 2, "preview: 4 new roster spots, 2 already here");
+  ok(pv.json.summary.teamsCreated.includes("Not A Real Team FC") && !pv.json.summary.leagueCreated, "preview shows a team the league doesn't have yet as new");
   ok(pv.json.summary.unassigned.some((u: any) => u.team === "Hammer'd Heads" && u.goals === 1), "preview counts goals with no scorer");
   ok(!(await call("GET", `/api/teams/${hh}`)).json.games.some((g: any) => g.source === "daysmart"), "preview saves nothing");
   const ap = await call("POST", "/api/staff/import", { text: report, rinkId, apply: true }, mt);
@@ -405,7 +413,44 @@ async function main() {
   const adamId = after.roster.find((r: any) => r.name === "Adam Y.").id;
   ok((await call("GET", `/api/players/${adamId}`)).json.importedGames.length === 1, "player page shows the game log");
   const reimport = await call("POST", "/api/staff/import", { text: report, rinkId, apply: true }, mt);
-  ok(reimport.json.summary.gamesAdded === 0 && reimport.json.summary.gamesUpdated === 2 && reimport.json.summary.rosterAdded === 0, "importing again changes nothing new");
+  ok(reimport.json.summary.gamesAdded === 0 && reimport.json.summary.gamesUpdated === 2 && reimport.json.summary.rosterAdded === 0 && reimport.json.summary.teamsCreated.length === 0, "importing again changes nothing new");
+
+  console.log("import: a whole league with standings and season totals");
+  const leagueReport = [
+    "RAW REPORT - Polar Ice Wilmington, all teams",
+    "LEAGUE B League | LEVEL B | SEASON Fall 2026",
+    "STANDINGS",
+    "TEAMROW Port City Pilots | GP 4 | W 3 | L 1 | T 0 | OTL 0 | GF 15 | GA 8",
+    "TEAMROW Azalea Aces | GP 4 | W 1 | L 3 | T 0 | OTL 0 | GF 8 | GA 15",
+    "GAME 2026-10-04 8:00 PM | Home: Port City Pilots 5 | Away: Azalea Aces 2 | Final",
+    "PLAYERROW Port City Pilots | SAM T G2 A1",
+    "PLAYERROW Azalea Aces | Lee R. G1",
+    "PLAYERTOTALS",
+    "TOTALROW Port City Pilots | Sam T. | GP 4 | G 6 | A 2 | PIM 4",
+    "TOTALROW Azalea Aces | Lee R. | GP 4 | G 3 | A 0 | PIM 0",
+    "ROSTERS",
+    "Port City Pilots",
+    "  Sam T.",
+    "  Kim W.",
+    "Azalea Aces",
+    "  Lee R.",
+    "  Gil K. (G)",
+  ].join("\n");
+  const lp = await call("POST", "/api/staff/import", { text: leagueReport, rinkId }, mt);
+  ok(lp.status === 200 && lp.json.summary.leagueCreated && lp.json.summary.teamsCreated.length === 2 && lp.json.summary.standingsRows === 2 && lp.json.summary.playerTotals === 2, "preview: new league, 2 new teams, standings and totals read");
+  ok(!(await db`SELECT 1 FROM leagues WHERE level='B'`).length, "preview creates nothing");
+  ok((await call("POST", "/api/staff/import", { text: leagueReport, rinkId, apply: true }, mt)).status === 200, "league imported");
+  const bLg = (await db`SELECT id FROM leagues WHERE level='B'`)[0].id;
+  const bl2 = (await call("GET", `/api/leagues/${bLg}`)).json;
+  const pcp = bl2.standings.find((t: any) => t.name === "Port City Pilots");
+  ok(pcp && pcp.gp === 4 && pcp.w === 3 && pcp.l === 1 && pcp.pts === 6 && pcp.diff === 7, "standings come straight from the league page, with DIFF");
+  ok(bl2.standings[0].name === "Port City Pilots", "sorted by points");
+  const aces = bl2.standings.find((t: any) => t.name === "Azalea Aces");
+  ok((await call("GET", `/api/teams/${aces.id}`)).json.roster.find((r: any) => r.name === "Gil K.")?.position === "G", "a roster name marked (G) comes in as a goalie");
+  ok(bl2.leaders.find((x: any) => x.name === "Sam T.")?.pts === 8, "season totals come from the league page, not just the games listed");
+  ok((await call("POST", "/api/staff/import", { text: leagueReport, rinkId, apply: true }, mt)).json.summary.teamsCreated.length === 0, "importing the league again adds no teams");
+  const bl3 = (await call("GET", `/api/leagues/${bLg}`)).json;
+  ok(bl3.standings.find((t: any) => t.name === "Port City Pilots").gp === 4 && bl3.leaders.find((x: any) => x.name === "Sam T.").pts === 8, "and doesn't double anything");
 
   console.log("shot map");
   const outsider = await signUp("outsider@example.com", { name: "Otto Side", number: "3", position: "D" });
@@ -433,7 +478,13 @@ async function main() {
   await db`UPDATE sheets SET extracted_json=${JSON.stringify(real)} WHERE id=${sh2.id}`;
   const sv2 = (await call("GET", `/api/sheets/${sh2.id}`)).json;
   ok(sv2.suggestion.duplicateGameId === null, "an imported game isn't flagged as already scanned");
-  const c2 = await call("POST", `/api/sheets/${sh2.id}/confirm`, { leagueId: lg, homeTeamId: hh, awayTeamId: blId, data: real });
+  ok((await call("POST", `/api/sheets/${sh2.id}/confirm`, { leagueId: lg, homeTeamId: hh, awayTeamId: blId, data: real }, outsider)).status === 403, "a player who isn't a captain of either team can't confirm");
+  const sub2 = await call("POST", `/api/sheets/${sh2.id}/submit`, { leagueId: lg, homeTeamId: hh, awayTeamId: blId, data: real }, outsider);
+  ok(sub2.status === 200 && sub2.json.told >= 1, "they send it to the captains instead");
+  const aw = (await call("GET", `/api/sheets/${sh2.id}`, undefined, graham)).json;
+  ok(aw.status === "awaiting" && aw.submitted?.by === "Otto Side" && aw.suggestion.home.teamId === hh && aw.rights.teams.includes(hh), "the captain sees it waiting, with the sender's picks, and can confirm");
+  ok((await call("GET", "/api/me", undefined, graham)).json.notifications.some((n: any) => n.kind === "sheet" && n.link === `/sheet/${sh2.id}`), "and got a notice");
+  const c2 = await call("POST", `/api/sheets/${sh2.id}/confirm`, { leagueId: lg, homeTeamId: hh, awayTeamId: blId, data: real }, graham);
   ok(c2.status === 200, "the real sheet goes in");
   after = (await call("GET", `/api/teams/${hh}`)).json;
   ok(!after.games.some((g: any) => g.source === "daysmart" && g.playedOn === "2026-09-06") && after.games.some((g: any) => g.id === c2.json.gameId), "it replaced the imported game");
@@ -441,11 +492,206 @@ async function main() {
   ok(after.record.w === hhBefore.record.w && after.record.l === hhBefore.record.l && after.record.gp === hhBefore.record.gp, "record still adds up: the game moved from the baseline to the sheet");
   ok((await ptsOf("Adam Y.")) === adamPts, "Adam's points still add up (2G 1A, counted once)");
 
+  console.log("schedule: calendar feed and hand-added games");
+  const ymd = (days: number) => new Date(Date.now() + days * 86400000).toISOString().slice(0, 10).replace(/-/g, "");
+  let feedEvents = [
+    ["a1@polarwil", `DTSTART;TZID=America/New_York:${ymd(3)}T211500`, "Hammered Heads vs Blue Liners", "Polar Ice Wilmington\\, Rink 1"],
+    ["a2@polarwil", `DTSTART;TZID=America/New_York:${ymd(10)}T221500`, "Hammered Heads @ Wild Puckers", ""],
+    ["p1@polarwil", `DTSTART;TZID=America/New_York:${ymd(-7)}T210000`, "Hammered Heads W 6-0 vs Blue Liners", ""],
+  ];
+  const ics = () => ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//test//EN",
+    ...feedEvents.flatMap(([uid, start, sum, loc]) => ["BEGIN:VEVENT", `UID:${uid}`, start, `SUMMARY:${sum}`, ...(loc ? [`LOCATION:${loc}`] : []),
+      "DESCRIPTION:A long description that the feed folds onto a second line so the reader has to", " join it back together", "END:VEVENT"]),
+    "END:VCALENDAR"].join("\r\n");
+  const feedSrv = createServer((req, res) => {
+    if (req.url === "/team.ics") { res.writeHead(200, { "content-type": "text/calendar" }); res.end(ics()); }
+    else { res.writeHead(200, { "content-type": "text/html" }); res.end("<html>not a calendar</html>"); }
+  });
+  await new Promise<void>((r) => feedSrv.listen(3197, r));
+  const feedLink = "http://localhost:3197/team.ics";
+  const fan = await signUp("fan@example.com", { name: "Fran Fan", number: "88", position: "W" });
+  ok((await call("PUT", `/api/teams/${hh}/feed`, { url: feedLink }, fan)).status === 403, "a player can't connect the team calendar");
+  ok((await call("PUT", `/api/teams/${hh}/feed`, { url: "ftp://nope" }, boss)).status === 400, "a link that isn't web or webcal is refused");
+  const notCal = await call("PUT", `/api/teams/${hh}/feed`, { url: "http://localhost:3197/page" }, boss);
+  ok(notCal.status === 400 && /calendar/i.test(notCal.json.message), "a page that isn't a calendar is refused with a clear message");
+  const fc = await call("PUT", `/api/teams/${hh}/feed`, { url: feedLink }, boss);
+  ok(fc.status === 200 && fc.json.events === 3 && fc.json.added === 3, "calendar connected: 3 games read");
+  let sch = await call("GET", `/api/teams/${hh}/schedule`);
+  ok(sch.status === 200 && sch.json.games.length === 2, "the schedule shows the 2 upcoming games, not the one already played");
+  ok(sch.json.feed === null && !sch.text.includes("3197"), "the calendar link never reaches the public");
+  const [g1, g2] = sch.json.games;
+  ok(g1.opponent === "Blue Liners" && g1.opponent_team_id === blId && g1.local_time === "9:15 PM", "\"vs Blue Liners\" at 9:15 PM matches the league team");
+  ok(g1.location === "Polar Ice Wilmington, Rink 1", "location read, escaped comma and all");
+  ok(g2.opponent === "Wild Puckers" && g2.is_home === false && g2.local_time === "10:15 PM", "\"@ Wild Puckers\" is an away game at 10:15 PM");
+  ok((await call("GET", `/api/teams/${hh}/schedule`, undefined, boss)).json.feed.connected === true, "the captain side sees the calendar is connected");
+  const reread = await call("POST", `/api/teams/${hh}/feed`, undefined, boss);
+  ok(reread.status === 200 && reread.json.added === 0 && reread.json.updated === 3, "reading it again adds no duplicates");
+  feedEvents = feedEvents.filter(([uid]) => uid !== "a2@polarwil");
+  ok((await call("POST", `/api/teams/${hh}/feed`, undefined, boss)).json.removed === 1, "a game dropped from the calendar comes off the schedule");
+  ok((await call("POST", `/api/teams/${hh}/schedule`, { date: "2026-12-01", opponentName: "Raleigh Rebels", kind: "tournament" }, fan)).status === 403, "a player can't add games");
+  const plus5 = ymd(5);
+  const man = await call("POST", `/api/teams/${hh}/schedule`, { date: `${plus5.slice(0, 4)}-${plus5.slice(4, 6)}-${plus5.slice(6)}`, time: "19:30", opponentName: "Raleigh Rebels", kind: "tournament", location: "Wake Competition Center" }, boss);
+  ok(man.status === 200, "a tournament game added by hand");
+  sch = await call("GET", `/api/teams/${hh}/schedule`);
+  const tg = sch.json.games.find((g: any) => g.id === man.json.id);
+  ok(sch.json.games.length === 2 && sch.json.games[1].id === man.json.id && tg.local_time === "7:30 PM" && tg.kind === "tournament" && tg.opponent === "Raleigh Rebels", "it sits in date order at 7:30 PM as a tournament game");
+  console.log("availability: in, out, late");
+  const rs = (t?: string) => call("GET", `/api/teams/${hh}/schedule`, undefined, t).then((r) => r.json.games.find((g: any) => g.id === man.json.id).rsvp);
+  ok((await call("PUT", `/api/schedule/${man.json.id}/rsvp`, { answer: "in" }, fan)).status === 403, "only players on the roster can answer");
+  ok((await call("PUT", `/api/schedule/${man.json.id}/rsvp`, { answer: "maybe" }, graham)).status === 400, "only in, out or late");
+  ok((await call("PUT", `/api/schedule/${man.json.id}/rsvp`, { answer: "in" }, graham)).status === 200, "Graham is in");
+  ok((await call("PATCH", "/api/me", { status: "ir", statusUntil: "2099-01-01" }, sam)).json.user.status === "ir", "Sam goes on injured reserve");
+  let samView = await rs(sam);
+  ok(samView.mine === "out" && samView.mineAuto === true, "injured reserve marks Sam out without him answering");
+  const capView = await rs(graham);
+  ok(capView.counts.in >= 1 && capView.counts.out >= 1 && capView.names.in.length === capView.counts.in, "the team sees the count and who's in");
+  ok((await rs()).names === null && (await rs()).counts.in >= 1, "the public sees counts, not names");
+  ok((await call("PUT", `/api/schedule/${man.json.id}/rsvp`, { answer: "late" }, sam)).status === 200, "Sam answers Late anyway");
+  samView = await rs(sam);
+  ok(samView.mine === "late" && !samView.mineAuto, "his own answer wins");
+  ok((await call("PATCH", "/api/me", { status: "away", statusUntil: "2000-01-01" }, sam)).json.user.status === "active", "an Away date in the past is already over");
+  const sw = await call("PATCH", "/api/me", { lookingForTeam: true, willSub: true }, sam);
+  ok(sw.json.user.lookingForTeam === true && sw.json.user.willSub === true, "Looking for a team and Will sub switches");
+  ok((await call("PATCH", "/api/me", { status: "resting" }, sam)).status === 400, "Resting is gone");
+  await call("PATCH", "/api/me", { status: "active" }, sam);
+
+  console.log("archetypes: voted by teammates");
+  const hhNow = (await call("GET", `/api/teams/${hh}`, undefined, graham)).json;
+  const samSlot = hhNow.roster.find((r: any) => r.name === "Sam Okafor");
+  const grahamRow = hhNow.roster.find((r: any) => r.name === "Graham DeNoyer");
+  ok(samSlot && grahamRow && hhNow.archetypes.voter === true, "teammates can vote");
+  ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: grahamRow.id, archetype: "sniper" }, graham)).status === 400, "you can't pick your own");
+  ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: samSlot.id, archetype: "sniper" }, fan)).status === 403, "only teammates vote");
+  ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: samSlot.id, archetype: "wizard" }, graham)).status === 400, "only the listed archetypes");
+  ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: samSlot.id, archetype: "sniper" }, graham)).status === 200, "Graham votes Sam a Sniper");
+  ok(!(await call("GET", `/api/teams/${hh}`)).json.archetypes.won[samSlot.id], "one vote isn't enough to show");
+  ok(hhNow.archetypes.minVotes === (hhNow.roster.length >= 12 ? 3 : 2), "3 votes needed on a roster of 12 or more, 2 below");
+  ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: samSlot.id, archetype: "sniper" }, boss)).status === 200, "a second teammate agrees");
+  const need = hhNow.archetypes.minVotes;
+  if (need === 3) ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: samSlot.id, archetype: "sniper" }, mt)).status === 200, "a third teammate agrees");
+  const won = (await call("GET", `/api/teams/${hh}`)).json.archetypes.won[samSlot.id];
+  ok(won?.archetype === "sniper" && won.votes === need, "Sam shows as a Sniper");
+  ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: samSlot.id, archetype: "sniper" }, graham)).status === 200 && (await call("GET", `/api/teams/${hh}`)).json.archetypes.won[samSlot.id].votes === need, "voting again doesn't count twice");
+  const pp = (await call("GET", `/api/players/${samSlot.id}`, undefined, graham)).json;
+  const ppa = pp.archetypes.find((x: any) => x.teamId === hh);
+  ok(ppa && ppa.won.archetype === "sniper" && ppa.mine === "sniper" && ppa.canVote, "the player page shows it, and your vote to change");
+  ok((await call("GET", `/api/players/${samSlot.id}`, undefined, sam)).json.archetypes.find((x: any) => x.teamId === hh).canVote === false, "but not on your own page");
+  ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: samSlot.id, archetype: "playmaker" }, graham)).status === 200, "anyone can change their vote any time");
+  ok((await call("GET", `/api/players/${samSlot.id}`, undefined, graham)).json.archetypes.find((x: any) => x.teamId === hh).mine === "playmaker", "the change sticks");
+
+  console.log("bobblehead");
+  const av = await call("PATCH", "/api/me", { avatar: { skin: 4, hair: 2, helmet: "#EEF3F8", guard: "visor", beard: "full", style: "flow", eyeBlack: true } }, sam);
+  ok(av.status === 200 && av.json.user.avatar.guard === "visor" && av.json.user.avatar.style === "flow", "Sam builds his bobblehead");
+  const bad = await call("PATCH", "/api/me", { avatar: { skin: 99, helmet: "javascript:x", guard: "mask" } }, sam);
+  ok(bad.json.user.avatar.skin === 2 && bad.json.user.avatar.helmet === "team" && bad.json.user.avatar.guard === "cage", "unknown parts fall back to the defaults");
+  ok((await call("GET", `/api/teams/${hh}`)).json.roster.find((r: any) => r.id === samSlot.id).avatar?.guard === "cage", "the roster carries it");
+  ok((await call("DELETE", `/api/teams/${hh}/schedule/${g1.id}`, undefined, boss)).status === 400, "a calendar game can't be deleted, only marked canceled");
+  ok((await call("PATCH", `/api/teams/${hh}/schedule/${g1.id}`, { status: "canceled" }, boss)).status === 200, "marked canceled");
+  ok((await call("GET", `/api/teams/${hh}/schedule`)).json.games.find((g: any) => g.id === g1.id).status === "canceled", "shows as canceled");
+  ok((await call("DELETE", `/api/teams/${hh}/schedule/${man.json.id}`, undefined, boss)).status === 200, "a hand-added game can be removed");
+  const dc = await call("DELETE", `/api/teams/${hh}/feed`, undefined, boss);
+  ok(dc.status === 200 && dc.json.removed === 1 && (await call("GET", `/api/teams/${hh}/schedule`)).json.games.length === 0, "disconnecting takes its upcoming games off");
+  ok((await db`SELECT COUNT(*)::int c FROM team_feeds`)[0].c === 0, "the link is deleted");
+  feedSrv.close();
+
+  console.log("manage: new rinks, leagues, seasons and teams");
+  const dupRink = await call("POST", "/api/rink-requests", { name: "Polar Ice", city: "Wilmington", state: "NC" }, fan);
+  ok(dupRink.status === 409 && dupRink.json.matches.some((m: any) => /Polar Ice/.test(m.name)), "asking for a rink that's already here points to it");
+  const rq1 = await call("POST", "/api/rink-requests", { name: "Cape Fear Ice Arena", city: "Fayetteville", state: "NC", website: "capefearice.com", manage: true, role: "hockey_director" }, fan);
+  ok(rq1.status === 200 && rq1.json.requested, "a player asks to add a rink and manage it");
+  ok(!(await call("GET", "/api/staff/requests", undefined, mt)).json.some((r: any) => r.kind === "new_rink"), "new rinks go to admins, not rink managers");
+  const rqBoss = (await call("GET", "/api/staff/requests", undefined, boss)).json.find((r: any) => r.kind === "new_rink");
+  ok(rqBoss && rqBoss.details.manage && rqBoss.details.emailOnDomain === false, "the admin sees it, and that the email isn't on the rink's domain");
+  ok((await call("POST", `/api/staff/requests/${rqBoss.id}`, { decision: "approve" }, boss)).status === 400, "a manager can't be approved before a check");
+  ok((await call("POST", `/api/staff/requests/${rqBoss.id}/phone`, undefined, boss)).status === 200, "admin records the call to the rink");
+  const ap1 = await call("POST", `/api/staff/requests/${rqBoss.id}`, { decision: "approve" }, boss);
+  ok(ap1.status === 200 && ap1.json.rinkId, "rink created");
+  const cfRink = ap1.json.rinkId;
+  ok((await call("GET", "/api/me", undefined, fan)).json.roles.some((r: any) => r.role === "rink_manager" && r.scopeId === cfRink), "and the requester runs it");
+  ok((await db`SELECT COUNT(*)::int c FROM seasons WHERE rink_id=${cfRink}`)[0].c === 1, "a new rink starts with the current season");
+  ok((await call("POST", `/api/rinks/1/leagues`, { level: "B" }, fan)).status === 403, "a rink manager can't add leagues at someone else's rink");
+  const nl = await call("POST", `/api/rinks/${cfRink}/leagues`, { level: "C" }, fan);
+  ok(nl.status === 200, "rink manager adds a C League");
+  ok((await call("POST", `/api/rinks/${cfRink}/leagues`, { level: "C" }, fan)).status === 409, "the same league twice is refused");
+  const nt = await call("POST", `/api/leagues/${nl.json.id}/teams`, { name: "Cape Fear Cubs" }, fan);
+  ok(nt.status === 200, "and a team");
+  ok((await call("POST", `/api/leagues/${nl.json.id}/teams`, { name: "Cape Fear Cubs" }, fan)).status === 409, "the same team twice is refused");
+  ok((await call("POST", `/api/rinks/${cfRink}/seasons`, { name: "Overlap", startsOn: "2026-10-01", endsOn: "2026-10-31" }, fan)).status === 409, "a season that overlaps another is refused");
+  ok((await call("POST", `/api/rinks/${cfRink}/seasons`, { name: "Winter 2027", startsOn: "2027-01-01", endsOn: "2027-04-30" }, fan)).status === 200, "a new season");
+  ok((await call("PATCH", `/api/rinks/${cfRink}`, { phone: "910-555-0100", sheets: 2 }, fan)).status === 200, "rink profile edited");
+  const lgPage = (await call("GET", `/api/leagues/${nl.json.id}`, undefined, fan)).json;
+  ok(lgPage.can.addTeam === true && (await call("GET", `/api/leagues/${nl.json.id}`, undefined, sam)).json.can.addTeam === false, "the league page shows + Team only to staff");
+  const tr = await call("POST", "/api/team-requests", { leagueId: nl.json.id, name: "Sam's Squad", captain: true }, sam);
+  ok(tr.status === 200 && tr.json.requested, "a player asks to start a team");
+  const trq = (await call("GET", "/api/staff/requests", undefined, fan)).json.find((r: any) => r.kind === "new_team");
+  ok(trq && trq.details.name === "Sam's Squad", "it goes to that rink's staff");
+  const tra = await call("POST", `/api/staff/requests/${trq.id}`, { decision: "approve" }, fan);
+  ok(tra.status === 200 && tra.json.teamId, "approved");
+  ok((await call("GET", "/api/me", undefined, sam)).json.roles.some((r: any) => r.role === "captain" && r.scopeId === tra.json.teamId), "the player who started it is its captain");
+  ok((await call("GET", `/api/teams/${nt.json.id}`, undefined, fan)).json.can.remove === true, "an empty team shows Remove to staff");
+  ok((await call("DELETE", `/api/teams/${nt.json.id}`, undefined, sam)).status === 403, "a player can't remove a team");
+  ok((await call("DELETE", `/api/teams/${nt.json.id}`, undefined, fan)).status === 200, "rink manager removes the empty team");
+  ok((await call("DELETE", `/api/teams/${hh}`, undefined, boss)).status === 409, "a team with games can't be removed");
+  ok((await call("DELETE", `/api/leagues/${nl.json.id}`, undefined, fan)).status === 409, "a league with teams can't be removed");
+  const direct = await call("POST", "/api/rink-requests", { name: "Wilmington Ice House", city: "Wilmington", state: "NC", confirmNew: true }, boss);
+  ok(direct.status === 200 && direct.json.created, "an admin adds a rink directly");
+
+  console.log("standings: goal difference");
+  let lgS = (await call("GET", `/api/leagues/${lg}`)).json.standings;
+  ok(lgS.find((t: any) => t.name === "Blue Liners").diff === null, "no goals on the rink's page: DIFF is unknown, not zero");
+  await db`UPDATE team_imports SET gf=30, ga=20 WHERE team_id=${blId}`;
+  lgS = (await call("GET", `/api/leagues/${lg}`)).json.standings;
+  const bl = lgS.find((t: any) => t.name === "Blue Liners");
+  ok(bl.diff === bl.gf - bl.ga && bl.gf >= 30, "with goals for and against loaded, DIFF adds up");
+
+  console.log("positions");
+  ok((await call("PATCH", "/api/me", { position: "W" }, sam)).json.user.position === "W", "a player can pick wing");
+  ok((await call("PATCH", "/api/me", { position: "X" }, sam)).status === 400, "an unknown position is refused");
+
   console.log("status and sign-out");
   ok((await call("PATCH", "/api/me", { status: "ir", statusUntil: "2026-12-01" }, sam)).json.user.status === "ir", "set injured reserve");
 
+  console.log("sample sheets and Demo: admins only");
+  ok((await call("GET", "/api/samples", undefined, sam)).json.length === 0 && (await call("GET", "/api/samples", undefined, boss)).json.length > 0, "only admins see the sample sheets");
+  ok((await call("POST", "/api/sheets/sample/demo-flyers-owls", undefined, sam)).status === 403, "players can't run them");
+  ok(!(await call("GET", "/api/bootstrap", undefined, sam)).json.leagues.some((l: any) => l.level === "DEMO") && (await call("GET", "/api/bootstrap", undefined, boss)).json.leagues.some((l: any) => l.level === "DEMO"), "the Demo league is hidden from everyone but admins");
+
+  console.log("sign-up gate");
+  const newbie = await signUp("newbie@example.com", { name: "Nora Newbie", number: "71", position: "W" }, { waitlist: true });
+  ok((await call("GET", "/api/me", undefined, newbie)).json.user.access === "waiting", "a new account waits");
+  const openSlot = (await call("GET", `/api/teams/${hh}`)).json.roster.find((r: any) => !r.registered);
+  const blockedClaim = await call("POST", `/api/players/${openSlot.id}/claim`, undefined, newbie);
+  ok(blockedClaim.status === 403 && /waitlist/i.test(blockedClaim.json.message), "it can't claim a spot");
+  ok((await call("POST", "/api/sheets", { image: tiny }, newbie)).status === 403, "or scan");
+  ok((await call("GET", "/api/staff/signups", undefined, boss)).json.some((u: any) => u.email === "newbie@example.com"), "the admin sees it waiting");
+  ok((await call("GET", "/api/staff/signups", undefined, sam)).status === 200 && !(await call("GET", "/api/staff/signups", undefined, sam)).json.length, "a player sees nobody to let in");
+  const nbId = (await db`SELECT id FROM users WHERE email='newbie@example.com'`)[0].id;
+  ok((await call("POST", `/api/staff/signups/${nbId}`, { decision: "approve" }, sam)).status === 403, "a player can't let people in");
+  ok((await call("POST", `/api/staff/signups/${nbId}`, { decision: "approve" }, boss)).status === 200, "admin lets Nora in");
+  ok((await call("GET", "/api/me", undefined, newbie)).json.user.access === "approved", "and she's in");
+  const inv = await call("POST", `/api/teams/${hh}/invite`, undefined, graham);
+  ok(inv.status === 200 && inv.json.invite.token && inv.json.invite.uses === 0, "captain makes an invite link");
+  ok((await call("POST", `/api/teams/${hh}/invite`, undefined, fan)).status === 403, "only the team's captains and staff can");
+  ok((await call("GET", `/api/invites/${inv.json.invite.token}`)).json.team === "Hammer'd Heads", "the link says which team");
+  const invited = await signUp("invited@example.com", { name: "Ivan Invited", number: "5", position: "D" }, { waitlist: true });
+  const acc = await call("POST", "/api/invites/accept", { token: inv.json.invite.token }, invited);
+  ok(acc.status === 200 && acc.json.newlyApproved && acc.json.teamId === hh, "signing in through the link lets you in");
+  ok((await call("GET", "/api/me", undefined, invited)).json.user.access === "approved", "no waiting");
+  ok((await call("GET", `/api/teams/${hh}/invite`, undefined, graham)).json.invite.uses === 1, "the link counts the use");
+  ok((await call("DELETE", `/api/teams/${hh}/invite`, undefined, graham)).status === 200 && !(await call("GET", `/api/invites/${inv.json.invite.token}`)).json.valid, "turning the link off stops it");
+  for (let i = 0; i < 2; i++) { await call("POST", `/api/teams/${hh}/invite`, undefined, graham); await call("DELETE", `/api/teams/${hh}/invite`, undefined, graham); }
+  ok((await call("POST", `/api/teams/${hh}/invite`, undefined, graham)).status === 429, "three new links a week per team, then it waits");
+  ok((await call("PUT", "/api/staff/settings", { signupsPaused: true }, sam)).status === 403, "only an admin can pause sign-ups");
+  ok((await call("PUT", "/api/staff/settings", { signupsPaused: true }, boss)).json.signupsPaused === true, "admin pauses sign-ups");
+  ok((await call("GET", "/api/signup-status")).json.paused === true, "the join page knows");
+  await signUp("toolate@example.com", { name: "Too Late", number: "0", position: "F" }, { blocked: true });
+  ok((await call("GET", "/api/me", undefined, sam)).status === 200, "existing players still sign in");
+  ok((await call("PUT", "/api/staff/settings", { signupsPaused: false }, boss)).json.signupsPaused === false, "and back open");
+  const robots = await (await fetch(`${BASE}/robots.txt`)).text();
+  ok(/Disallow: \//.test(robots) && /noindex/.test(await (await fetch(`${BASE}/`)).text()), "search engines are told to stay out");
+
   console.log("pages render");
-  for (const path of ["/", "/leagues", `/team/${hh}`, `/player/${mike}`, "/players", "/rink", "/scan", "/join", `/game/${conf.json.gameId}`, `/league/${lg}`]) {
+  for (const path of ["/", "/leagues", `/team/${hh}`, `/player/${mike}`, "/players", "/rink", "/scan", "/join", "/privacy", `/game/${conf.json.gameId}`, `/league/${lg}`]) {
     const r = await fetch(BASE + path);
     ok(r.status === 200, `${path} renders`);
   }

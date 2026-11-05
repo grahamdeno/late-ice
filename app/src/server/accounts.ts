@@ -80,6 +80,7 @@ export async function userFromRequest(req: Request) {
   let u = await one<any>(sql, "SELECT * FROM users WHERE auth_id=$1", [a.authId]);
   if (!u) {
     if (!a.email) return null;
+    if (!(await one(sql, "SELECT 1 FROM users WHERE email=$1", [a.email])) && (await signupsPaused())) throw err(403, "New sign-ups are paused right now. Existing players can still sign in.");
     // Supabase verified this address, so its owner owns the matching Late Ice account.
     u = await one<any>(
       sql,
@@ -106,6 +107,7 @@ async function bootstrapAdmin(u: any) {
   await sql.begin(async (tx) => {
     if (await one(tx, "SELECT 1 FROM role_grants WHERE role='admin' AND revoked_at IS NULL LIMIT 1")) return;
     await grant(tx, u.id, "admin", null, null, "bootstrap admin");
+    await q(tx, "UPDATE users SET access='approved' WHERE id=$1", [u.id]);
     await audit(tx, u.id, "grant.admin", { type: "user", id: u.id }, undefined, { role: "admin" }, "bootstrap");
   });
   adminExists = true;
@@ -115,6 +117,25 @@ export async function requireUser(req: Request) {
   const u = await userFromRequest(req);
   if (!u) throw err(401, "Sign in first.");
   return u;
+}
+
+export const WAITLIST = "You're on the waitlist. A captain's invite link gets you in right away, or staff will let you in soon.";
+/** Let in: approved, or holding any staff or team role. */
+export async function isApproved(db: Tx, u: any) {
+  if (!u) return false;
+  if (u.access === "approved") return true;
+  if (u.access === "removed") return false;
+  return !!(await one(db, "SELECT 1 FROM role_grants WHERE user_id=$1 AND revoked_at IS NULL", [u.id]));
+}
+/** Signed in and let in through the gate. Needed for claiming, scanning, voting and requests. */
+export async function requireApproved(req: Request) {
+  const u = await requireUser(req);
+  if (!(await isApproved(sql, u))) throw err(403, WAITLIST);
+  return u;
+}
+export async function signupsPaused() {
+  const r = await one<any>(sql, "SELECT value FROM app_settings WHERE key='signups_paused'");
+  return r?.value === true;
 }
 
 /* ---------- helpers ---------- */
@@ -220,15 +241,20 @@ export function cleanNumber(n: unknown) {
   const s = String(n ?? "").replace(/[^0-9]/g, "").slice(0, 2);
   return s || null;
 }
-export const POSITIONS = new Set(["F", "D", "G"]);
-export const STATUSES = new Set(["available", "ir", "away", "resting"]);
+export const POSITIONS = new Set(["C", "W", "F", "D", "G"]);
+export const STATUSES = new Set(["active", "ir", "away"]);
+/** Injured reserve and Away end on their own once the return date passes. */
+export function effectiveStatus(u: { status: string; status_until: string | null }) {
+  if ((u.status === "ir" || u.status === "away") && u.status_until && u.status_until < new Date().toISOString().slice(0, 10)) return "active";
+  return u.status === "ir" || u.status === "away" ? u.status : "active";
+}
 
 export async function publicUser(db: Tx, u: any) {
   if (!u) return null;
   const rink = u.home_rink_id ? await one<any>(db, "SELECT id,name FROM rinks WHERE id=$1", [u.home_rink_id]) : null;
   return {
     id: u.id, email: u.email, phone: u.phone, name: u.name, number: u.number, position: u.position, homeRink: rink,
-    status: u.status, statusUntil: u.status_until, hidden: !!u.hidden, profileComplete: !!(u.name && u.position && u.home_rink_id),
+    access: (await isApproved(db, u)) ? "approved" : u.access, status: effectiveStatus(u), statusUntil: effectiveStatus(u) === "active" ? null : u.status_until, lookingForTeam: !!u.looking_for_team, willSub: !!u.will_sub, avatar: u.avatar ?? null, hidden: !!u.hidden, profileComplete: !!(u.name && u.position && u.home_rink_id),
   };
 }
 
