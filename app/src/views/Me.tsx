@@ -212,7 +212,7 @@ export default function MePage() {
       </Section>
 
       <a href={`mailto:support@tangomike.app?subject=${encodeURIComponent("Late Ice help")}&body=${encodeURIComponent(`\n\n---\nApp: Late Ice\nAccount: ${u.id}`)}`} className="card mt-6 p-4 flex items-center gap-3" data-testid="link-help">
-        <span className="flex-1"><span className="block font-bold text-sm">Get help</span><span className="block text-xs text-[var(--mute)]">Email support. Your account number is filled in.</span></span>
+        <span className="flex-1"><span className="block font-bold text-sm">Get help</span><span className="block text-xs text-[var(--mute)]">Questions or problems? Email us.</span></span>
         <span>›</span>
       </a>
 
