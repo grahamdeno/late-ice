@@ -35,7 +35,16 @@ jobs:
 
       - name: Start local Supabase (Postgres, Auth, Storage)
         run: |
-          npx supabase start -x studio,imgproxy,realtime,edge-runtime,logflare,vector,postgres-meta
+          # Image registries rate-limit shared CI runners; try each, with a pause between.
+          started=""
+          for reg in ghcr.io public.ecr.aws docker.io ghcr.io; do
+            if SUPABASE_INTERNAL_IMAGE_REGISTRY=$reg npx supabase start -x studio,imgproxy,realtime,edge-runtime,logflare,vector,postgres-meta; then
+              started=$reg; echo "SUPABASE_INTERNAL_IMAGE_REGISTRY=$reg" >> "$GITHUB_ENV"; break
+            fi
+            npx supabase stop --no-backup || true
+            sleep 30
+          done
+          [ -n "$started" ] || { echo "Could not start Supabase from any registry"; exit 1; }
           npx supabase status -o env > /tmp/sb.env
           get() { grep "^$1=" /tmp/sb.env | head -1 | cut -d= -f2- | tr -d '"'; }
           {
