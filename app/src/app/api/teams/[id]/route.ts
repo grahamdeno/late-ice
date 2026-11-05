@@ -3,6 +3,7 @@ import { sql, q, one } from "@/server/db";
 import { currentSeason, gameCards, teamRating, teamRecord, HttpError } from "@/server/services";
 import { captainOf, assistantsOf, requireUser, requireTeam, logAction, userFromRequest, userCan } from "@/server/accounts";
 import { teamIsEmpty, removeTeam } from "@/server/manage";
+import { teamArchetypes } from "@/server/archetypes";
 import { audit } from "@/server/permissions";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +28,10 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
     team: t, league, season, captain: await captainOf(sql, t.id), assistants: await assistantsOf(sql, t.id),
     record: await teamRecord(sql, t.id, season?.id ?? null), career: await teamRecord(sql, t.id), rating: await teamRating(sql, t.id),
     roster, games, imported: imported?.gp ? imported : null,
+    archetypes: await (async () => {
+      const u = await userFromRequest(req).catch(() => null);
+      return teamArchetypes(sql, t.id, u?.id ?? null);
+    })(),
     can: await (async () => {
       const u = await userFromRequest(req).catch(() => null);
       const removable = (await userCan(sql, u, "team.remove", { teamId: t.id, leagueId: t.league_id, rinkId: league.rink_id })) && (await teamIsEmpty(sql, t.id));

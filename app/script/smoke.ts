@@ -541,6 +541,21 @@ async function main() {
   ok(sw.json.user.lookingForTeam === true && sw.json.user.willSub === true, "Looking for a team and Will sub switches");
   ok((await call("PATCH", "/api/me", { status: "resting" }, sam)).status === 400, "Resting is gone");
   await call("PATCH", "/api/me", { status: "active" }, sam);
+
+  console.log("archetypes: voted by teammates");
+  const hhNow = (await call("GET", `/api/teams/${hh}`, undefined, graham)).json;
+  const samSlot = hhNow.roster.find((r: any) => r.name === "Sam Okafor");
+  const grahamSlot = hhNow.roster.find((r: any) => r.name === "Graham DeNoyer");
+  ok(samSlot && grahamSlot && hhNow.archetypes.voter === true, "teammates can vote");
+  ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: grahamSlot.id, archetype: "sniper" }, graham)).status === 400, "you can't pick your own");
+  ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: samSlot.id, archetype: "sniper" }, fan)).status === 403, "only teammates vote");
+  ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: samSlot.id, archetype: "wizard" }, graham)).status === 400, "only the listed archetypes");
+  ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: samSlot.id, archetype: "sniper" }, graham)).status === 200, "Graham votes Sam a Sniper");
+  ok(!(await call("GET", `/api/teams/${hh}`)).json.archetypes.won[samSlot.id], "one vote isn't enough to show");
+  ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: samSlot.id, archetype: "sniper" }, boss)).status === 200, "a second teammate agrees");
+  const won = (await call("GET", `/api/teams/${hh}`)).json.archetypes.won[samSlot.id];
+  ok(won?.archetype === "sniper" && won.votes === 2, "Sam shows as a Sniper");
+  ok((await call("PUT", `/api/teams/${hh}/archetypes`, { playerId: samSlot.id, archetype: "sniper" }, graham)).status === 200 && (await call("GET", `/api/teams/${hh}`)).json.archetypes.won[samSlot.id].votes === 2, "voting again doesn't count twice");
   ok((await call("DELETE", `/api/teams/${hh}/schedule/${g1.id}`, undefined, boss)).status === 400, "a calendar game can't be deleted, only marked canceled");
   ok((await call("PATCH", `/api/teams/${hh}/schedule/${g1.id}`, { status: "canceled" }, boss)).status === 200, "marked canceled");
   ok((await call("GET", `/api/teams/${hh}/schedule`)).json.games.find((g: any) => g.id === g1.id).status === "canceled", "shows as canceled");
