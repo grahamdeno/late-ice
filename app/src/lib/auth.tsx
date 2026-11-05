@@ -14,6 +14,7 @@ export interface MeSlot {
   team_id: number; team_name: string; color: string; logo: string | null; league_id: number; level: string; league_name: string;
   captain: { id: number; name: string } | null; isCaptain: boolean; teamRole: "captain" | "assistant_captain" | null;
   assistants: { id: number; name: string }[];
+  next: any | null;
 }
 export interface MyRole { id: number; role: string; scopeType: string; scopeId: number | null; where: string | null }
 export interface Notice { id: number; kind: string; title: string; body: string | null; link: string | null; team_id: number | null; read_at: string | null; created_at: string }
