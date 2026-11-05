@@ -144,11 +144,17 @@ try {
   await p2.waitForURL(/\/me$/);
 
   await page.locator('[data-testid^="button-manage-"]').first().click();
-  await page.waitForURL(/\/team\//);
+  await page.waitForURL(/\/team\/\d+\/manage$/);
   await page.waitForTimeout(1000);
-  await shoot(page, "team-roster-builder");
+  await shoot(page, "manage-team");
   await page.locator('[data-testid^="button-slot-"]').first().click();
-  await shoot(page, "team-roster-row-open");
+  await shoot(page, "manage-team-row-open");
+  await page.getByTestId("input-spot-name").fill("Pat Newguy");
+  await page.getByTestId("button-spot-position-D").click();
+  await page.getByTestId("button-add-spot").click();
+  await page.waitForTimeout(900);
+  if (!(await page.getByTestId("text-spot-added").count())) errors.push("adding a player by hand showed no confirmation");
+  await shoot(page, "manage-team-added");
   await page.getByTestId("link-draft").click();
   await page.waitForURL(/\/pool\//);
   await page.waitForTimeout(1000);

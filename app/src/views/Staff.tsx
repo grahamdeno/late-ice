@@ -247,6 +247,17 @@ function RinkSection({ rink, run }: { rink: any; run: Run }) {
             )}
             {l.addTeam && open !== `team-${l.id}` && <AddButton label="Team" onClick={() => setOpen(`team-${l.id}`)} testid={`button-add-team-${l.id}`} />}
           </div>
+          {l.addTeam && l.level !== "DEMO" && (
+            <div className="px-3.5 py-2 flex items-center gap-2 text-xs text-[var(--mute)] border-b border-[var(--line)]" data-testid={`row-roster-size-${l.id}`}>
+              <span className="flex-1">Roster size</span>
+              <label className="flex items-center gap-1">Skaters
+                <input className="input h-8 w-14 text-center tnum text-xs" inputMode="numeric" defaultValue={l.roster_max ?? 15} onBlur={(e) => Number(e.target.value) !== (l.roster_max ?? 15) && run("PATCH", `/api/leagues/${l.id}`, { rosterMax: Number(e.target.value) })} aria-label={`Skater spots for ${l.name}`} data-testid={`input-roster-max-${l.id}`} />
+              </label>
+              <label className="flex items-center gap-1">Goalies
+                <input className="input h-8 w-12 text-center tnum text-xs" inputMode="numeric" defaultValue={l.goalie_max ?? 2} onBlur={(e) => Number(e.target.value) !== (l.goalie_max ?? 2) && run("PATCH", `/api/leagues/${l.id}`, { goalieMax: Number(e.target.value) })} aria-label={`Goalie spots for ${l.name}`} data-testid={`input-goalie-max-${l.id}`} />
+              </label>
+            </div>
+          )}
           {open === `team-${l.id}` && <div className="p-3 border-b border-[var(--line)]"><AddTeamForm leagueId={l.id} leagueName={l.name} onDone={close} /></div>}
           <div className="divide-y divide-[var(--line)]">
             {l.teams.length === 0 && <p className="p-3 text-xs text-[var(--mute)]">No teams yet.</p>}

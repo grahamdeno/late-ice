@@ -183,7 +183,7 @@ export default function MePage() {
                 )}
                 <div className="flex flex-wrap gap-2 mt-3">
                   <Link href={`/player/${s.id}`} className="btn btn-ghost h-9 text-sm">Rating history</Link>
-                  {s.teamRole && <Link href={`/team/${s.team_id}`} className="btn btn-red h-9 text-sm" data-testid={`button-manage-${s.team_id}`}>Manage roster</Link>}
+                  {s.teamRole && <Link href={`/team/${s.team_id}/manage`} className="btn btn-red h-9 text-sm" data-testid={`button-manage-${s.team_id}`}>Manage team</Link>}
                   {!s.captain && <button className="btn btn-ghost h-9 text-sm" onClick={() => run("POST", `/api/teams/${s.team_id}/captain`)} data-testid={`button-become-captain-${s.team_id}`}>I'm the captain</button>}
                   {s.source === "draft" && !s.isCaptain && <button className="btn btn-ghost h-9 text-sm" onClick={() => confirm(`Leave ${s.team_name}?`) && run("POST", `/api/me/decline/${s.team_id}`)} data-testid={`button-decline-${s.team_id}`}>Not my team</button>}
                 </div>
@@ -197,10 +197,15 @@ export default function MePage() {
 
       {me.captainTeams.length > 0 && (
         <Section title="Captain">
-          <Link href={`/pool`} className="card-hi p-4 flex items-center gap-3" data-testid="link-pool">
-            <span className="flex-1"><span className="block font-bold">Draft pool</span><span className="block text-xs text-[var(--mute)]">Registered players at your rink. Pull them onto your roster.</span></span>
-            <span>›</span>
-          </Link>
+          <div className="space-y-2">
+            {me.captainTeams.map((t) => (
+              <Link key={t.id} href={`/team/${t.id}/manage`} className="card-hi p-4 flex items-center gap-3" data-testid={`link-manage-${t.id}`}>
+                <span className="h-6 w-6 rounded-full shrink-0" style={{ background: t.color }} />
+                <span className="flex-1 min-w-0"><span className="block font-bold truncate">Manage {t.name}</span><span className="block text-xs text-[var(--mute)]">Roster, add players, invites, draft pool.</span></span>
+                <span>›</span>
+              </Link>
+            ))}
+          </div>
         </Section>
       )}
 
