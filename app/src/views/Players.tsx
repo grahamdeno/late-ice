@@ -223,14 +223,9 @@ function ClaimCard({ player }: { player: any }) {
   const [hideOpen, setHideOpen] = useState(false);
   const [contact, setContact] = useState("");
   const [hidden, setHidden] = useState(false);
-  if (player.mine) {
-    return (
-      <div className="card mt-6 p-4 flex items-center gap-3" data-testid="card-mine">
-        <div className="flex-1"><div className="font-bold">This is you</div><div className="text-xs text-[var(--mute)]">Hide your name or set your availability from your profile.</div></div>
-        <Link href="/me" className="btn btn-ghost h-10">Profile</Link>
-      </div>
-    );
-  }
+  // Your own page needs no card: it is a status, not a question, and it never goes away.
+  // Hiding your name and availability live on the Me tab.
+  if (player.mine) return null;
   return (
     <div className="mt-6 space-y-3">
       {!player.registered && (
