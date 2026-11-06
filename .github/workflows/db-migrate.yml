@@ -47,7 +47,9 @@ jobs:
           out="/tmp/late-ice-backup/pre-migrate.sql.gz"
           mkdir -p /tmp/late-ice-backup
           set -o pipefail
-          pg_dump --no-password --dbname="$SUPABASE_DB_URL" | gzip -c > "$out"
+          # The runner ships an older pg_dump first on PATH; call the 17 client directly.
+          # Supabase is on Postgres 17; pg_dump refuses a server newer than itself.
+          /usr/lib/postgresql/17/bin/pg_dump --no-password --dbname="$SUPABASE_DB_URL" | gzip -c > "$out"
           gzip -t "$out"
           test -s "$out"
           echo "skip=false" >> "$GITHUB_OUTPUT"
