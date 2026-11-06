@@ -6,7 +6,7 @@ import { one, q, type Tx } from "./db";
 import { HttpError, LEVEL_START, nameKey, seasonFor, similarity } from "./services";
 import { obfuscate, refreshDisplays } from "./accounts";
 
-import { parseReport, type Parsed, type PRow } from "./report-parse";
+import { parseReport, looksLikeTeamName, type Parsed, type PRow } from "./report-parse";
 export { parseReport };
 
 export interface ImportSummary {
@@ -64,6 +64,7 @@ export async function loadReport(tx: Tx, rinkId: number, p: Parsed, chosenLevel:
   sourceTeams.delete("Opponent");
   for (const s of sourceTeams) {
     if (teamFor(s) || !s.trim() || FORBIDDEN_NAME.test(s)) continue;
+    if (!looksLikeTeamName(s)) { warnings.push(`Skipped "${s.trim().slice(0, 40)}": doesn't look like a team name.`); continue; }
     const name = s.trim().slice(0, 50);
     const t = await one<any>(tx, "INSERT INTO teams (league_id, name, color, is_sample) VALUES ($1,$2,$3,0) RETURNING id, name", [league.id, name, PALETTE[(teams.length) % PALETTE.length]]);
     teams.push(t);
