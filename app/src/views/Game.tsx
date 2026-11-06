@@ -1,5 +1,7 @@
 "use client";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { act } from "@/lib/auth";
 import { Link } from "@/lib/router";
 import { BackBar, Delta, FaceoffDot, LevelPill, Loading, TeamBadge, fmtDate, img } from "@/lib/ui";
 
@@ -163,7 +165,70 @@ export default function Game({ id, fresh }: { id: string; fresh?: boolean }) {
           <div className="flex-1"><div className="font-bold text-sm">Source scoresheet</div><div className="text-xs text-[var(--mute)]">Every stat on this page came from this photo</div></div>
         </a>
       )}
+      {g.goalies && (g.goalies.reports.length > 0 || g.goalies.canSubmit) && <GoalieNumbers g={g} />}
     </div>
+  );
+}
+
+const STATUS_TEXT: Record<string, string> = {
+  verified: "Confirmed by the other team",
+  pending: "Waiting on the other team's captain",
+  unverified: "Not confirmed, counts at half weight",
+  disputed: "The other team gave a different number. Staff will settle it.",
+};
+
+/** Goalie shots against: the goalie enters, the other team's captain confirms. */
+function GoalieNumbers({ g }: { g: any }) {
+  const { reports, canSubmit, myShots } = g.goalies;
+  const [shots, setShots] = useState<string>(myShots != null ? String(myShots) : "");
+  const [counter, setCounter] = useState<Record<number, string>>({});
+  const [err, setErr] = useState<string | null>(null);
+  const keys = [`/api/games/${g.id}`, "/api/players"];
+  const teamName = (id: number) => (id === g.home.id ? g.home.name : g.away.name);
+  return (
+    <section className="mt-8" data-testid="section-goalie-numbers">
+      <h2 className="text-[18px] font-black px-1 mb-3">Goalie numbers</h2>
+      <div className="card divide-y divide-[var(--line)]">
+        {reports.map((r: any) => (
+          <div key={r.id} className="p-4" data-testid={`row-goalie-${r.id}`}>
+            <div className="flex items-center gap-3">
+              <span className="flex-1 min-w-0">
+                <span className="block font-bold text-sm truncate">{r.name} <span className="text-[var(--mute)] font-medium">· {teamName(r.team_id)}</span></span>
+                <span className="block text-xs text-[var(--mute)]">{STATUS_TEXT[r.status] ?? r.status}</span>
+              </span>
+              <span className="text-right tnum">
+                <span className="block font-display text-xl">{r.savePct != null ? r.savePct.toFixed(3).replace(/^0/, "") : "–"}</span>
+                <span className="block text-[11px] text-[var(--mute)]">{r.shots_against - r.goals_against} saves on {r.shots_against}</span>
+              </span>
+            </div>
+            {r.canAnswer && (
+              <div className="mt-3 space-y-2">
+                <p className="text-xs text-[var(--mute)]">Does {r.shots_against} shots on goal look right for your team?</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button className="btn btn-ghost h-11 text-sm" onClick={async () => setErr(await act("POST", `/api/goalie-reports/${r.id}`, { answer: "agree" }, keys))} data-testid={`button-goalie-agree-${r.id}`}>Agree</button>
+                  <button className="btn btn-ghost h-11 text-sm" onClick={async () => setErr(await act("POST", `/api/goalie-reports/${r.id}`, { answer: "unsure" }, keys))} data-testid={`button-goalie-unsure-${r.id}`}>Not sure</button>
+                </div>
+                <form className="flex gap-2" onSubmit={async (e) => { e.preventDefault(); setErr(await act("POST", `/api/goalie-reports/${r.id}`, { answer: "differ", counter: Number(counter[r.id]) }, keys)); }}>
+                  <input className="input flex-1" inputMode="numeric" placeholder="Your count" aria-label="Your shots count" value={counter[r.id] ?? ""} onChange={(e) => setCounter({ ...counter, [r.id]: e.target.value.replace(/\D/g, "") })} />
+                  <button className="btn btn-ghost h-11 text-sm" disabled={!counter[r.id]} data-testid={`button-goalie-differ-${r.id}`}>Different number</button>
+                </form>
+              </div>
+            )}
+          </div>
+        ))}
+        {canSubmit && (
+          <form className="p-4 space-y-2" onSubmit={async (e) => { e.preventDefault(); setErr(await act("POST", `/api/games/${g.id}/goalie`, { shots: Number(shots) }, keys)); }} data-testid="form-goalie-submit">
+            <label className="block text-sm font-bold" htmlFor="goalie-shots">{myShots != null ? "Change your shots against" : "You were in goal? Enter shots against"}</label>
+            <p className="text-xs text-[var(--mute)]">Goals against come from the score. The other team's captain confirms your number.</p>
+            <div className="flex gap-2">
+              <input id="goalie-shots" className="input flex-1" inputMode="numeric" placeholder="Shots on goal" value={shots} onChange={(e) => setShots(e.target.value.replace(/\D/g, ""))} data-testid="input-goalie-shots" />
+              <button className="btn btn-red h-11" disabled={!shots} data-testid="button-goalie-submit">Send</button>
+            </div>
+          </form>
+        )}
+      </div>
+      {err && <p className="text-sm down mt-2 px-1" data-testid="text-goalie-error">{err}</p>}
+    </section>
   );
 }
 

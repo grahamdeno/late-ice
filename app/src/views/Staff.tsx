@@ -53,6 +53,7 @@ export default function Staff({ rinkId, leagueId }: { rinkId?: string; leagueId?
 
       <Requests run={run} />
       <Signups run={run} />
+      <GoalieDisputes run={run} />
       {data.isSupport || data.isAdmin ? <SupportDesk run={run} isAdmin={data.isAdmin} /> : null}
       <Section title={data.isAdmin ? "Rinks" : live.length === 1 ? "Your rink" : "Your rinks"} action={<span className="label">{live.length}</span>}>
         <div className="card divide-y divide-[var(--line)]">
@@ -364,6 +365,29 @@ function Requests({ run }: { run: Run }) {
 }
 
 /** New accounts waiting to be let in. */
+/** Goalie shot counts the two teams disagree on. Staff pick one number. */
+function GoalieDisputes({ run }: { run: Run }) {
+  const { data } = useQuery<any[]>({ queryKey: ["/api/staff/goalie-disputes"] });
+  if (!data?.length) return null;
+  const settle = (id: number, use: string) => run("POST", `/api/goalie-reports/${id}/settle`, { use }).then(() => invalidatePrefixes(["/api/staff/goalie-disputes", "/api/games"]));
+  return (
+    <Section title="Goalie numbers to settle" action={<span className="label text-[var(--red)]">{data.length}</span>}>
+      <div className="card divide-y divide-[var(--line)]">
+        {data.map((r) => (
+          <div key={r.id} className="p-4" data-testid={`row-goalie-dispute-${r.id}`}>
+            <Link href={`/game/${r.game_id}`} className="block font-bold text-sm">{r.goalie} · {r.team} · {r.played_on}</Link>
+            <p className="text-xs text-[var(--mute)] mt-0.5">Goalie says {r.shots_against} shots. The other captain says {r.counter_shots}. {r.goals_against} goals against.</p>
+            <div className="grid grid-cols-2 gap-2 mt-3">
+              <button className="btn btn-ghost h-11 text-sm" onClick={() => settle(r.id, "goalie")} data-testid={`button-settle-goalie-${r.id}`}>Use {r.shots_against}</button>
+              <button className="btn btn-ghost h-11 text-sm" onClick={() => settle(r.id, "captain")} data-testid={`button-settle-captain-${r.id}`}>Use {r.counter_shots}</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
 function Signups({ run }: { run: Run }) {
   const { data } = useQuery<any[]>({ queryKey: ["/api/staff/signups"] });
   if (!data?.length) return null;

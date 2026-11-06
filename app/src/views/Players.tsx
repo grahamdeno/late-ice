@@ -30,7 +30,7 @@ export function Players() {
       <span className="w-7 text-center font-display text-lg text-[var(--mute)]">{isRated(p) ? i + 1 : "–"}</span>
       <span className="flex-1 min-w-0">
         <span className="block font-bold truncate">{pinned ? "You" : p.name}{p.position && p.position !== "F" && <span className="text-[var(--mute)] font-medium"> · {p.position}</span>}</span>
-        <span className="block text-xs text-[var(--mute)] truncate">{p.teams} · {p.levels}</span>
+        <span className="block text-xs text-[var(--mute)] truncate">{p.position === "G" && p.ggp ? `${Number(p.sv).toFixed(3).replace(/^0/, "")} save % · ${Number(p.gaa).toFixed(2)} GA avg · ${p.ggp} GP · ` : ""}{p.teams} · {p.levels}</span>
       </span>
       <span className="text-right">
         {p.games_rated > 0
