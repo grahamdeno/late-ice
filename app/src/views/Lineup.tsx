@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@/lib/router";
+import { Link, canGoBack, useBack } from "@/lib/router";
 import { act, POSITION_LABEL } from "@/lib/auth";
 import { Loading, fmtDate } from "@/lib/ui";
 import { Bobble } from "@/components/Bobble";
@@ -14,6 +14,7 @@ const W = 1080, H = 1350;
 
 /** The lineup for one game: forward lines, defense pairs, goalie. Captains set it; everyone sees it; Share makes a picture. */
 export default function Lineup({ teamId, gameId }: { teamId: string; gameId: string }) {
+  const back = useBack(`/team/${teamId}`);
   const key = `/api/teams/${teamId}/schedule/${gameId}/lineup`;
   const { data, error } = useQuery<any>({ queryKey: [key] });
   const [L, setL] = useState<L | null>(null);
@@ -58,7 +59,7 @@ export default function Lineup({ teamId, gameId }: { teamId: string; gameId: str
 
   return (
     <div>
-      <Link href={`/team/${teamId}`} className="text-xs text-[var(--mute)]" data-testid="link-back-team">‹ {data.team.name}</Link>
+      <a href={`/team/${teamId}`} onClick={(e) => { e.preventDefault(); back(); }} className="text-xs text-[var(--mute)] inline-flex items-center min-h-[44px]" data-testid="link-back-team">‹ {canGoBack() ? "Back" : data.team.name}</a>
       <h1 className="font-display text-[34px] leading-none font-black uppercase mt-1">Lineup</h1>
       <div className="text-sm text-[var(--mute)] mt-1">{fmtDate(g.date)}{g.time ? ` · ${g.time}` : ""}{g.opponent ? ` · vs ${g.opponent}` : ""}</div>
       {!data.saved && edit && <p className="text-xs text-[var(--amber)] mt-2 px-1" data-testid="text-lineup-draft">Filled in from who said In. Tap a spot to change it, then Save.</p>}

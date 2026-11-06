@@ -40,7 +40,7 @@ function useInvite() {
 }
 
 export default function Join() {
-  const [, nav] = useLocation();
+  const [, , swap] = useLocation();
   const { me, loading } = useMe();
   const invite = useInvite();
   const { data: gate } = useQuery<{ paused: boolean }>({ queryKey: ["/api/signup-status"] });
@@ -55,9 +55,9 @@ export default function Join() {
   // Already signed in: finish the profile or go to it.
   useEffect(() => {
     if (!me) return;
-    if (me.user.profileComplete) nav("/me");
+    if (me.user.profileComplete) swap("/me");
     else setStep("profile");
-  }, [me, nav]);
+  }, [me, swap]);
 
   // Resend cooldown ticker.
   useEffect(() => {
@@ -94,7 +94,7 @@ export default function Join() {
     try {
       const res = await apiRequest("GET", "/api/me");
       const j = await res.json();
-      if (j.user.profileComplete) nav("/me"); else setStep("profile");
+      if (j.user.profileComplete) swap("/me"); else setStep("profile");
     } catch (e: any) { setErr(e.message); }
     setBusy(false);
   };
@@ -149,7 +149,7 @@ export default function Join() {
         </form>
       )}
 
-      {step === "profile" && <ProfileForm onDone={() => nav("/me")} />}
+      {step === "profile" && <ProfileForm onDone={() => swap("/me")} />}
     </div>
   );
 }

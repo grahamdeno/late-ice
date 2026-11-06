@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Link, useLocation } from "@/lib/router";
+import { Link, useLocation, useNavTrail } from "@/lib/router";
 import { FaceoffDot, LevelPill, useFilter } from "@/lib/ui";
 import { useMe } from "@/lib/auth";
 import { RinkPicker } from "@/components/RinkPicker";
@@ -64,6 +64,7 @@ function BackToTop() {
 }
 
 export function Shell({ children }: { children: React.ReactNode }) {
+  useNavTrail();
   const [loc] = useLocation();
   const { leagueId, setLeagueId, rinkId, setRinkId, boot } = useFilter();
   const [, go] = useLocation();

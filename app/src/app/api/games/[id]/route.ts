@@ -12,12 +12,17 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
      FROM player_game_stats s JOIN players p ON p.id=s.player_id WHERE s.game_id=$1 ORDER BY (s.goals+s.assists) DESC, p.display_name`, [g.id]);
   const parse = (s: string | null) => JSON.parse(s || "{}");
   const imported = await q(sql,
-    "SELECT il.*, p.display_name AS name FROM imported_game_lines il JOIN players p ON p.id=il.player_id WHERE il.game_id=$1 ORDER BY (il.goals*2+il.assists) DESC, p.display_name", [g.id]);
+    `SELECT x.player_id, x.team_id, COALESCE(il.goals,0)::int goals, COALESCE(il.assists,0)::int assists, p.display_name AS name
+     FROM (SELECT player_id, team_id FROM imported_game_lines WHERE game_id=$1 UNION SELECT player_id, team_id FROM imported_game_attendance WHERE game_id=$1) x
+     JOIN players p ON p.id=x.player_id LEFT JOIN imported_game_lines il ON il.game_id=$1 AND il.player_id=x.player_id
+     ORDER BY (COALESCE(il.goals,0)*2+COALESCE(il.assists,0)) DESC, p.display_name`, [g.id]);
+  const lineupTeams = (await q<{ team_id: number }>(sql, "SELECT DISTINCT team_id FROM imported_game_attendance WHERE game_id=$1", [g.id])).map((r) => r.team_id);
   const viewer = await userFromRequest(req).catch(() => null);
   return {
     ...(await gameCard(sql, g)), periods: parse(g.periods_json), goals: parse(g.goals_json), penalties: parse(g.penalties_json), shots: parse(g.shots_json),
     lines: await applyViewerNames(sql, viewer, lines, "player_id"),
     imported: await applyViewerNames(sql, viewer, imported, "player_id"),
     unassigned: g.unassigned_json ? JSON.parse(g.unassigned_json) : null,
+    lineupTeams,
   };
 });

@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@/lib/router";
+import { Link, canGoBack, useBack } from "@/lib/router";
 import { useMe, act, STATUS_LABEL, POSITION_LABEL } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
 import { Loading, More, Section, TeamBadge, fmtRating } from "@/lib/ui";
@@ -19,6 +19,7 @@ const isOut = (s: any) => s.registered && ["ir", "away"].includes(s.status) && (
 /** One place for a captain to run the team: roster, adding players, invites, the draft pool, leadership and the team itself. */
 export default function ManageTeam({ id }: { id: string }) {
   const teamId = Number(id);
+  const back = useBack(`/team/${teamId}`);
   const { me } = useMe();
   const { data, error } = useQuery<any>({ queryKey: [`/api/teams/${teamId}/manage`], enabled: !!me });
   const team = useQuery<any>({ queryKey: [`/api/teams/${teamId}`] });
@@ -39,7 +40,7 @@ export default function ManageTeam({ id }: { id: string }) {
 
   return (
     <div>
-      <Link href={`/team/${teamId}`} className="text-xs text-[var(--mute)]" data-testid="link-back-team">‹ {data.team.name}</Link>
+      <a href={`/team/${teamId}`} onClick={(e) => { e.preventDefault(); back(); }} className="text-xs text-[var(--mute)] inline-flex items-center min-h-[44px]" data-testid="link-back-team">‹ {canGoBack() ? "Back" : data.team.name}</a>
       <div className="flex items-center gap-3 mt-1">
         <TeamBadge team={data.team} size={40} />
         <h1 className="font-display text-[34px] leading-none font-black uppercase">Manage team</h1>

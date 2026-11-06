@@ -17,7 +17,7 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
 export default function Legal() {
   return (
     <div>
-      <BackBar href="/me" title="Profile" />
+      <BackBar href="/me" to="Profile" />
       <h1 className="font-display text-[40px] leading-none font-black uppercase">Terms and privacy</h1>
       <p className="text-xs text-[var(--mute)] mt-2">Updated {UPDATED}. Questions: <a className="text-[var(--blue)]" href="mailto:support@tangomike.app">support@tangomike.app</a></p>
 

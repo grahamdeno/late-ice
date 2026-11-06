@@ -60,6 +60,15 @@ export const PATCH = handle<{ id: string }>(async (req, { id }) => {
   if (!l) throw new HttpError(404, "League not found");
   await P.require_(sql, u, "league.edit", { leagueId: l.id, rinkId: l.rink_id });
   const b = await body(req);
+  if (b.archived !== undefined) {
+    await P.require_(sql, u, "league.create", { leagueId: l.id, rinkId: l.rink_id });
+    const on = !!b.archived;
+    await sql.begin(async (tx) => {
+      await q(tx, "UPDATE leagues SET archived_at=CASE WHEN $1 THEN now() ELSE NULL END WHERE id=$2", [on, l.id]);
+      await P.audit(tx, u.id, on ? "league.archive" : "league.restore", { type: "league", id: l.id, rinkId: l.rink_id }, undefined, { name: l.name });
+    });
+    return { ok: true };
+  }
   const name = b.name !== undefined ? clean(b.name, 60) || l.name : l.name;
   const blurb = b.blurb !== undefined ? clean(b.blurb, 140) || null : l.blurb;
   if (b.level !== undefined && !LEVELS.includes(String(b.level))) throw new HttpError(400, "Skill level is A, B, C or D.");
@@ -81,7 +90,7 @@ export const DELETE = handle<{ id: string }>(async (req, { id }) => {
   const l = await one<any>(sql, "SELECT * FROM leagues WHERE id=$1", [num(id)]);
   if (!l) throw new HttpError(404, "League not found");
   await P.require_(sql, u, "league.create", { leagueId: l.id, rinkId: l.rink_id });
-  if (await one(sql, "SELECT 1 FROM teams WHERE league_id=$1", [l.id]) || await one(sql, "SELECT 1 FROM games WHERE league_id=$1", [l.id])) throw new HttpError(409, "Remove its teams first.");
+  if (await one(sql, "SELECT 1 FROM teams WHERE league_id=$1", [l.id]) || await one(sql, "SELECT 1 FROM games WHERE league_id=$1", [l.id])) throw new HttpError(409, "This league has teams or games. Archive it instead.");
   await sql.begin(async (tx) => {
     await q(tx, "DELETE FROM leagues WHERE id=$1", [l.id]);
     await P.audit(tx, u.id, "league.remove", { type: "league", id: l.id, rinkId: l.rink_id }, { name: l.name }, undefined);

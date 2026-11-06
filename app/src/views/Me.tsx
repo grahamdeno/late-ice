@@ -5,6 +5,7 @@ import { Link, useLocation } from "@/lib/router";
 import { useMe, act, ROLE_LABEL } from "@/lib/auth";
 import { Empty, LevelPill, MeSkeleton, More, RowLink, Section, TeamBadge } from "@/lib/ui";
 import { GameLine } from "@/components/Schedule";
+import { useQuery } from "@tanstack/react-query";
 import { AvatarBuilder } from "@/components/AvatarBuilder";
 import { PlayerCard } from "@/components/PlayerCard";
 
@@ -19,12 +20,12 @@ function timeAgo(s: string) {
 
 /** Me: your card, your team, and rows for the rest. Settings live behind the gear. */
 export default function MePage() {
-  const [, nav] = useLocation();
+  const [, , swap] = useLocation();
   const { me, loading } = useMe();
   const [err, setErr] = useState<string | null>(null);
 
-  useEffect(() => { if (!loading && !me) nav("/join"); }, [loading, me, nav]);
-  useEffect(() => { if (me && !me.user.profileComplete) nav("/join"); }, [me, nav]);
+  useEffect(() => { if (!loading && !me) swap("/join"); }, [loading, me, swap]);
+  useEffect(() => { if (me && !me.user.profileComplete) swap("/join"); }, [me, swap]);
 
   if (loading || !me) return <MeSkeleton />;
   const u = me.user;
@@ -106,9 +107,12 @@ export default function MePage() {
       <span className="sr-only" data-testid="text-me-name">{u.name}</span>
       {me.roles.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-2" data-testid="list-roles">
-          {me.roles.map((r) => <span key={r.id} className="chip h-7 text-[11px]">{ROLE_LABEL[r.role] ?? r.role}{r.where ? ` · ${r.where}` : ""}</span>)}
+          {me.roles.map((r) => STAFF_ROLES.includes(r.role)
+            ? <Link key={r.id} href="/staff" className="chip h-7 text-[11px]" data-testid={`link-role-${r.role}`}>{ROLE_LABEL[r.role] ?? r.role}{r.where ? ` · ${r.where}` : ""} ›</Link>
+            : <span key={r.id} className="chip h-7 text-[11px]">{ROLE_LABEL[r.role] ?? r.role}{r.where ? ` · ${r.where}` : ""}</span>)}
         </div>
       )}
+      {me.staff && <StaffCard roles={me.roles} />}
       {err && <p className="text-sm down mt-3 px-1" data-testid="text-error">{err}</p>}
 
       <Section title={me.slots.length > 1 ? "My teams" : "My team"}>
@@ -153,7 +157,6 @@ export default function MePage() {
         </More>
       )}
       {me.captainTeams.length > 0 && <RowLink href="/pool" title="Draft pool" hint="Registered players at your rink" testid="link-pool" />}
-      {me.staff && <RowLink href="/staff" title="Manage" hint="Requests, rinks, leagues, teams and staff" testid="link-staff" />}
     </div>
   );
 }
@@ -211,5 +214,26 @@ function FindSpot({ run }: { run: (m: string, u: string, b?: unknown) => Promise
         </div>
       </div>
     </>
+  );
+}
+
+const STAFF_ROLES = ["scorekeeper", "commissioner", "rink_manager", "support", "admin"];
+
+/** The way into staff tools: set apart from the player rows, near the top, with a count of what's waiting. */
+function StaffCard({ roles }: { roles: { role: string }[] }) {
+  const admin = roles.some((r) => r.role === "admin");
+  const { data: requests } = useQuery<any[]>({ queryKey: ["/api/staff/requests"] });
+  const { data: signups } = useQuery<any[]>({ queryKey: ["/api/staff/signups"], enabled: admin || roles.some((r) => r.role === "support") });
+  const waiting = (requests?.length ?? 0) + (signups?.length ?? 0);
+  const title = admin ? "Admin tools" : roles.some((r) => r.role === "support") ? "Support tools" : "Rink tools";
+  return (
+    <Link href="/staff" className="mt-3 flex items-center gap-3 rounded-[22px] p-4 bg-[var(--red-dim)]" data-testid="link-staff">
+      <span className="flex-1 min-w-0">
+        <span className="block font-black">{title}</span>
+        <span className="block text-xs text-[var(--mute)]">{admin ? "Rinks, leagues, teams, seasons, staff and requests" : "Leagues, teams, seasons and requests"}</span>
+      </span>
+      {waiting > 0 && <span className="h-6 min-w-[24px] px-2 rounded-full bg-[var(--red-btn)] text-white text-xs font-bold grid place-items-center tnum" data-testid="badge-staff-waiting">{waiting}</span>}
+      <span className="text-lg">›</span>
+    </Link>
   );
 }

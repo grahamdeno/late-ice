@@ -586,6 +586,23 @@ async function main() {
   ok((await call("GET", `/api/teams/${hh}`)).json.captain?.name === "Sam Okafor", "Sam is captain");
   ok((await call("POST", `/api/teams/${hh}/captain/assign`, { userId: ids.graham }, mt)).status === 200, "and back to Graham");
   ok((await call("GET", `/api/staff/audit?rink=${rinkId}`, undefined, mt)).json.length > 0, "rink manager reads his rink's audit log");
+  // Archive instead of delete: hidden from lists and standings, history kept, restorable.
+  ok((await call("PATCH", `/api/teams/${hh}`, { archived: true }, graham)).status === 403, "a captain can't archive his team");
+  ok((await call("DELETE", `/api/rinks/${rinkId}`, undefined, boss)).status === 409, "a rink with leagues can't be deleted");
+  const hhLeague = (await call("GET", `/api/teams/${hh}`)).json.league.id;
+  ok((await call("PATCH", `/api/teams/${hh}`, { archived: true }, mt)).status === 200, "rink manager archives a team");
+  ok(!(await call("GET", `/api/leagues/${hhLeague}`)).json.standings.some((t: any) => t.id === hh), "an archived team leaves the standings");
+  ok((await call("GET", `/api/teams/${hh}`)).status === 200, "but its page and history stay");
+  ok((await call("PATCH", `/api/teams/${hh}`, { archived: false }, mt)).status === 200, "and it can be restored");
+  ok((await call("GET", `/api/leagues/${hhLeague}`)).json.standings.some((t: any) => t.id === hh), "restored team is back in the standings");
+  ok((await call("PATCH", `/api/rinks/${rinkId}`, { archived: true }, mt)).status === 403, "only admins archive rinks");
+  const seasonsBefore = (await call("GET", "/api/staff/overview", undefined, boss)).json.rinks.find((r: any) => r.id === rinkId).seasons;
+  const addedSeason = await call("POST", `/api/rinks/${rinkId}/seasons`, { name: "Spring 2031", startsOn: "2031-04-01", endsOn: "2031-06-30" }, boss);
+  ok(addedSeason.status === 200, "admin adds a season");
+  ok((await call("PATCH", `/api/seasons/${addedSeason.json.id}`, { name: "Spring 31" }, boss)).status === 200, "and renames it");
+  ok((await call("DELETE", `/api/seasons/${addedSeason.json.id}`, undefined, boss)).status === 200, "an empty season can be deleted");
+  const withGames = seasonsBefore.find((x: any) => x.games > 0);
+  if (withGames) ok((await call("DELETE", `/api/seasons/${withGames.id}`, undefined, boss)).status === 409, "a season with games can't be deleted");
   ok((await call("POST", "/api/rink-access", { rinkId, message: "front desk" }, sam)).status === 200, "a player requests rink access");
   const rq = (await call("GET", "/api/staff/requests", undefined, boss)).json.find((r: any) => r.kind === "rink_manager");
   ok(rq && !(await call("GET", "/api/staff/requests", undefined, mt)).json.some((r: any) => r.kind === "rink_manager"), "rink access requests go to admins only");
@@ -1380,7 +1397,10 @@ async function main() {
   ok((await call("POST", `/api/teams/${hh}/merge`, { fromId: spotA.id, intoId: spotB.id }, sam)).status === 403, "an assistant cannot merge two spots");
   const preview = await call("GET", `/api/teams/${hh}/merge?from=${spotA.id}&into=${spotB.id}`, undefined, graham);
   ok(preview.status === 200 && preview.json.games === 1 && preview.json.points === 3 && preview.json.moving?.name && preview.json.kept?.name && preview.json.moving.name !== preview.json.kept.name, "merge preview names both players and the games and points that move");
-  ok((await call("POST", `/api/teams/${hh}/merge`, { fromId: spotA.id, intoId: spotB.id }, graham)).status === 200, "the captain merges after the counts");
+  // Graham has made a lot of saves by now; the per-user limit (60 a minute) is tested on its own below.
+  let mergeRes = await call("POST", `/api/teams/${hh}/merge`, { fromId: spotA.id, intoId: spotB.id }, graham);
+  if (mergeRes.status === 429) { await new Promise((r) => setTimeout(r, 61_000)); mergeRes = await call("POST", `/api/teams/${hh}/merge`, { fromId: spotA.id, intoId: spotB.id }, graham); }
+  ok(mergeRes.status === 200, `the captain merges after the counts (${mergeRes.status} ${JSON.stringify(mergeRes.json).slice(0, 200)})`);
   const auditRow = (await db`SELECT before_json, after_json FROM audit_log WHERE action = 'roster.merge' ORDER BY id DESC LIMIT 1`)[0];
   const auditAfter = JSON.parse(auditRow.after_json);
   const auditBefore = JSON.parse(auditRow.before_json);

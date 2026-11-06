@@ -19,7 +19,7 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
     const f = await one<any>(sql, "SELECT url, last_synced_at, last_error, last_count, added_at FROM team_feeds WHERE team_id=$1", [teamId]);
     feed = f ? { connected: true, host: new URL(f.url).hostname, lastSyncedAt: f.last_synced_at, lastError: f.last_error, lastCount: f.last_count } : { connected: false };
   }
-  const opponents = can.manual ? await q(sql, "SELECT id, name FROM teams WHERE league_id=$1 AND id<>$2 ORDER BY name", [t.league_id, teamId]) : [];
+  const opponents = can.manual ? await q(sql, "SELECT id, name FROM teams WHERE league_id=$1 AND id<>$2 AND archived_at IS NULL ORDER BY name", [t.league_id, teamId]) : [];
   const games = await attendance(sql, teamId, await upcoming(sql, teamId), u?.id ?? null, can.manual);
   return { games, can, feed, opponents };
 });

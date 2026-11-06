@@ -32,7 +32,7 @@ export default function Home() {
       <div className="label">{place}</div>
       <h1 className="text-[28px] leading-tight font-black mt-1" data-testid="text-home-title">{title}</h1>
 
-      <div className="card-hi mt-3 p-4" data-testid="card-next-game">
+      <div className="hero mt-4 p-5" style={{ ["--team" as any]: slot.color || undefined }} data-testid="card-next-game">
         <div className="flex items-center gap-2 mb-3">
           <TeamBadge team={{ id: slot.team_id, name: slot.team_name, color: slot.color, logo: slot.logo }} size={22} />
           <Link href={`/team/${slot.team_id}`} className="font-bold text-sm truncate flex-1">{slot.team_name}</Link>
@@ -52,7 +52,14 @@ export default function Home() {
         )}
       </div>
 
-      {slot.last && <LastResult slot={slot} />}
+      <div className="grid grid-cols-2 gap-3 mt-3">
+        {slot.last && <LastResult slot={slot} />}
+        <Link href="/scan" className={`card p-4 block ${slot.last ? "" : "col-span-2"}`} data-testid="card-scan-cta">
+          <span className="block label">Just played?</span>
+          <span className="block mt-2"><FaceoffDot size={30} /></span>
+          <span className="block text-sm font-bold mt-2">Snap the sheet</span>
+        </Link>
+      </div>
 
       {pending.length > 0 && pending.map((p) => (
         <Link key={p.id} href={`/sheet/${p.id}`} className="card mt-3 p-3 min-h-[52px] flex items-center gap-3" data-testid={`link-pending-${p.id}`}>
@@ -61,12 +68,6 @@ export default function Home() {
           <span className="text-sm font-bold text-[var(--amber)]">Review</span>
         </Link>
       ))}
-
-      <Link href="/scan" className="card mt-3 px-4 min-h-[56px] flex items-center gap-3" data-testid="card-scan-cta">
-        <FaceoffDot size={26} />
-        <span className="flex-1 font-bold text-[15px]">Just played? Snap the sheet</span>
-        <span className="text-[var(--mute)]" aria-hidden="true">›</span>
-      </Link>
 
       {isLoading ? <HomeFeedSkeleton /> : data && (
         <>
@@ -94,24 +95,11 @@ function LastResult({ slot }: { slot: MeSlot }) {
   const delta = g.after !== null && g.before !== null ? g.after - g.before : null;
   const dressed = g.goals !== null;
   return (
-    <Link href={`/game/${g.id}`} className="card mt-3 p-4 block" data-testid="card-last-result">
-      <div className="flex items-center justify-between">
-        <span className="label">Last game · {fmtDate(g.played_on)}</span>
-        {delta !== null && <span className="text-xs text-[var(--mute)]">Why it moved ›</span>}
-      </div>
-      <div className="flex items-center gap-3 mt-2">
-        <span className={`h-10 w-10 rounded-xl flex items-center justify-center font-black ${res === "W" ? "bg-[rgba(56,217,150,.15)] up" : res === "L" ? "bg-[rgba(255,107,107,.15)] down" : "bg-[var(--ice-3)]"}`}>{res}</span>
-        <span className="flex-1 min-w-0">
-          <span className="block font-bold truncate">{mine}-{theirs} vs {opp.name}</span>
-          <span className="block text-xs text-[var(--mute)]">{dressed ? (g.is_goalie ? "In goal" : `${g.goals} G, ${g.assists} A${g.pim ? `, ${g.pim} PIM` : ""}`) : g.source !== "sheet" ? "Imported from DaySmart, no lines yet" : "You weren't on the sheet"}</span>
-        </span>
-        {delta !== null && (
-          <span className="text-right">
-            <span className="block font-display text-xl tnum">{fmtRating(g.after)}</span>
-            <Delta d={delta} className="text-xs" />
-          </span>
-        )}
-      </div>
+    <Link href={`/game/${g.id}`} className="card p-4 block min-w-0" data-testid="card-last-result">
+      <span className="block label">Last game · {fmtDate(g.played_on)}</span>
+      <span className={`block font-display text-[32px] leading-none tnum mt-2 ${res === "W" ? "up" : res === "L" ? "down" : ""}`}>{res} {mine}-{theirs}</span>
+      <span className="block text-sm truncate mt-1">vs {opp.name}</span>
+      <span className="block text-xs text-[var(--mute)] truncate">{delta !== null ? <>Rating {fmtRating(g.after)} <Delta d={delta} className="text-xs" /></> : dressed ? (g.is_goalie ? "In goal" : `${g.goals} G, ${g.assists} A${g.pim ? `, ${g.pim} PIM` : ""}`) : g.source !== "sheet" ? "From DaySmart" : "You weren't on the sheet"}</span>
     </Link>
   );
 }
