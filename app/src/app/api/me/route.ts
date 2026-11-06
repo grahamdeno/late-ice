@@ -5,7 +5,7 @@ import * as A from "@/server/accounts";
 import { teamRoleOf } from "@/server/permissions";
 import { attendance, nextGame } from "@/server/schedule";
 import { cleanAvatar } from "@/lib/avatar";
-import { teamArchetypes, setOwnArchetype } from "@/server/archetypes";
+import { teamArchetypes, setOwnArchetype, setArchetypeOptOut } from "@/server/archetypes";
 import { subRequestsFor } from "@/server/subs";
 import { logEvent } from "@/server/appevents";
 
@@ -71,6 +71,7 @@ export const PATCH = handle(async (req) => {
     next.home_rink_id = Number(b.homeRinkId);
   }
   if (b.archetypeSelf !== undefined) await setOwnArchetype(sql, u.id, b.archetypeSelf || null);
+  if (b.archetypeOptOut !== undefined) await setArchetypeOptOut(sql, u.id, u.id, b.archetypeOptOut === true);
   if (b.status === "available") b.status = "active";
   if (b.status !== undefined) {
     if (!A.STATUSES.has(b.status)) throw new HttpError(400, "Unknown status.");
