@@ -733,6 +733,9 @@ async function main() {
   ok(deskRatings.status === 200 && deskRatings.json.leagues.some((l: any) => l.id === lg && l.games >= 2) && deskRatings.json.canRecompute === false, "ratings overview per league; only admins recalculate");
   const deskImports = await call("GET", `/api/desk/imports?rink=${rinkId}`, undefined, mt);
   ok(deskImports.status === 200 && deskImports.json.length >= 1 && deskImports.json[0].games >= 2, "past imports are listed");
+  // The checks above add saves for the captain and the admin; let the per-user write window
+  // (60 a minute) clear so later sections start from the same budget as before.
+  await new Promise((r) => setTimeout(r, 61_000));
 
   console.log("import: a whole league with standings and season totals");
   const leagueReport = [
