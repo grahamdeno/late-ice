@@ -1,4 +1,5 @@
 "use client";
+import { Link } from "@/lib/router";
 import { BackBar } from "@/lib/ui";
 
 const UPDATED = "November 5, 2026";
@@ -39,7 +40,7 @@ export default function Legal() {
       </Block>
 
       <Block title="Your choices">
-        <p>Change your profile any time. To have your account and your name removed, email support. Game results stay, credited to "Former player".</p>
+        <p>Change your profile any time. To remove your account, email support. The roster name becomes Player and your number, and game lines stay. The <Link href="/terms" className="underline" data-testid="link-terms">terms</Link> cover age, photos, disputes and removal.</p>
       </Block>
 
       <Block title="Fair play">

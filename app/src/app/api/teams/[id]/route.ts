@@ -1,7 +1,7 @@
 import { handle, body, num } from "@/server/http";
 import { sql, q, one } from "@/server/db";
 import { currentSeason, gameCards, teamRating, teamRecord, HttpError } from "@/server/services";
-import { captainOf, assistantsOf, requireUser, requireTeam, logAction, userFromRequest, userCan } from "@/server/accounts";
+import { captainOf, assistantsOf, requireUser, requireTeam, logAction, userFromRequest, userCan, applyViewerNames } from "@/server/accounts";
 import { teamIsEmpty, removeTeam } from "@/server/manage";
 import { teamArchetypes } from "@/server/archetypes";
 import { audit } from "@/server/permissions";
@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 export const GET = handle<{ id: string }>(async (req, { id }) => {
   const t = await one<any>(sql, "SELECT * FROM teams WHERE id=$1", [num(id)]);
   if (!t) throw new HttpError(404, "Team not found");
+  const viewer = await userFromRequest(req).catch(() => null);
   const league = await one<any>(sql, "SELECT * FROM leagues WHERE id=$1", [t.league_id]);
   const roster = await q(sql,
     `SELECT p.id, p.display_name AS name, p.position, p.rating, p.games_rated, p.user_id IS NOT NULL AS registered, re.number, re.is_sub,
@@ -28,7 +29,7 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
   return {
     team: t, league, season, captain: await captainOf(sql, t.id), assistants: await assistantsOf(sql, t.id),
     record: await teamRecord(sql, t.id, season?.id ?? null), career: await teamRecord(sql, t.id), rating: await teamRating(sql, t.id),
-    roster, games, imported: imported?.gp ? imported : null,
+    roster: await applyViewerNames(sql, viewer, roster), games, imported: imported?.gp ? imported : null,
     archetypes: await (async () => {
       const u = await userFromRequest(req).catch(() => null);
       return teamArchetypes(sql, t.id, u?.id ?? null);

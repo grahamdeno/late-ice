@@ -43,6 +43,7 @@ Rink staff powers apply only inside their scope (their league or their rink).
 | Plot own shots and assists | own | own | own | | | | | |
 | **Roster** | | | | | | | | |
 | Draft, match, release a claim, merge spots | | own | own | | ✓ | ✓ | | ✓ |
+| Merge two roster spots that are the same person | | | own | | ✓ | ✓ | | ✓ |
 | Remove a player from the roster | | own (players only) | own | | ✓ | ✓ | | ✓ |
 | Name or remove assistant captains | | | own | | ✓ | ✓ | | ✓ |
 | Hand off captaincy, step down | | | own | | | | | |

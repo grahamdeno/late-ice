@@ -55,6 +55,10 @@ export const PATCH = handle(async (req) => {
   const u = await A.requireUser(req);
   const b = await body(req);
   const next = { ...u };
+  if (b.age18 === false) throw new HttpError(400, "Late Ice is for players 18 or older.");
+  const touchingProfile = b.name !== undefined || b.position !== undefined || b.homeRinkId !== undefined;
+  if (touchingProfile && !u.age_confirmed_at && b.age18 !== true) throw new HttpError(400, "Confirm you are 18 or older.");
+  if (b.age18 === true) next.age_confirmed_at = new Date();
   if (b.name !== undefined) {
     const n = String(b.name).trim().replace(/\s+/g, " ").slice(0, 60);
     if (n.split(" ").length < 2) throw new HttpError(400, "First and last name, so your captain knows it's you.");
@@ -78,8 +82,8 @@ export const PATCH = handle(async (req) => {
   if (b.willSub !== undefined) next.will_sub = !!b.willSub;
   const avatar = b.avatar !== undefined ? cleanAvatar(b.avatar) : undefined;
   const saved = await sql.begin(async (tx) => {
-    await q(tx, "UPDATE users SET name=$1, number=$2, position=$3, home_rink_id=$4, status=$5, status_until=$6, hidden=$7, looking_for_team=$8, will_sub=$9 WHERE id=$10",
-      [next.name, next.number, next.position, next.home_rink_id, next.status, next.status_until, next.hidden, !!next.looking_for_team, !!next.will_sub, u.id]);
+    await q(tx, "UPDATE users SET name=$1, number=$2, position=$3, home_rink_id=$4, status=$5, status_until=$6, hidden=$7, looking_for_team=$8, will_sub=$9, age_confirmed_at=$10 WHERE id=$11",
+      [next.name, next.number, next.position, next.home_rink_id, next.status, next.status_until, next.hidden, !!next.looking_for_team, !!next.will_sub, next.age_confirmed_at ?? null, u.id]);
     if (avatar !== undefined) await q(tx, "UPDATE users SET avatar=$1::text::jsonb WHERE id=$2", [avatar ? JSON.stringify(avatar) : null, u.id]);
     if (next.position && next.position !== u.position) await q(tx, "UPDATE players SET position=$1 WHERE user_id=$2", [next.position, u.id]);
     for (const p of await q<{ id: number }>(tx, "SELECT id FROM players WHERE user_id=$1", [u.id])) await A.refreshDisplay(tx, p.id);

@@ -7,6 +7,7 @@ import { BackBar, Loading, Section } from "@/lib/ui";
 import { ProfileForm } from "./Join";
 import { useTheme, type Theme } from "@/lib/theme";
 import { NotificationSettings } from "@/components/NotificationSettings";
+import { apiUrl, authHeaders } from "@/lib/queryClient";
 
 /** Every setting in one place, in the order people look for them. Reached from the gear on Me. */
 export default function Settings() {
@@ -101,6 +102,28 @@ export default function Settings() {
         <span className="flex-1 min-w-0 text-xs text-[var(--mute)] truncate">Signed in as {u.email ?? u.phone}</span>
         <button className="btn btn-ghost h-11 text-sm" onClick={async () => { await signOut(); nav("/"); }} data-testid="button-sign-out">Sign out</button>
       </div>
+
+      <Section title="Your data">
+        <div className="card divide-y divide-[var(--line)]">
+          <button className="w-full flex items-center gap-3 px-4 min-h-[52px] text-left" onClick={async () => {
+            const r = await fetch(apiUrl("/api/me/export"), { headers: authHeaders() });
+            if (!r.ok) { setErr("Couldn't build your download. Try again in a minute."); return; }
+            const url = URL.createObjectURL(new Blob([JSON.stringify(await r.json(), null, 2)], { type: "application/json" }));
+            const a = document.createElement("a"); a.href = url; a.download = "late-ice-my-data.json"; a.click(); URL.revokeObjectURL(url);
+          }} data-testid="button-export">
+            <span className="flex-1"><span className="block font-bold text-sm">Download my data</span><span className="block text-xs text-[var(--mute)]">Profile, teams, games, ratings and notices as a file</span></span>
+          </button>
+          <button className="w-full flex items-center gap-3 px-4 min-h-[52px] text-left" onClick={async () => {
+            if (!confirm("Delete your Late Ice account? Your name comes off every roster and game, and your old game lines stay as \"Player\" and your number. This can't be undone.")) return;
+            const r = await fetch(apiUrl("/api/me/delete"), { method: "POST", headers: { ...authHeaders(), "Content-Type": "application/json" }, body: JSON.stringify({ confirm: true }) });
+            if (!r.ok) { setErr((await r.json().catch(() => null))?.message ?? "Couldn't delete the account. Email support@tangomike.app and we'll do it."); return; }
+            await signOut(); nav("/");
+          }} data-testid="button-delete-account">
+            <span className="flex-1"><span className="block font-bold text-sm down">Delete my account</span><span className="block text-xs text-[var(--mute)]">Removes your name; past scores stay</span></span>
+          </button>
+        </div>
+        <p className="text-[11px] text-[var(--mute)] mt-2 px-1"><Link href="/terms" className="underline" data-testid="link-terms-settings">Terms</Link></p>
+      </Section>
     </div>
   );
 }

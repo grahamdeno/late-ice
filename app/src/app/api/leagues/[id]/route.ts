@@ -46,7 +46,7 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
     q(sql, `SELECT * FROM games WHERE league_id=$1 AND ($2::int IS NULL OR season_id=$2) ORDER BY played_on DESC NULLS LAST, id DESC${gamesAll ? "" : " LIMIT 10"}`, [l.id, sid]),
     one<any>(sql, "SELECT MAX(as_of) as_of, MAX(source) source, SUM(gp) gp FROM team_imports ti JOIN teams t ON t.id=ti.team_id WHERE t.league_id=$1 AND ti.season_id=$2", [l.id, sid]),
     standings(sql, l.id, sid),
-    leaders(sql, l.id, 10, sid),
+    leaders(sql, l.id, 10, sid, null, u?.id ?? null),
     canP,
   ]);
   const games = await gameCards(sql, gameRows);

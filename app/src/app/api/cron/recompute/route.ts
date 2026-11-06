@@ -6,6 +6,7 @@ import { runDueMerges } from "@/server/staff";
 import { syncAllFeeds } from "@/server/schedule";
 import { runBackup } from "@/server/backup";
 import { escalateWaitingSheets } from "@/server/sheetconfirm";
+import { deleteOldSheetPhotos } from "@/server/privacy";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -24,7 +25,9 @@ export const GET = handle(async (req) => {
     WHERE u.status IN ('ir','away') AND u.status_until IS NOT NULL
       AND u.status_until < to_char(now() AT TIME ZONE COALESCE((SELECT r.timezone FROM rinks r WHERE r.id=u.home_rink_id), 'America/New_York'), 'YYYY-MM-DD')`);
   const escalated = await escalateWaitingSheets(sql);
+  const photos = await deleteOldSheetPhotos();
+  // Game-day alerts run from /api/cron/gameday at 9:17 am Eastern, after quiet hours.
   // Backup last, so a failure here never blocks the rest; it still shows in the logs.
   const backup = await runBackup().catch((e) => ({ error: String(e?.message ?? e) }));
-  return { ...r, merges, feeds, escalated, backup };
+  return { ...r, merges, feeds, escalated, photos, backup };
 });

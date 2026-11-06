@@ -3,7 +3,7 @@ import { eventMvp } from "@/server/events";
 import { handle, body, num } from "@/server/http";
 import { sql, q, one } from "@/server/db";
 import { gameCard, HttpError } from "@/server/services";
-import { userFromRequest } from "@/server/accounts";
+import { applyViewerNames, userFromRequest } from "@/server/accounts";
 
 export const dynamic = "force-dynamic";
 export const GET = handle<{ id: string }>(async (req, { id }) => {
@@ -55,5 +55,6 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
   ];
   // The one shown on the card: a player's own pick if they have one, else the team vote with the most agreement.
   const shown = archetypes.map((x: any) => x.won).filter(Boolean).sort((a: any, b: any) => Number(!!b.self) - Number(!!a.self) || b.votes - a.votes)[0] ?? null;
-  return { player: p, teams, archetypes, archetype: shown, badges, history, importedGames, totals, imported: imp.gp ? imp : null, lines, ranks, reliability: Math.min(100, raw.games_rated * 10) };
+  const [player] = await applyViewerNames(sql, me, [p]);
+  return { player, teams, archetypes, archetype: shown, badges, history, importedGames, totals, imported: imp.gp ? imp : null, lines, ranks, reliability: Math.min(100, raw.games_rated * 10) };
 });
