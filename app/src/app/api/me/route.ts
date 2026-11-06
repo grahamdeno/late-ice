@@ -22,7 +22,18 @@ export const GET = handle(async (req) => {
     const ng = await nextGame(sql, s.team_id);
     if (ng) await attendance(sql, s.team_id, [ng], u.id, false);
     const arch = (await teamArchetypes(sql, s.team_id, u.id)).won[s.id] ?? null;
-    slots.push({ ...s, archetype: arch, next: ng, captain: await A.captainOf(sql, s.team_id), isCaptain: teamRole === "captain", teamRole, assistants: await A.assistantsOf(sql, s.team_id) });
+    // The last final this team played, with this player's line and rating move, and the move over the last five rated games.
+    const last = await one<any>(sql,
+      `SELECT g.id, g.played_on, g.home_team_id, g.away_team_id, g.home_score, g.away_score,
+         ht.name home_name, ht.color home_color, ht.logo home_logo, at.name away_name, at.color away_color, at.logo away_logo,
+         s.goals, s.assists, s.pim, s.is_goalie, rh.before, rh.after,
+         (SELECT SUM(x.after - x.before) FROM (SELECT after, before FROM rating_history WHERE player_id=$2 ORDER BY id DESC LIMIT 5) x) trend5
+       FROM games g JOIN teams ht ON ht.id=g.home_team_id JOIN teams at ON at.id=g.away_team_id
+       LEFT JOIN player_game_stats s ON s.game_id=g.id AND s.player_id=$2
+       LEFT JOIN rating_history rh ON rh.game_id=g.id AND rh.player_id=$2
+       WHERE g.home_team_id=$1 OR g.away_team_id=$1
+       ORDER BY g.played_on DESC NULLS LAST, g.id DESC LIMIT 1`, [s.team_id, s.id]);
+    slots.push({ ...s, archetype: arch, next: ng, last: last ?? null, captain: await A.captainOf(sql, s.team_id), isCaptain: teamRole === "captain", teamRole, assistants: await A.assistantsOf(sql, s.team_id) });
   }
   // Teams this person runs: captain or assistant captain.
   const captainTeams = await q(sql,
