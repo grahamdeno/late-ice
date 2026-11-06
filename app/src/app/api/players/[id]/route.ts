@@ -62,5 +62,7 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
   // The one shown on the card: a player's own pick if they have one, else the team vote with the most agreement.
   const shown = archetypes.map((x: any) => x.won).filter(Boolean).sort((a: any, b: any) => Number(!!b.self) - Number(!!a.self) || b.votes - a.votes)[0] ?? null;
   const [player] = await applyViewerNames(sql, me, [p]);
-  return { player, teams, archetypes, archetype: shown, badges, history, importedGames, totals, imported: imp.gp ? imp : null, lines, ranks, reliability: Math.min(100, raw.games_rated * 10) };
+  // A season rating: no rated game yet, but the rink's season totals set the starting point.
+  const seasonRated = raw.games_rated === 0 && raw.position !== "G" && Number(imp.gp) > 0;
+  return { player: { ...player, season_rated: seasonRated }, teams, archetypes, archetype: shown, badges, history, importedGames, totals, imported: imp.gp ? imp : null, lines, ranks, reliability: Math.min(100, raw.games_rated * 10) };
 });

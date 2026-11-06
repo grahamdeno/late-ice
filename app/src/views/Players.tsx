@@ -22,18 +22,21 @@ export function Players() {
   const myIds = new Set((me?.slots ?? []).map((s) => s.id));
   const myIndex = rows.findIndex((p) => myIds.has(p.id));
   const shown = all || qs ? rows : rows.slice(0, 10);
-  // Only players with a rated game are ranked. Everyone else shows "Unrated" instead of the league default.
-  const ratedCount = rows.filter((p) => p.games_rated > 0).length;
+  // Ranked: a rated game, or a season rating from the rink's totals. Everyone else shows "Unrated".
+  const isRated = (p: any) => p.games_rated > 0 || p.season_rated;
+  const ratedCount = rows.filter(isRated).length;
   const row = (p: any, i: number, pinned = false) => (
     <Link key={`${pinned ? "me-" : ""}${p.id}`} href={`/player/${p.id}`} className={`flex items-center gap-3 px-4 py-3 min-h-[56px] ${myIds.has(p.id) ? "bg-[var(--red-dim)]" : ""}`} data-testid={pinned ? "row-player-me" : `row-player-${p.id}`}>
-      <span className="w-7 text-center font-display text-lg text-[var(--mute)]">{p.games_rated > 0 ? i + 1 : "–"}</span>
+      <span className="w-7 text-center font-display text-lg text-[var(--mute)]">{isRated(p) ? i + 1 : "–"}</span>
       <span className="flex-1 min-w-0">
         <span className="block font-bold truncate">{pinned ? "You" : p.name}{p.position && p.position !== "F" && <span className="text-[var(--mute)] font-medium"> · {p.position}</span>}</span>
-        <span className="block text-xs text-[var(--mute)] truncate">{p.teams} · {p.levels}</span>
+        <span className="block text-xs text-[var(--mute)] truncate">{p.position === "G" && p.ggp ? `${Number(p.sv).toFixed(3).replace(/^0/, "")} save % · ${Number(p.gaa).toFixed(2)} GA avg · ${p.ggp} GP · ` : ""}{p.teams} · {p.levels}</span>
       </span>
       <span className="text-right">
         {p.games_rated > 0
           ? <><span className="block font-display text-xl tnum">{fmtRating(p.rating)}</span><Delta d={p.last_delta} className="text-[11px]" /></>
+          : p.season_rated
+          ? <><span className="block font-display text-xl tnum">{fmtRating(p.rating)}</span><span className="block text-[11px] text-[var(--mute)]" data-testid={`text-season-${p.id}`}>Season</span></>
           : <span className="block text-sm font-bold text-[var(--mute)]" data-testid={`text-unrated-${p.id}`}>Unrated</span>}
       </span>
     </Link>
@@ -62,7 +65,7 @@ export function Players() {
           {!all && !qs && rows.length > 10 && (
             <button className="card mt-3 w-full min-h-[52px] text-sm font-bold text-[var(--blue)]" onClick={() => setAll(true)} data-testid="button-show-all-players">Show all {rows.length}</button>
           )}
-          <p className="text-[11px] text-[var(--mute)] mt-3 px-1">{ratedCount === 0 ? "Ratings start with the first scanned sheet. Until then players are listed by points from the rink's stats page." : "Every player on a scanned sheet gets a rating. Win against better teams and it climbs. Players not yet on a scanned sheet show Unrated."}</p>
+          <p className="text-[11px] text-[var(--mute)] mt-3 px-1">{ratedCount === 0 ? "Ratings start with the first scanned sheet. Until then players are listed by points from the rink's stats page." : "Season ratings come from the rink's season totals: points per game against the league. Scanned sheets and team lineups then move them game by game. Goalies wait for a scanned sheet."}</p>
         </>
       )}
     </div>
@@ -105,6 +108,7 @@ export function PlayerPage({ id }: { id: string }) {
         rating={player.rating}
         trend5={history.length ? history.slice(-5).reduce((acc: number, h: any) => acc + (h.after - h.before), 0) : null}
         gamesRated={player.games_rated}
+        seasonRated={!!player.season_rated}
         badges={data.badges ?? []}
         unclaimed={!player.registered}
         ratingHref="#why"
@@ -182,7 +186,7 @@ export function PlayerPage({ id }: { id: string }) {
       )}
 
       <h2 id="why" className="font-black text-[17px] mt-7 mb-3 px-1 scroll-mt-24">Why it moved</h2>
-      {history.length === 0 ? <Empty title="No rated games yet" body="Ratings start after the first scanned game or recorded lineup. New lineups count after the nightly update." /> : (
+      {history.length === 0 ? <Empty title="No rated games yet" body={player.season_rated ? "This rating comes from the rink's season totals: points per game against the league. A scanned sheet or a team lineup starts moving it game by game." : "Ratings start after the first scanned game or recorded lineup. New lineups count after the nightly update."} /> : (
         <div className="space-y-2">
           {[...history].reverse().map((h: any) => {
             const opp = teams.find((t: any) => t.id === h.game.home.id) ? h.game.away : h.game.home;

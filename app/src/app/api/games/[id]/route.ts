@@ -24,5 +24,6 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
     imported: await applyViewerNames(sql, viewer, imported, "player_id"),
     unassigned: g.unassigned_json ? JSON.parse(g.unassigned_json) : null,
     lineupTeams,
+    goalies: await (await import("@/server/goalies")).reportsForGame(sql, g.id, viewer),
   };
 });

@@ -30,8 +30,14 @@ export function ratePlayer(input: {
   gf: number;
   ga: number;
   eventId: unknown;
+  /** 1 for verified goalie numbers, 0.5 for unverified. */
+  goalieWeight?: number;
+  /** League save percentage to measure against; 0.88 until the league has enough counted games. */
+  svBase?: number;
 }): { reasons: { label: string; value: number }[]; after: number } {
   const { rating, gamesRated, goals, assists, pim, isGoalie, shotsAgainst, goalsAgainst, own, opp, gf, ga, eventId } = input;
+  const goalieWeight = input.goalieWeight ?? 1;
+  const svBase = input.svBase ?? 0.88;
   const S = gf > ga ? 1 : gf === ga ? 0.5 : 0;
   const E = 1 / (1 + Math.pow(10, (opp - own) / 0.8));
   const K = gamesRated < 5 ? 0.12 : 0.06;
@@ -45,8 +51,9 @@ export function ratePlayer(input: {
   if (isGoalie && shotsAgainst) {
     const sa = shotsAgainst, gaa = goalsAgainst ?? 0;
     const sv = (sa - gaa) / sa;
-    const b = Math.max(-0.01, Math.min(0.012, (sv - 0.88) * 0.1));
-    reasons.push({ label: `Goalie: ${sa - gaa} saves on ${sa} (${sv.toFixed(3).replace(/^0/, "")})`, value: b });
+    const b = Math.max(-0.01, Math.min(0.012, (sv - svBase) * 0.1)) * goalieWeight;
+    const vs = `league ${svBase.toFixed(3).replace(/^0/, "")}`;
+    reasons.push({ label: `Goalie: ${sa - gaa} saves on ${sa} (${sv.toFixed(3).replace(/^0/, "")}, ${vs})${goalieWeight < 1 ? ", not confirmed by the other team, half weight" : ""}`, value: b });
   }
   if (pim >= 6) reasons.push({ label: `${pim} penalty minutes`, value: -0.004 });
   if (gamesRated < 5) reasons.push({ label: `Provisional: game ${gamesRated + 1} of 5 moves faster`, value: 0 });
@@ -78,6 +85,22 @@ export async function rateGame(db: Tx, gameId: number) {
         ) a
         LEFT JOIN imported_game_lines il ON il.game_id=$1 AND il.player_id=a.player_id
         ORDER BY a.player_id`, [gameId]);
+  // Goalie numbers the goalie entered and the other team confirmed (or didn't answer in time).
+  const { effectiveStatus, weightOf } = await import("./goalies");
+  const weights = new Map<number, number>();
+  for (const r of await q<any>(db, "SELECT * FROM goalie_reports WHERE game_id=$1", [gameId])) {
+    const w = weightOf(effectiveStatus(r.status, r.created_at));
+    if (!w) continue;
+    weights.set(r.player_id, w);
+    const line = lines.find((l) => l.player_id === r.player_id);
+    if (line) {
+      line.is_goalie = 1;
+      if (line.shots_against == null) { line.shots_against = r.shots_against; line.goals_against = r.goals_against; }
+    } else {
+      lines.push({ player_id: r.player_id, team_id: r.team_id, goals: 0, assists: 0, pim: 0, is_goalie: 1, shots_against: r.shots_against, goals_against: r.goals_against });
+    }
+  }
+  const svBase = weights.size ? await leagueSavePct(db, g.league_id) : 0.88;
   const ids = Array.from(new Set(lines.map((l) => l.player_id)));
   const rows = ids.length ? await q<any>(db, "SELECT id, rating, games_rated FROM players WHERE id = ANY($1::int[])", [ids]) : [];
   const players = new Map<number, any>(rows.map((p) => [p.id, p]));
@@ -108,11 +131,66 @@ export async function rateGame(db: Tx, gameId: number) {
       goalsAgainst: l.goals_against,
       own, opp, gf, ga,
       eventId: g.event_id,
+      goalieWeight: weights.get(p.id) ?? 1,
+      svBase,
     });
     await q(db, "UPDATE players SET rating=$1, games_rated=games_rated+1, position=CASE WHEN $2=1 THEN 'G' ELSE position END WHERE id=$3", [after, l.is_goalie ? 1 : 0, p.id]);
     await q(db, "INSERT INTO rating_history (player_id,game_id,before,after,reasons_json,algo_version) VALUES ($1,$2,$3,$4,$5,$6)", [p.id, gameId, p.rating, after, JSON.stringify(reasons), ALGO_VERSION]);
   }
   await q(db, "UPDATE games SET rated_at=now() WHERE id=$1", [gameId]);
+}
+
+/**
+ * Season rating: the starting point before any rated game. League baseline, nudged by points per
+ * game against the league's skaters, with the nudge growing as games played grow. Goalies and
+ * players with no season totals start at the baseline. Pure, so it can be tested.
+ */
+export const SEASON = { weight: 0.25, cap: 0.35, minSd: 0.2, settle: 4 };
+export function seasonStart(base: number, ppg: number, avg: number, sd: number, gp: number) {
+  if (!gp) return base;
+  const z = (ppg - avg) / Math.max(sd, SEASON.minSd);
+  const nudge = Math.max(-SEASON.cap, Math.min(SEASON.cap, SEASON.weight * z)) * (gp / (gp + SEASON.settle));
+  return Math.max(1, Math.min(7, Math.round((base + nudge) * 1000) / 1000));
+}
+
+/** Set every player's start_rating from the baseline and the rink's season totals. */
+export async function applySeasonStarts(tx: Tx) {
+  await q(tx, "UPDATE players SET base_rating=start_rating WHERE base_rating IS NULL");
+  await q(tx, "UPDATE players SET start_rating=base_rating WHERE start_rating IS DISTINCT FROM base_rating");
+  // One row per skater: the league where they have the most imported games.
+  const rows = await q<{ player_id: number; league_id: number; gp: number; pts: number; base: number }>(tx, `
+    SELECT DISTINCT ON (x.player_id) x.player_id, x.league_id, x.gp, x.pts, p.base_rating AS base
+    FROM (SELECT i.player_id, t.league_id, SUM(i.gp)::float gp, SUM(COALESCE(i.g,0)+COALESCE(i.a,0))::float pts
+          FROM player_imports i JOIN teams t ON t.id=i.team_id GROUP BY i.player_id, t.league_id HAVING SUM(i.gp) > 0) x
+    JOIN players p ON p.id=x.player_id
+    WHERE p.position IS DISTINCT FROM 'G'
+    ORDER BY x.player_id, x.gp DESC`);
+  const byLeague = new Map<number, number[]>();
+  for (const r of rows) byLeague.set(r.league_id, [...(byLeague.get(r.league_id) ?? []), r.pts / r.gp]);
+  const stats = new Map<number, { avg: number; sd: number }>();
+  for (const [l, xs] of byLeague) {
+    const avg = xs.reduce((a, b) => a + b, 0) / xs.length;
+    const sd = Math.sqrt(xs.reduce((a, b) => a + (b - avg) ** 2, 0) / xs.length);
+    stats.set(l, { avg, sd });
+  }
+  const ids: number[] = [], starts: number[] = [];
+  for (const r of rows) {
+    const st = stats.get(r.league_id)!;
+    ids.push(r.player_id);
+    starts.push(seasonStart(Number(r.base), r.pts / r.gp, st.avg, st.sd, Number(r.gp)));
+  }
+  if (ids.length) await q(tx, "UPDATE players p SET start_rating=x.s FROM unnest($1::int[], $2::float8[]) AS x(id, s) WHERE p.id=x.id", [ids, starts]);
+  return ids.length;
+}
+
+/** The league's save percentage over counted goalie numbers; 0.88 until there are 5 counted games. */
+async function leagueSavePct(db: Tx, leagueId: number) {
+  const r = await one<{ n: number; sa: number; ga: number }>(db,
+    `SELECT COUNT(*)::int n, COALESCE(SUM(r.shots_against),0)::int sa, COALESCE(SUM(r.goals_against),0)::int ga
+     FROM goalie_reports r JOIN games g ON g.id=r.game_id
+     WHERE g.league_id=$1 AND (r.status='verified' OR r.status='unverified' OR (r.status='pending' AND r.created_at < now() - interval '48 hours'))`, [leagueId]);
+  if (!r || r.n < 5 || !r.sa) return 0.88;
+  return Math.round(((r.sa - r.ga) / r.sa) * 1000) / 1000;
 }
 
 /** Replay every game from starting ratings. Deterministic: same games in, same ratings out. */
@@ -122,9 +200,10 @@ export async function recomputeAll() {
   await sql.begin(async (tx) => {
     await q(tx, "LOCK TABLE rating_history IN EXCLUSIVE MODE");
     await q(tx, "DELETE FROM rating_history");
+    await applySeasonStarts(tx);
     await q(tx, "UPDATE players SET rating=COALESCE(start_rating, rating), games_rated=0");
     // Sheets always; imported games only once a lineup (poll attendance) has been recorded.
-    const games = await q<{ id: number }>(tx, "SELECT id FROM games WHERE source='sheet' OR EXISTS (SELECT 1 FROM imported_game_attendance a WHERE a.game_id=games.id) ORDER BY played_on NULLS LAST, id");
+    const games = await q<{ id: number }>(tx, "SELECT id FROM games WHERE source='sheet' OR EXISTS (SELECT 1 FROM imported_game_attendance a WHERE a.game_id=games.id) OR EXISTS (SELECT 1 FROM goalie_reports r WHERE r.game_id=games.id AND r.status<>'disputed') ORDER BY played_on NULLS LAST, id");
     for (const g of games) { await rateGame(tx, g.id); n++; }
     await q(tx, "INSERT INTO rating_runs (kind,algo_version,games,ms) VALUES ('recompute',$1,$2,$3)", [ALGO_VERSION, n, Date.now() - t0]);
   });
