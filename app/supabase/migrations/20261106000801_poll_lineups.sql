@@ -23,7 +23,8 @@ declare
   polls jsonb := '{
     "2026-09-13": ["Graham D.","D. M.","S. M.","J. B.","N. B.","B. M.","J. H.","A. F.","K. S.","S. G.","C. H.","A. Y.","M. M."],
     "2026-09-20": ["S. G.","K. S.","B. M.","J. A.","D. M.","S. L.","C. H.","S. M.","J. B.","A. Y.","M. M.","A. F."],
-    "2026-09-27": ["Graham D.","J. H.","C. H.","B. M.","S. L.","A. Y.","D. M.","S. G.","M. M."]
+    "2026-09-27": ["Graham D.","J. H.","C. H.","B. M.","S. L.","A. Y.","D. M.","S. G.","M. M."],
+    "2026-10-04": ["Graham D.","D. M.","K. S.","A. F.","J. H.","J. A.","J. B.","N. B.","A. Y.","S. G.","C. H.","B. M.","S. L."]
   }'::jsonb;
   d text;
 begin
