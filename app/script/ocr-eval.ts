@@ -63,7 +63,7 @@ async function main() {
         const t0 = Date.now();
         try {
           const msg = await client.messages.create({
-            model, max_tokens: 4096,
+            model, max_tokens: 8192,
             messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: "image/jpeg", data: img } }, { type: "text", text: PROMPT }] }],
           });
           const text = msg.content.map((c: any) => (c.type === "text" ? c.text : "")).join("");
