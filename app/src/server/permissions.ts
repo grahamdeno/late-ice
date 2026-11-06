@@ -18,6 +18,8 @@ export const ROLE_LABEL: Record<Role, string> = {
 /** Action -> roles allowed. Scope is checked separately: a team role only counts on its team, and so on. */
 export const MATRIX = {
   "roster.manage": ["assistant_captain", "captain", "commissioner", "rink_manager", "admin"],
+  // Same-person merge is narrower than roster.manage: no assistants. Package 6.8.
+  "roster.merge": ["captain", "commissioner", "rink_manager", "admin"],
   "team.assistants": ["captain", "commissioner", "rink_manager", "admin"],
   "team.edit": ["captain", "commissioner", "rink_manager", "admin"],
   "captain.reassign": ["commissioner", "rink_manager", "admin"],
@@ -98,6 +100,7 @@ export async function can(db: Tx, user: any, action: Action, scope: Scope = {}) 
 
 const DENY: Partial<Record<Action, string>> = {
   "roster.manage": "Only the captain or an assistant captain can do that.",
+  "roster.merge": "Only the captain or rink staff can merge two players.",
   "team.assistants": "Only the captain can name assistant captains.",
   "team.edit": "Only the captain can rename the team.",
   "captain.reassign": "Only league or rink staff can reassign a captain.",

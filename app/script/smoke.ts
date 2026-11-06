@@ -23,15 +23,7 @@ function ok(cond: unknown, msg: string): asserts cond {
 }
 
 async function start() {
-  srv = spawn("npx", ["next", "start", "-p", String(PORT)], { env: { ...env, NODE_ENV: "production", BOOTSTRAP_ADMIN_EMAIL: "boss@example.com", ALLOW_LOCAL_FEEDS: "1", LATEICE_MAP_LOOKUP: "off", LATEICE_FAKE_OCR: "1", LATEICE_COUNT_QUERIES: "1" }, stdio: ["ignore", "ignore", "inherit"], detached: true });
-  let exited = false;
-  srv.once("exit", () => { exited = true; });
-  for (let i = 0; i < 200; i++) {
-    if (exited) throw new Error("server exited before it was ready");
-    try { const r = await fetch(`${BASE}/api/bootstrap`); if (r.ok) return; } catch {}
-    await new Promise((r) => setTimeout(r, 200));
-  }
-  throw new Error("server did not start");
+  await startConfigured();
 }
 async function stop() {
   if (!srv?.pid) { srv = null; return; }
@@ -88,7 +80,7 @@ async function signUp(email: string, profile: { name: string; number: string; po
   if (opts.blocked) { ok(me.status === 403 && /paused/i.test(me.json?.message ?? ""), `${email} can't make an account while sign-ups are paused`); return token; }
   ok(me.status === 200 && me.json.user.profileComplete === false && me.json.user.email === email.toLowerCase() && me.json.user.phone === null, `${email} gets a new account keyed on email, no phone`);
   const rinks = await call("GET", "/api/rinks");
-  const p = await call("PATCH", "/api/me", { ...profile, homeRinkId: rinks.json.rinks.find((r: any) => r.name === "Polar Ice Wilmington").id }, token);
+  const p = await call("PATCH", "/api/me", { ...profile, homeRinkId: rinks.json.rinks.find((r: any) => r.name === "Polar Ice Wilmington").id, age18: true }, token);
   ok(p.status === 200 && p.json.user.profileComplete, `${profile.name} profile complete`);
   ok(p.json.user.access === (inbox === "boss@example.com" ? "approved" : "waiting"), `${email} starts ${inbox === "boss@example.com" ? "let in (bootstrap admin)" : "on the waitlist"}`);
   // Most test players are let in straight away; the gate has its own checks below.
@@ -128,10 +120,7 @@ function clearPushLog() { try { unlinkSync(PUSH_LOG); } catch { /* none yet */ }
 
 async function startConfigured(extra: Record<string, string> = {}) {
   await stop();
-  const child: NodeJS.ProcessEnv = {
-    ...env, NODE_ENV: "production", BOOTSTRAP_ADMIN_EMAIL: "boss@example.com", ALLOW_LOCAL_FEEDS: "1", LATEICE_MAP_LOOKUP: "off", LATEICE_FAKE_OCR: "1", LATEICE_COUNT_QUERIES: "1",
-    LATEICE_PUSH_LOG: PUSH_LOG, ...extra,
-  };
+  const child: NodeJS.ProcessEnv = { ...env, NODE_ENV: "production", BOOTSTRAP_ADMIN_EMAIL: "boss@example.com", ALLOW_LOCAL_FEEDS: "1", LATEICE_MAP_LOOKUP: "off", LATEICE_FAKE_OCR: "1", LATEICE_COUNT_QUERIES: "1", LATEICE_PUSH_LOG: PUSH_LOG, ...extra };
   if (!("VAPID_PUBLIC_KEY" in extra)) delete child.VAPID_PUBLIC_KEY;
   if (!("VAPID_PRIVATE_KEY" in extra)) delete child.VAPID_PRIVATE_KEY;
   if (!("VAPID_SUBJECT" in extra)) delete child.VAPID_SUBJECT;
@@ -337,7 +326,7 @@ async function main() {
   let team = await call("GET", `/api/teams/${hh}`);
   ok(team.status === 200, "team page loads");
   ok(!team.text.includes("Tolliver"), "unclaimed full surname never leaves the server");
-  ok(team.json.roster.some((r: any) => r.name === "Mike T."), "unclaimed slot shows first name and last initial");
+  ok(team.json.roster.some((r: any) => r.name === "M. T. #44"), "signed-out unclaimed slot is initials and number");
   ok(team.json.captain === null, "no captain yet");
   const lg = team.json.league.id;
   for (const u of ["/api/bootstrap", "/api/feed", "/api/players", "/api/rink", `/api/leagues/${lg}`, `/api/players/${mike}`, "/api/samples"]) {
@@ -467,7 +456,7 @@ async function main() {
   ok(me.json.slots.some((s: any) => s.id === mike) && me.json.notifications[0].kind === "match", "Mike sees the slot and a notice");
   ok((await call("POST", `/api/teams/${hh}/slots/${mike}/release`, undefined, graham)).status === 200, "captain releases the match");
   team = await call("GET", `/api/teams/${hh}`);
-  ok(team.json.roster.find((r: any) => r.id === mike)?.name === "Mike T.", "released slot goes back to private name");
+  ok(team.json.roster.find((r: any) => r.id === mike)?.name === "M. T. #44", "released slot goes back to initials and number");
   const before = team.json.roster.length;
   ok((await call("POST", `/api/teams/${hh}/merge`, { fromId: mikeVariant, intoId: mike }, graham)).status === 200, "merge the #4 spelling variant into #44");
   team = await call("GET", `/api/teams/${hh}`);
@@ -478,7 +467,7 @@ async function main() {
   ok((await call("GET", `/api/teams/${hh}/manage`, undefined, mt)).status === 403, "manage view is captain only");
 
   console.log("hide");
-  const jared = team.json.roster.find((r: any) => r.name === "Jared A.");
+  const jared = team.json.roster.find((r: any) => r.name === "J. A.");
   ok((await call("POST", `/api/players/${jared.id}/hide`, { contact: "x" })).status === 200, "anyone can hide a name without an account");
   ok((await call("GET", `/api/players/${jared.id}`)).json.player.name === "Hidden player", "hidden name is replaced");
   ok((await call("POST", `/api/players/${jared.id}/unhide`, undefined, mt)).status === 403, "only the player or captain can unhide");
@@ -516,8 +505,8 @@ async function main() {
   const game = await call("GET", `/api/games/${conf.json.gameId}`);
   ok(game.json.homeScore === 4 && game.json.awayScore === 3, "final score 4-3 from the sheet");
   ok(game.json.lines.length === 19 && game.json.lines.every((l: any) => typeof l.delta === "number"), "19 stat lines, every player rated");
-  ok(!game.text.includes("Okafor") && game.json.lines.some((l: any) => l.name === "Sam O."), "game page uses private names for unclaimed players");
-  const scorer = game.json.lines.find((l: any) => l.name === "Sam O.");
+  ok(!game.text.includes("Okafor") && game.json.lines.some((l: any) => l.name === "S. O. #9"), "game page uses initials and number for unclaimed players");
+  const scorer = game.json.lines.find((l: any) => l.name === "S. O. #9");
   ok(scorer.goals === 2 && scorer.assists === 1, "#9 has 2 goals and 1 assist");
   const ratingsBefore = await db`SELECT id, rating FROM players ORDER BY id`;
   const rc2 = await fetch(`${BASE}/api/cron/recompute`, { headers: { Authorization: `Bearer ${env.CRON_SECRET}` } });
@@ -662,7 +651,7 @@ async function main() {
   ].join("\n");
   const hhBefore = (await call("GET", `/api/teams/${hh}`)).json;
   const ptsOf = async (name: string) => (await call("GET", `/api/leagues/${lg}`)).json.leaders.find((x: any) => x.name === name)?.pts ?? 0;
-  const adamPts = await ptsOf("Adam Y.");
+  const adamPts = await ptsOf("A. Y.");
   ok((await call("POST", "/api/staff/import", { text: report, rinkId, apply: true }, graham)).status === 403, "a captain can't import");
   const pv = await call("POST", "/api/staff/import", { text: report, rinkId }, mt);
   ok(pv.status === 200 && pv.json.applied === false && pv.json.summary.gamesAdded === 2, "rink manager previews: 2 games");
@@ -675,14 +664,14 @@ async function main() {
   let after = (await call("GET", `/api/teams/${hh}`)).json;
   ok(after.games.filter((g: any) => g.source === "daysmart").length === 2, "imported games show on the team page");
   ok(JSON.stringify(after.record) === JSON.stringify(hhBefore.record), "standings don't count imported games twice");
-  ok((await ptsOf("Adam Y.")) === adamPts, "season points don't count imported games twice");
+  ok((await ptsOf("A. Y.")) === adamPts, "season points don't count imported games twice");
   const blRoster = (await call("GET", `/api/teams/${(await db`SELECT id FROM teams WHERE name='Blue Liners'`)[0].id}`)).json.roster;
-  ok(blRoster.some((r: any) => r.name === "Zed Q.") && blRoster.some((r: any) => r.name === "Ana B."), "opponent roster spots added, all-caps fixed and shown as first name and last initial");
+  ok(blRoster.some((r: any) => r.name === "Z. Q.") && blRoster.some((r: any) => r.name === "A. B."), "opponent roster spots added, all-caps fixed, shown as initials when signed out");
   const ig = after.games.find((g: any) => g.playedOn === "2026-09-06");
   const igPage = await call("GET", `/api/games/${ig.id}`);
-  ok(igPage.json.source === "daysmart" && igPage.json.imported.some((l: any) => l.name === "Adam Y." && l.goals === 2 && l.assists === 1), "game page lists credited scorers");
+  ok(igPage.json.source === "daysmart" && igPage.json.imported.some((l: any) => l.name === "A. Y." && l.goals === 2 && l.assists === 1), "game page lists credited scorers");
   ok(igPage.json.unassigned.home === 1 && igPage.json.unassigned.away === 0, "game page counts the goal with no scorer");
-  const adamId = after.roster.find((r: any) => r.name === "Adam Y.").id;
+  const adamId = after.roster.find((r: any) => r.name === "A. Y.").id;
   ok((await call("GET", `/api/players/${adamId}`)).json.importedGames.length === 1, "player page shows the game log");
   const reimport = await call("POST", "/api/staff/import", { text: report, rinkId, apply: true }, mt);
   ok(reimport.json.summary.gamesAdded === 0 && reimport.json.summary.gamesUpdated === 2 && reimport.json.summary.rosterAdded === 0 && reimport.json.summary.teamsCreated.length === 0, "importing again changes nothing new");
@@ -718,11 +707,11 @@ async function main() {
   ok(pcp && pcp.gp === 4 && pcp.w === 3 && pcp.l === 1 && pcp.pts === 6 && pcp.diff === 7, "standings come straight from the league page, with DIFF");
   ok(bl2.standings[0].name === "Port City Pilots", "sorted by points");
   const aces = bl2.standings.find((t: any) => t.name === "Azalea Aces");
-  ok((await call("GET", `/api/teams/${aces.id}`)).json.roster.find((r: any) => r.name === "Gil K.")?.position === "G", "a roster name marked (G) comes in as a goalie");
-  ok(bl2.leaders.find((x: any) => x.name === "Sam T.")?.pts === 8, "season totals come from the league page, not just the games listed");
+  ok((await call("GET", `/api/teams/${aces.id}`)).json.roster.find((r: any) => r.name === "G. K.")?.position === "G", "a roster name marked (G) comes in as a goalie");
+  ok(bl2.leaders.find((x: any) => x.name === "S. T.")?.pts === 8, "season totals come from the league page, not just the games listed");
   ok((await call("POST", "/api/staff/import", { text: leagueReport, rinkId, apply: true }, mt)).json.summary.teamsCreated.length === 0, "importing the league again adds no teams");
   const bl3 = (await call("GET", `/api/leagues/${bLg}`)).json;
-  ok(bl3.standings.find((t: any) => t.name === "Port City Pilots").gp === 4 && bl3.leaders.find((x: any) => x.name === "Sam T.").pts === 8, "and doesn't double anything");
+  ok(bl3.standings.find((t: any) => t.name === "Port City Pilots").gp === 4 && bl3.leaders.find((x: any) => x.name === "S. T.").pts === 8, "and doesn't double anything");
 
   console.log("import: every league picks a skill level");
   const mk = (head: string, team1: string, team2: string) => ["RAW REPORT - Polar Ice Wilmington", head, "STANDINGS",
@@ -776,9 +765,9 @@ async function main() {
   ok(c2.status === 200, "the real sheet goes in");
   after = (await call("GET", `/api/teams/${hh}`)).json;
   ok(!after.games.some((g: any) => g.source === "daysmart" && g.playedOn === "2026-09-06") && after.games.some((g: any) => g.id === c2.json.gameId), "it replaced the imported game");
-  ok(after.roster.filter((r: any) => r.name === "Adam Y.").length === 1 && after.roster.find((r: any) => r.name === "Adam Y.").number === "19", "\"Adam Young\" #19 on the sheet is the imported \"Adam Y.\" spot, no duplicate");
+  ok(after.roster.filter((r: any) => r.name === "A. Y. #19").length === 1 && after.roster.find((r: any) => r.name === "A. Y. #19").number === "19", "\"Adam Young\" #19 on the sheet is the imported \"Adam Y.\" spot, no duplicate");
   ok(after.record.w === hhBefore.record.w && after.record.l === hhBefore.record.l && after.record.gp === hhBefore.record.gp, "record still adds up: the game moved from the baseline to the sheet");
-  ok((await ptsOf("Adam Y.")) === adamPts, "Adam's points still add up (2G 1A, counted once)");
+  ok((await ptsOf("A. Y. #19")) === adamPts, "Adam's points still add up (2G 1A, counted once)");
 
   console.log("schedule: calendar feed and hand-added games");
   const ymd = (days: number) => new Date(Date.now() + days * 86400000).toISOString().slice(0, 10).replace(/-/g, "");
@@ -1013,7 +1002,7 @@ async function main() {
   ok(lgGame.status === 200, "a game to set lines for");
   ok((await call("GET", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`)).status === 403, "before the captain sets it, outsiders see nothing");
   const lu = await call("GET", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, undefined, graham);
-  ok(lu.status === 200 && !lu.json.saved && lu.json.lineup.f.length === 3 && lu.json.players.length > 0, "the team sees a first guess from who's In");
+  ok(lu.status === 200 && !lu.json.saved && lu.json.lineup.f.length === 2 && lu.json.lineup.d.length === 2 && lu.json.players.length > 0, "the team sees a first guess from who's In, two forward lines and two defense pairs");
   const firstTwo = lu.json.players.slice(0, 2).map((p: any) => p.id);
   const lineupBody = { f: [[firstTwo[0], null, null], [null, null, null], [null, null, null]], d: [[firstTwo[1], null], [null, null], [null, null]], g: [null], extras: [] };
   ok((await call("PUT", `/api/teams/${hh}/schedule/${lgGame.json.id}/lineup`, lineupBody, nobody)).status === 403, "only the team's captains set it");
@@ -1067,7 +1056,7 @@ async function main() {
   ok((await call("PATCH", `/api/events/${tv.json.id}/teams/${hh}`, { place: 1 }, fan)).status === 403, "only the organizer records the finish");
   ok((await call("PATCH", `/api/events/${tv.json.id}/teams/${hh}`, { place: 1 }, graham)).status === 200, "Hammer'd Heads are champions");
   ok((await call("GET", `/api/events?team=${hh}`)).json.find((e: any) => e.id === tv.json.id).place === 1, "it's in the trophy case");
-  const adamRow = hhAfter.roster.find((r: any) => r.name === "Adam Y.");
+  const adamRow = hhAfter.roster.find((r: any) => r.name === "A. Y. #19");
   ok((await call("GET", `/api/players/${adamRow.id}`)).json.badges.some((b: any) => b.key === "road_trip"), "players who went get the Road Trip badge");
   const rebel = ev.players.find((p: any) => p.team === "Raleigh Rebels");
   ok(!!rebel && (await call("PUT", `/api/events/${tv.json.id}/mvp`, { playerId: rebel.id }, fan)).status === 403, "only players in the tournament vote MVP");
@@ -1333,8 +1322,132 @@ async function main() {
   await db`DELETE FROM users WHERE id IN ${db([westUser.id, eastUser.id])}`;
   await db`DELETE FROM rinks WHERE id IN ${db([westRink.id, eastRink.id])}`;
 
+  console.log("g6 trust");
+  const polarId = (await db`SELECT id FROM rinks WHERE slug = 'polar-ice-wilmington'`)[0].id as number;
+  const [jane] = await db`INSERT INTO players (name, name_key, position, rating, start_rating) VALUES ('Jane Skater', 'janeskaterg6', 'F', 3.2, 3.2) RETURNING id`;
+  await db`INSERT INTO roster_entries (team_id, player_id, number) VALUES (${hh}, ${jane.id}, '61')`;
+  const pubJane = await call("GET", `/api/teams/${hh}`);
+  ok(pubJane.json.roster.find((r: any) => r.id === jane.id)?.name === "J. S. #61" && !pubJane.text.includes("Skater"), "signed-out viewers see initials and number, not the surname");
+  const sameJane = await call("GET", `/api/teams/${hh}`, undefined, graham);
+  ok(sameJane.json.roster.find((r: any) => r.id === jane.id)?.name === "Jane S.", "a signed-in player at the same rink sees the short name");
+  const [region] = await db`SELECT id FROM regions LIMIT 1`;
+  const [otherRink] = await db`INSERT INTO rinks (region_id, slug, name) VALUES (${region.id}, 'g6-other-rink', 'Other Rink') RETURNING id`;
+  const away = await signUp("away.g6@example.com", { name: "Away Fan", number: "63", position: "F" });
+  await db`UPDATE users SET home_rink_id = ${otherRink.id} WHERE email = 'away.g6@example.com'`;
+  const awayJane = await call("GET", `/api/teams/${hh}`, undefined, away);
+  ok(awayJane.json.roster.find((r: any) => r.id === jane.id)?.name === "J. S. #61", "a signed-in player at another rink sees initials");
+  ok(awayJane.json.roster.some((r: any) => r.name === "Graham DeNoyer"), "claimed players still show the profile name");
+  ok(!(await call("GET", "/api/players")).text.includes("Skater") && !(await call("GET", "/api/feed")).text.includes("Skater"), "player list and feed do not leak the surname");
+
+  const young = await signUp("young.g6@example.com", { name: "Young Player", number: "64", position: "W" });
+  await db`UPDATE users SET name = NULL, position = NULL, home_rink_id = NULL, age_confirmed_at = NULL WHERE email = 'young.g6@example.com'`;
+  ok((await call("PATCH", "/api/me", { name: "Young Player", number: "64", position: "W", homeRinkId: polarId }, young)).status === 400, "the server refuses a profile without the age check");
+  ok((await call("PATCH", "/api/me", { name: "Young Player", number: "64", position: "W", homeRinkId: polarId, age18: false }, young)).status === 400, "saying no to 18 or older is refused");
+  const aged = await call("PATCH", "/api/me", { name: "Young Player", number: "64", position: "W", homeRinkId: polarId, age18: true }, young);
+  ok(aged.status === 200 && aged.json.user.profileComplete === true && aged.json.user.ageConfirmed === true, "checking 18 or older completes the profile");
+
+  const [inD] = await db`INSERT INTO users (email, name, access, home_rink_id, age_confirmed_at) VALUES ('g6-ind@example.com', 'In Defense', 'approved', ${polarId}, now()) RETURNING id`;
+  const [lateD] = await db`INSERT INTO users (email, name, access, home_rink_id, age_confirmed_at) VALUES ('g6-lated@example.com', 'Late Defense', 'approved', ${polarId}, now()) RETURNING id`;
+  const [outD] = await db`INSERT INTO users (email, name, access, home_rink_id, age_confirmed_at) VALUES ('g6-outd@example.com', 'Out Defense', 'approved', ${polarId}, now()) RETURNING id`;
+  const [inG] = await db`INSERT INTO users (email, name, access, home_rink_id, age_confirmed_at) VALUES ('g6-ing@example.com', 'In Goal', 'approved', ${polarId}, now()) RETURNING id`;
+  const addLined = async (userId: number, name: string, pos: string, num: string, rating: number) => {
+    const [p] = await db`INSERT INTO players (name, name_key, position, rating, start_rating, claimed, user_id, display_name) VALUES (${name}, ${name.toLowerCase().replace(/[^a-z]/g, "") + userId}, ${pos}, ${rating}, ${rating}, 1, ${userId}, ${name}) RETURNING id`;
+    await db`INSERT INTO roster_entries (team_id, player_id, number) VALUES (${hh}, ${p.id}, ${num})`;
+    return p.id as number;
+  };
+  const inDId = await addLined(inD.id, "In Defense", "D", "20", 1.1);
+  const lateDId = await addLined(lateD.id, "Late Defense", "D", "3", 6.8);
+  const outDId = await addLined(outD.id, "Out Defense", "D", "4", 6.9);
+  const inGId = await addLined(inG.id, "In Goal", "G", "70", 1.2);
+  const [orderGame] = await db`INSERT INTO scheduled_games (team_id, starts_at, local_date, local_time, kind, source) VALUES (${hh}, now() + interval '3 days', '2026-12-20', '8:00 PM', 'league', 'manual') RETURNING id`;
+  await db`INSERT INTO rsvps (scheduled_game_id, user_id, answer) VALUES (${orderGame.id}, ${inD.id}, 'in'), (${orderGame.id}, ${lateD.id}, 'late'), (${orderGame.id}, ${outD.id}, 'out'), (${orderGame.id}, ${inG.id}, 'in')`;
+  const ordered = await call("GET", `/api/teams/${hh}/schedule/${orderGame.id}/lineup`, undefined, graham);
+  const flatD = (ordered.json.lineup.d as (number | null)[][]).flat();
+  const placed = [...ordered.json.lineup.f.flat(), ...flatD, ...ordered.json.lineup.g, ...ordered.json.lineup.extras];
+  ok(ordered.status === 200 && ordered.json.lineup.f.length === 2 && ordered.json.lineup.d.length === 2, "auto-fill starts with two lines and two pairs");
+  ok(ordered.json.lineup.g[0] === inGId, "the goalie who said In is in net ahead of a higher rating with no answer");
+  ok(flatD[0] === inDId && flatD.indexOf(lateDId) > 0, "defense is In first, then Late, not by rating or jersey number");
+  ok(!placed.includes(outDId), "a player who said Out is left off");
+
+  const [spotA] = await db`INSERT INTO players (name, name_key, position, rating, start_rating, display_name) VALUES ('Alex One', 'alexoneg6', 'F', 3, 3, 'Alex O.') RETURNING id`;
+  const [spotB] = await db`INSERT INTO players (name, name_key, position, rating, start_rating, display_name) VALUES ('Alex Two', 'alextwog6', 'F', 3, 3, 'Alex T.') RETURNING id`;
+  await db`INSERT INTO roster_entries (team_id, player_id, number) VALUES (${hh}, ${spotA.id}, '71'), (${hh}, ${spotB.id}, '72')`;
+  const statGame = (await db`SELECT id, home_team_id FROM games LIMIT 1`)[0];
+  await db`INSERT INTO player_game_stats (game_id, player_id, team_id, number, goals, assists) VALUES (${statGame.id}, ${spotA.id}, ${statGame.home_team_id}, '71', 2, 1)`;
+  const samId = (await db`SELECT id FROM users WHERE email = 'sam@example.com'`)[0].id;
+  const named = await call("POST", `/api/teams/${hh}/assistants`, { userId: samId }, graham);
+  ok(named.status === 200 || named.status === 409, "Sam can be the assistant used for the denial check");
+  ok((await call("POST", `/api/teams/${hh}/merge`, { fromId: spotA.id, intoId: spotB.id }, sam)).status === 403, "an assistant cannot merge two spots");
+  const preview = await call("GET", `/api/teams/${hh}/merge?from=${spotA.id}&into=${spotB.id}`, undefined, graham);
+  ok(preview.status === 200 && preview.json.games === 1 && preview.json.points === 3 && preview.json.moving?.name && preview.json.kept?.name && preview.json.moving.name !== preview.json.kept.name, "merge preview names both players and the games and points that move");
+  ok((await call("POST", `/api/teams/${hh}/merge`, { fromId: spotA.id, intoId: spotB.id }, graham)).status === 200, "the captain merges after the counts");
+  const auditRow = (await db`SELECT before_json, after_json FROM audit_log WHERE action = 'roster.merge' ORDER BY id DESC LIMIT 1`)[0];
+  const auditAfter = JSON.parse(auditRow.after_json);
+  const auditBefore = JSON.parse(auditRow.before_json);
+  ok(auditBefore.movingId === spotA.id && auditBefore.keptId === spotB.id && auditAfter.movingId === spotA.id && auditAfter.keptId === spotB.id && auditAfter.games === 1 && auditAfter.points === 3, "the audit row stores both ids and the moved counts");
+  ok((await db`SELECT COUNT(*)::int n FROM players WHERE id = ${spotA.id}`)[0].n === 0, "the spot that moved is gone");
+  ok((await db`SELECT COUNT(*)::int n FROM player_game_stats WHERE player_id = ${spotB.id} AND goals = 2 AND assists = 1`)[0].n === 1, "the game line moved onto the kept player");
+
+  const bye = await signUp("bye.g6@example.com", { name: "Bye Player", number: "62", position: "F" });
+  const byeUser = (await call("GET", "/api/me", undefined, bye)).json.user.id;
+  const [byePlayer] = await db`INSERT INTO players (name, name_key, position, rating, start_rating, claimed, user_id, display_name) VALUES ('Bye Player', 'byeplayerg6', 'F', 3.4, 3.4, 1, ${byeUser}, 'Bye Player') RETURNING id`;
+  await db`INSERT INTO player_game_stats (game_id, player_id, team_id, number, goals, assists) VALUES (${statGame.id}, ${byePlayer.id}, ${statGame.home_team_id}, '62', 1, 0)`;
+  await db`INSERT INTO notifications (user_id, kind, title) VALUES (${byeUser}, 'note', 'bye private note')`;
+  const samNote = (await db`SELECT id FROM users WHERE email = 'sam@example.com'`)[0].id;
+  await db`INSERT INTO notifications (user_id, kind, title) VALUES (${samNote}, 'note', 'sam secret note g6')`;
+  const exported = await call("GET", "/api/me/export", undefined, bye);
+  ok(exported.status === 200 && exported.json.profile.email === "bye.g6@example.com" && exported.json.gameLines.some((l: any) => l.goals === 1) && exported.json.notifications.some((n: any) => n.title === "bye private note") && !exported.text.includes("sam secret note g6") && !exported.text.includes("auth_id"), "export has this user's lines and notes only");
+  ok((await call("POST", "/api/me/delete", {}, bye)).status === 400, "delete without confirm is refused");
+  const removed = await call("POST", "/api/me/delete", { confirm: true }, bye);
+  ok(removed.status === 200 && removed.json.gameLinesKept >= 1 && removed.json.authUserRemoved === true && removed.json.accessTokenRevoked === false, "delete keeps game lines, removes the local auth user, and does not claim the access token died");
+  ok((await call("GET", "/api/me", undefined, bye)).status === 401, "the deleted account cannot be read");
+  ok((await db`SELECT name FROM players WHERE id = ${byePlayer.id}`)[0].name === "Player #62", "the player row is anonymized to Player and the number");
+  ok((await db`SELECT COUNT(*)::int n FROM player_game_stats WHERE player_id = ${byePlayer.id} AND goals = 1`)[0].n === 1, "that game line is still stored");
+  ok((await db`SELECT COUNT(*)::int n FROM users WHERE id = ${byeUser}`)[0].n === 0, "the user row is gone");
+  ok((await db`SELECT COUNT(*)::int n FROM auth.users WHERE email = 'bye.g6@example.com'`)[0].n === 0, "the local auth user is gone");
+
+  const png = Buffer.from(tiny.split(",")[1], "base64");
+  const store = createClient(env.NEXT_PUBLIC_SUPABASE_URL!, env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
+  const oldKey = `g6/old-${Date.now()}.png`;
+  const edgeKey = `g6/edge-${Date.now()}.png`;
+  const freshKey = `g6/fresh-${Date.now()}.png`;
+  for (const key of [oldKey, edgeKey, freshKey]) {
+    const up = await store.storage.from("sheets").upload(key, png, { contentType: "image/png" });
+    ok(!up.error, `test photo stored ${up.error ? up.error.message : "ok"}`);
+  }
+  const [oldSheet] = await db`INSERT INTO sheets (image_path, mime, status, source, extracted_json, confirmed_at) VALUES (${oldKey}, 'image/png', 'confirmed', 'upload', '{"kept":true}', now() - interval '90 days' - interval '1 minute') RETURNING id`;
+  const [edgeSheet] = await db`INSERT INTO sheets (image_path, mime, status, source, extracted_json, confirmed_at) VALUES (${edgeKey}, 'image/png', 'confirmed', 'upload', '{"kept":true}', now() - interval '90 days' + interval '5 minutes') RETURNING id`;
+  const [freshSheet] = await db`INSERT INTO sheets (image_path, mime, status, source, extracted_json, confirmed_at) VALUES (${freshKey}, 'image/png', 'confirmed', 'upload', '{"kept":true}', now() - interval '89 days') RETURNING id`;
+  const cleanup = await fetch(`${BASE}/api/cron/recompute`, { headers: { Authorization: `Bearer ${env.CRON_SECRET}` } });
+  const cleanupBody = await cleanup.json();
+  ok(cleanup.status === 200 && cleanupBody.photos.deleted >= 1, "nightly cleanup deletes photos confirmed more than 90 days ago");
+  const oldRow = (await db`SELECT photo_deleted_at, extracted_json, image_path FROM sheets WHERE id = ${oldSheet.id}`)[0];
+  ok(oldRow.photo_deleted_at && String(oldRow.extracted_json).includes("kept") && oldRow.image_path === oldKey, "the old photo is marked deleted only after removal, and the extract stays");
+  ok((await fetch(`${BASE}/api/sheets/${oldSheet.id}/image`)).status === 404, "the deleted photo no longer downloads");
+  ok((await db`SELECT photo_deleted_at FROM sheets WHERE id = ${edgeSheet.id}`)[0].photo_deleted_at === null, "a sheet just under 90 days confirmed is kept");
+  ok((await db`SELECT photo_deleted_at FROM sheets WHERE id = ${freshSheet.id}`)[0].photo_deleted_at === null, "a sheet confirmed 89 days ago is kept");
+  const second = await fetch(`${BASE}/api/cron/recompute`, { headers: { Authorization: `Bearer ${env.CRON_SECRET}` } });
+  ok(second.status === 200, "running cleanup again still succeeds");
+  const oldAgain = (await db`SELECT photo_deleted_at FROM sheets WHERE id = ${oldSheet.id}`)[0].photo_deleted_at;
+  ok(new Date(oldAgain).getTime() === new Date(oldRow.photo_deleted_at).getTime(), "a second run does not rewrite the delete time");
+
+  const rateUser = await signUp("limit.g6@example.com", { name: "Limit Player", number: "65", position: "F" });
+  let blocked: { status: number; json: any } | null = null;
+  let writes = 0;
+  for (let i = 0; i < 70; i++) {
+    const r = await call("PATCH", "/api/me", { status: "active" }, rateUser);
+    if (r.status === 429) { blocked = r; break; }
+    writes++;
+    ok(r.status === 200, `write ${i + 1} before the limit is allowed`);
+  }
+  ok(blocked?.status === 429 && writes === 59 && /too many saves/i.test(blocked.json?.message ?? ""), "the 61st write in a minute returns 429");
+  ok((await call("POST", "/api/sheets", { image: tiny })).status === 401, "a signed-out write is refused as signed out, not rate limited");
+
+  const terms = await (await fetch(`${BASE}/terms`)).text();
+  ok(terms.includes("18 or older") && terms.includes("support@tangomike.app") && terms.includes("/privacy"), "the terms page is up");
+
   console.log("pages render");
-  for (const path of ["/", "/leagues", `/team/${hh}`, `/player/${mike}`, "/players", "/rink", "/scan", "/join", "/privacy", `/game/${conf.json.gameId}`, `/league/${lg}`, `/team/${hh}/manage`, `/team/${hh}/lineup/${lgGame.json.id}`]) {
+  for (const path of ["/", "/leagues", `/team/${hh}`, `/player/${mike}`, "/players", "/rink", "/scan", "/join", "/privacy", "/terms", `/game/${conf.json.gameId}`, `/league/${lg}`, `/team/${hh}/manage`, `/team/${hh}/lineup/${lgGame.json.id}`]) {
     const r = await fetch(BASE + path);
     ok(r.status === 200, `${path} renders`);
   }

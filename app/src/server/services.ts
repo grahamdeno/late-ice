@@ -412,24 +412,31 @@ export async function leagueBoard(db: Tx, rinkId: number, seasonId: number | nul
   }));
 }
 
-export async function leaders(db: Tx, leagueId: number | null, limit = 10, seasonId: number | null = null, rinkId: number | null = null) {
+export async function leaders(db: Tx, leagueId: number | null, limit = 10, seasonId: number | null = null, rinkId: number | null = null, viewerId: number | null = null) {
+  const { applyLoadedNames, sameRinkSql } = await import("./accounts");
   const params: any[] = [];
   const p = (v: any) => { params.push(v); return `$${params.length}`; };
   const scope = () => (leagueId ? `l.id=${p(leagueId)}` : "l.level NOT IN ('DEMO','TOURN')" + (rinkId ? ` AND l.rink_id=${p(rinkId)}` : "")) + (seasonId ? ` AND season_id=${p(seasonId)}` : "");
   const s1 = scope(), s2 = scope();
-  return q<any>(
+  const viewer = viewerId ? p(viewerId) : "NULL";
+  const rows = await q<any>(
     db,
     `WITH lines AS (
        SELECT s.player_id, s.team_id, s.goals g, s.assists a, gm.season_id season_id FROM player_game_stats s JOIN games gm ON gm.id=s.game_id JOIN leagues l ON l.id=gm.league_id WHERE gm.event_id IS NULL AND ${s1}
        UNION ALL
        SELECT pi.player_id, pi.team_id, pi.g, pi.a, pi.season_id FROM player_imports pi JOIN teams t ON t.id=pi.team_id JOIN leagues l ON l.id=t.league_id WHERE ${s2}
      )
-     SELECT p.id, p.display_name AS name, p.rating, p.position, SUM(x.g)::int g, SUM(x.a)::int a, SUM(x.g+x.a)::int pts,
+     SELECT p.id, p.display_name AS name, p.name AS real_name, p.user_id, p.hidden,
+       (SELECT u.hidden FROM users u WHERE u.id = p.user_id) AS user_hidden,
+       (SELECT re.number FROM roster_entries re WHERE re.player_id = p.id AND re.number IS NOT NULL AND re.number <> '' ORDER BY re.id LIMIT 1) AS number,
+       ${sameRinkSql("p.id", viewer)} AS same_rink,
+       p.rating, p.position, SUM(x.g)::int g, SUM(x.a)::int a, SUM(x.g+x.a)::int pts,
        (SELECT t.name FROM teams t WHERE t.id=x.team_id) team, x.team_id
      FROM lines x JOIN players p ON p.id=x.player_id
-     GROUP BY p.id, x.team_id HAVING SUM(x.g+x.a) > 0 ORDER BY pts DESC, g DESC, p.display_name LIMIT ${Number(limit)}`,
+     GROUP BY p.id, p.display_name, p.name, p.user_id, p.hidden, x.team_id HAVING SUM(x.g+x.a) > 0 ORDER BY pts DESC, g DESC, p.display_name LIMIT ${Number(limit)}`,
     params,
   );
+  return rows.map((row) => applyLoadedNames(row));
 }
 
 export async function gameCard(db: Tx, g: any) {

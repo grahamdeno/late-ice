@@ -129,7 +129,7 @@ export default function Join() {
           </label>
           {err && <p className="text-sm down" data-testid="text-error">{err}</p>}
           <button className="btn btn-red w-full h-12" disabled={busy || !normEmail(email)} data-testid="button-send-code">{busy ? "Sending…" : "Email me a code"}</button>
-          <p className="text-[11px] text-[var(--mute)] text-center">By joining you agree to the <Link href="/privacy" className="underline">terms and privacy</Link>.</p>
+          <p className="text-[11px] text-[var(--mute)] text-center">By joining you agree to the <Link href="/terms" className="underline" data-testid="link-terms">terms</Link> and <Link href="/privacy" className="underline" data-testid="link-privacy">privacy</Link>.</p>
         </form>
       )}
 
@@ -161,6 +161,7 @@ export function ProfileForm({ onDone, submitLabel = "Join the draft pool" }: { o
   const [number, setNumber] = useState(me?.user.number ?? "");
   const [position, setPosition] = useState<string>(me?.user.position ?? "");
   const [rink, setRink] = useState<number | null>(me?.user.homeRink?.id ?? null);
+  const [age, setAge] = useState(!!me?.user.ageConfirmed);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   // Starts on the rink you were looking at; one tap changes it.
@@ -170,7 +171,7 @@ export function ProfileForm({ onDone, submitLabel = "Join the draft pool" }: { o
     e.preventDefault();
     setBusy(true); setErr(null);
     try {
-      await apiRequest("PATCH", "/api/me", { name, number, position, homeRinkId: rink });
+      await apiRequest("PATCH", "/api/me", { name, number, position, homeRinkId: rink, age18: age });
       if (rink) setRinkId(rink);
       await invalidatePrefixes(["/api/me", "/api/players", "/api/feed", "/api/bootstrap", "/api/standings", "/api/teams"]);
       onDone();
@@ -204,8 +205,12 @@ export function ProfileForm({ onDone, submitLabel = "Join the draft pool" }: { o
         <span className="label">Home rink</span>
         <div className="mt-1.5"><RinkPicker value={rink} onPick={setRink} /></div>
       </div>
+      <label className="flex items-start gap-2 text-sm">
+        <input type="checkbox" className="mt-1" checked={age} onChange={(e) => setAge(e.target.checked)} data-testid="input-age" />
+        <span>I&apos;m 18 or older. <Link href="/terms" className="underline" data-testid="link-terms-profile">Terms</Link></span>
+      </label>
       {err && <p className="text-sm down" data-testid="text-error">{err}</p>}
-      <button className="btn btn-red w-full h-12" disabled={busy || !name.trim() || !position || !rink} data-testid="button-save-profile">{busy ? "Saving…" : submitLabel}</button>
+      <button className="btn btn-red w-full h-12" disabled={busy || !age || !name.trim() || !position || !rink} data-testid="button-save-profile">{busy ? "Saving…" : submitLabel}</button>
     </form>
   );
 }

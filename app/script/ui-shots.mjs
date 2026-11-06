@@ -94,6 +94,7 @@ async function join(page, email, name, number, pos) {
   await page.getByTestId("input-name").fill(name);
   await page.getByTestId("input-number").fill(number);
   await page.getByTestId(`button-position-${pos}`).click();
+  await page.getByTestId("input-age").check();
 }
 
 try {

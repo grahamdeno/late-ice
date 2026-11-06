@@ -20,6 +20,11 @@ export const SECTION3: Section3Row[] = [
     roles: ["assistant_captain", "captain", "commissioner", "rink_manager", "admin"],
   },
   {
+    action: "roster.merge",
+    row: "Merge two roster spots that are the same person",
+    roles: ["captain", "commissioner", "rink_manager", "admin"],
+  },
+  {
     action: "team.assistants",
     row: "Name or remove assistant captains",
     roles: ["captain", "commissioner", "rink_manager", "admin"],
