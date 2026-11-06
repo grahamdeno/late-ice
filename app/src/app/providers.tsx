@@ -7,7 +7,6 @@ import { FilterCtx, type Boot } from "@/lib/ui";
 import { Shell } from "@/components/Shell";
 import { InstallCard } from "@/components/InstallCard";
 import { UpdateBanner } from "@/components/UpdateBanner";
-import { NotificationSettings } from "@/components/NotificationSettings";
 
 const RINK_KEY = "lateice.rink";
 function Filtered({ children }: { children: React.ReactNode }) {
@@ -41,7 +40,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <AuthProvider>
         <InstallCard />
         <UpdateBanner />
-        <NotificationSettings overlay />
         <Filtered>{children}</Filtered>
       </AuthProvider>
     </QueryClientProvider>
