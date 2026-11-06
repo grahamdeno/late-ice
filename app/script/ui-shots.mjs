@@ -280,6 +280,19 @@ try {
   await shoot(page, "light-me-override");
   await page.getByTestId("button-theme-auto").click();
   await page.goto(BASE + "/staff"); await shoot(page, "staff-375");
+  // Rink Desk, at laptop size.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(BASE + "/desk"); await page.waitForTimeout(1500); await shoot(page, "desk-home");
+  await page.goto(BASE + "/desk/lineups"); await page.waitForTimeout(1500); await shoot(page, "desk-lineups");
+  const gap = page.locator('[data-testid^="row-gap-"]').first();
+  if (await gap.count()) {
+    await gap.click(); await page.waitForURL(/\/desk\/lineups\/\d+/); await page.waitForTimeout(1500);
+    await shoot(page, "desk-team-lineup");
+  } else errors.push("Rink Desk shows no team with imported games");
+  for (const [path, name] of [["/desk/roster", "desk-roster"], ["/desk/ratings", "desk-ratings"], ["/desk/imports", "desk-imports"]]) {
+    await page.goto(BASE + path); await page.waitForTimeout(1800); await shoot(page, name);
+  }
+  await page.setViewportSize({ width: 375, height: 760 });
   const pubW = await browser.newContext({ viewport: { width: 320, height: 700 } });
   const pw = await pubW.newPage();
   for (const r of ["/", "/join", "/leagues", "/players", "/rink"]) { await pw.goto(BASE + r); await pw.waitForTimeout(1200); await widthCheck(pw, `${r} signed out`); }

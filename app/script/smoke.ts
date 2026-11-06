@@ -703,6 +703,40 @@ async function main() {
   const reimport = await call("POST", "/api/staff/import", { text: report, rinkId, apply: true }, mt);
   ok(reimport.json.summary.gamesAdded === 0 && reimport.json.summary.gamesUpdated === 2 && reimport.json.summary.rosterAdded === 0 && reimport.json.summary.teamsCreated.length === 0, "importing again changes nothing new");
 
+  console.log("rink desk: lineups for imported games");
+  const deskBl = (await db`SELECT id FROM teams WHERE name='Blue Liners'`)[0].id as number;
+  const gapsBefore = await call("GET", `/api/desk/gaps?rink=${rinkId}`, undefined, mt);
+  const hhGap = gapsBefore.json.find((g: any) => g.team_id === hh);
+  ok(gapsBefore.status === 200 && hhGap && hhGap.games >= 2, "rink manager sees imported games per team");
+  ok((await call("GET", `/api/desk/gaps?rink=${rinkId}`, undefined, graham)).json.every((g: any) => g.team_id === hh), "a captain only sees their own team");
+  ok((await call("GET", `/api/desk/lineups/${deskBl}`, undefined, graham)).status === 403, "a captain can't open another team's lineups");
+  const deskLu = await call("GET", `/api/desk/lineups/${hh}`, undefined, graham);
+  const luGame = deskLu.json.games?.find((g: any) => g.id === ig.id);
+  ok(deskLu.status === 200 && luGame && luGame.credited.some((c: any) => c.playerId === adamId && c.goals === 2), "lineup page lists the game with its credited scorer");
+  const grahamSpot = (await call("GET", "/api/me", undefined, graham)).json.slots.find((x: any) => x.team_id === hh).id;
+  const blSpot = (await db`SELECT player_id FROM roster_entries WHERE team_id=${deskBl} LIMIT 1`)[0].player_id as number;
+  ok((await call("PUT", `/api/desk/lineups/${hh}/${ig.id}`, { playerIds: [grahamSpot, blSpot] }, boss)).status === 400, "a player from another team is refused");
+  const deskSaved = await call("PUT", `/api/desk/lineups/${hh}/${ig.id}`, { playerIds: [grahamSpot] }, graham);
+  const att = (await db`SELECT player_id FROM imported_game_attendance WHERE game_id=${ig.id} AND team_id=${hh}`).map((r: any) => r.player_id);
+  ok(deskSaved.status === 200 && deskSaved.json.changed && att.includes(grahamSpot) && att.includes(adamId), "captain saves a lineup; the credited scorer is kept");
+  ok((await call("GET", `/api/desk/gaps?rink=${rinkId}`, undefined, mt)).json.find((g: any) => g.team_id === hh).with_lineup === hhGap.with_lineup + 1, "the game now counts as having a lineup");
+  ok((await call("GET", `/api/games/${ig.id}`)).json.lineupTeams.includes(hh), "game page knows the team's lineup is in");
+  const grahamName = (await db`SELECT name FROM players WHERE id=${grahamSpot}`)[0].name as string;
+  const matched = await call("POST", `/api/desk/lineups/${hh}/match`, { text: `${grahamName}\nNobody Here` }, boss);
+  ok(matched.status === 200 && matched.json.matched.some((m: any) => m.playerId === grahamSpot) && matched.json.unmatched.includes("Nobody Here"), "pasted names match the roster by full name");
+  ok((await call("PUT", `/api/desk/lineups/${hh}/${ig.id}`, { playerIds: [] }, boss)).json.saved === 0, "clearing the lineup saves nobody");
+  ok((await db`SELECT count(*)::int n FROM imported_game_attendance WHERE game_id=${ig.id}`)[0].n === 0, "clearing leaves the game unrated");
+  const deskRoster = await call("GET", `/api/desk/roster?rink=${rinkId}`, undefined, mt);
+  ok(deskRoster.status === 200 && deskRoster.json.rows.some((r: any) => r.teamId === hh && r.id === adamId) && deskRoster.json.teams.find((t: any) => t.id === hh)?.canEdit, "rink manager sees the rink-wide roster and can edit it");
+  ok((await call("GET", `/api/desk/roster?rink=${rinkId}`, undefined, graham)).status === 403, "a captain can't open the rink-wide roster");
+  const deskRatings = await call("GET", `/api/desk/ratings?rink=${rinkId}`, undefined, mt);
+  ok(deskRatings.status === 200 && deskRatings.json.leagues.some((l: any) => l.id === lg && l.games >= 2) && deskRatings.json.canRecompute === false, "ratings overview per league; only admins recalculate");
+  const deskImports = await call("GET", `/api/desk/imports?rink=${rinkId}`, undefined, mt);
+  ok(deskImports.status === 200 && deskImports.json.length >= 1 && deskImports.json[0].games >= 2, "past imports are listed");
+  // The checks above add saves for the captain and the admin; let the per-user write window
+  // (60 a minute) clear so later sections start from the same budget as before.
+  await new Promise((r) => setTimeout(r, 61_000));
+
   console.log("import: a whole league with standings and season totals");
   const leagueReport = [
     "RAW REPORT - Polar Ice Wilmington, all teams",
