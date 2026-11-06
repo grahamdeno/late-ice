@@ -26,7 +26,7 @@ export const GET = handle(async (req) => {
     const arch = (await teamArchetypes(sql, s.team_id, u.id)).won[s.id] ?? null;
     // The last final this team played, with this player's line and rating move, and the move over the last five rated games.
     const last = await one<any>(sql,
-      `SELECT g.id, g.played_on, g.home_team_id, g.away_team_id, g.home_score, g.away_score,
+      `SELECT g.id, g.played_on, g.source, g.home_team_id, g.away_team_id, g.home_score, g.away_score,
          ht.name home_name, ht.color home_color, ht.logo home_logo, at.name away_name, at.color away_color, at.logo away_logo,
          s.goals, s.assists, s.pim, s.is_goalie, rh.before, rh.after,
          (SELECT SUM(x.after - x.before) FROM (SELECT after, before FROM rating_history WHERE player_id=$2 ORDER BY id DESC LIMIT 5) x) trend5

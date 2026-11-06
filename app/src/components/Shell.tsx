@@ -107,15 +107,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
               data-testid="button-league-switcher"
               aria-expanded={open}
             >
-              {current ? <><LevelPill level={current.level === "DEMO" ? "Demo" : current.level} /> <span className="min-w-0 max-w-[110px] truncate">{current.name}</span></> : <span className="min-w-0 max-w-[150px] truncate" data-testid="text-pill-rink">{boot?.rink?.name ?? "Late Ice"}</span>}
+              {current ? <><LevelPill level={current.level === "DEMO" ? "Demo" : current.level} /> <span className="min-w-0 max-w-[170px] truncate">{current.name}</span></> : <span className="min-w-0 max-w-[200px] truncate" data-testid="text-pill-rink">{boot?.rink?.name ?? "Late Ice"}</span>}
               <svg className="shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" style={{ transform: open ? "rotate(180deg)" : "", transition: "transform .2s" }}><path d="M6 9l6 6 6-6" /></svg>
             </button>
-            {(
-              <Link href={me ? "/me" : "/join"} className="relative shrink-0 h-9 min-w-9 px-2.5 rounded-full bg-[var(--ice-3)] border border-[var(--line)] flex items-center justify-center text-xs font-black" data-testid="link-me" aria-label={me ? "My profile" : "Join"}>
-                {me?.user.name ? (me.user.number ? `#${me.user.number}` : me.user.name.split(" ").map((w) => w[0]).join("").slice(0, 2)) : "Join"}
-                {me?.unread ? <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-[var(--red)] border-2 border-[var(--ice)]" /> : null}
-              </Link>
-            )}
             </div>
           </div>
           <div className="flex justify-center"><div className="mt-1 h-1 w-10 rounded-full bg-[var(--grip)]" /></div>
