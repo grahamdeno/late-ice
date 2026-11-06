@@ -63,8 +63,15 @@ function BackToTop() {
   );
 }
 
+/** Rink Desk (/desk) brings its own desktop frame; everything else gets the phone shell. */
 export function Shell({ children }: { children: React.ReactNode }) {
   useNavTrail();
+  const [loc] = useLocation();
+  if (loc === "/desk" || loc.startsWith("/desk/")) return <>{children}</>;
+  return <AppShell>{children}</AppShell>;
+}
+
+function AppShell({ children }: { children: React.ReactNode }) {
   const [loc] = useLocation();
   const { leagueId, setLeagueId, rinkId, setRinkId, boot } = useFilter();
   const [, go] = useLocation();

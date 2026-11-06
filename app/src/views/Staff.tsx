@@ -49,6 +49,10 @@ export default function Staff({ rinkId, leagueId }: { rinkId?: string; leagueId?
           <span key={r.id} className="chip h-7 text-[11px]">{ROLE_LABEL[r.role]}{r.where ? ` · ${r.where}` : ""}</span>
         ))}
       </div>
+      <Link href="/desk" className="card mt-4 px-4 min-h-[56px] items-center gap-3 hidden md:flex" data-testid="link-rink-desk">
+        <span className="flex-1"><span className="block font-bold text-sm">Rink Desk</span><span className="block text-xs text-[var(--mute)]">The computer view: what's waiting, and lineups for imported games.</span></span>
+        <span className="text-[var(--mute)]" aria-hidden="true">›</span>
+      </Link>
       {errLine}
 
       <Requests run={run} />
@@ -70,7 +74,7 @@ export default function Staff({ rinkId, leagueId }: { rinkId?: string; leagueId?
   );
 }
 
-type Run = (method: string, url: string, body?: unknown) => Promise<boolean>;
+export type Run = (method: string, url: string, body?: unknown) => Promise<boolean>;
 
 function DrillRow({ href, title, hint, left, testid }: { href: string; title: string; hint?: string; left?: React.ReactNode; testid?: string }) {
   return (
@@ -337,7 +341,7 @@ function RinkStaff({ rink, run }: { rink: any; run: Run }) {
   );
 }
 
-function Requests({ run }: { run: Run }) {
+export function Requests({ run }: { run: Run }) {
   const { data } = useQuery<any[]>({ queryKey: ["/api/staff/requests"] });
   if (!data?.length) return null;
   return (
@@ -369,7 +373,7 @@ function Requests({ run }: { run: Run }) {
 const LEAD_STATUS = ["new", "contacted", "onboarding", "won", "lost"];
 
 /** Rinks that asked to claim their page or join, from the website. */
-function RinkLeads({ run }: { run: Run }) {
+export function RinkLeads({ run }: { run: Run }) {
   const { data } = useQuery<any[]>({ queryKey: ["/api/staff/leads"] });
   const [showClosed, setShowClosed] = useState(false);
   if (!data?.length) return null;
@@ -400,7 +404,7 @@ function RinkLeads({ run }: { run: Run }) {
 }
 
 /** Goalie shot counts the two teams disagree on. Staff pick one number. */
-function GoalieDisputes({ run }: { run: Run }) {
+export function GoalieDisputes({ run }: { run: Run }) {
   const { data } = useQuery<any[]>({ queryKey: ["/api/staff/goalie-disputes"] });
   if (!data?.length) return null;
   const settle = (id: number, use: string) => run("POST", `/api/goalie-reports/${id}/settle`, { use }).then(() => invalidatePrefixes(["/api/staff/goalie-disputes", "/api/games"]));
@@ -422,7 +426,7 @@ function GoalieDisputes({ run }: { run: Run }) {
   );
 }
 
-function Signups({ run }: { run: Run }) {
+export function Signups({ run }: { run: Run }) {
   const { data } = useQuery<any[]>({ queryKey: ["/api/staff/signups"] });
   if (!data?.length) return null;
   return (

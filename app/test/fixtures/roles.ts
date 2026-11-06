@@ -55,6 +55,11 @@ export const SECTION3: Section3Row[] = [
     roles: ["commissioner", "rink_manager", "admin"],
   },
   {
+    action: "lineup.record",
+    row: "Record who played an imported game",
+    roles: ["assistant_captain", "captain", "commissioner", "rink_manager", "admin"],
+  },
+  {
     action: "sheet.confirm",
     row: "Confirm a sheet",
     roles: ["assistant_captain", "captain", "scorekeeper", "commissioner", "rink_manager", "admin"],

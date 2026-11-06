@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
  * - The website (lateice.com): "/" and the site pages are served from /site, without the app's
  *   shell. SITE_HOSTS lists its hostnames.
  * - The app (app.lateice.com, and the old late-ice.tangomike.app until it redirects).
- * - Rink Desk (desk.lateice.com): opens staff tools until the desktop desk ships.
+ * - Rink Desk (desk.lateice.com): the computer view for rink staff, at /desk.
  * CANONICAL_APP_HOST, once set, sends the old app address to the new one with the same path.
  * Preview deployments (*.vercel.app) are never redirected.
  */
@@ -28,7 +28,7 @@ export function middleware(req: NextRequest) {
 
   if (host.startsWith("desk.") && pathname === "/") {
     const url = req.nextUrl.clone();
-    url.pathname = "/staff";
+    url.pathname = "/desk";
     return NextResponse.redirect(url, 307);
   }
 

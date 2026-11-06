@@ -26,6 +26,8 @@ export const MATRIX = {
   "schedule.feed": ["assistant_captain", "captain", "admin"],
   "schedule.manual": ["assistant_captain", "captain", "commissioner", "rink_manager", "admin"],
   "game.resolve": ["commissioner", "rink_manager", "admin"],
+  // Who played an imported (DaySmart) game. Team roles only on their own team.
+  "lineup.record": ["assistant_captain", "captain", "commissioner", "rink_manager", "admin"],
   "sheet.confirm": ["assistant_captain", "captain", "scorekeeper", "commissioner", "rink_manager", "admin"],
   "signup.approve": ["rink_manager", "admin"],
   "team.private": ["assistant_captain", "captain", "rink_manager", "admin"],
@@ -105,6 +107,7 @@ const DENY: Partial<Record<Action, string>> = {
   "team.assistants": "Only the captain can name assistant captains.",
   "team.edit": "Only the captain can rename the team.",
   "captain.reassign": "Only league or rink staff can reassign a captain.",
+  "lineup.record": "Only this team's captains or rink staff can record who played.",
   "pool.view": "The draft pool is for captains at this rink.",
   "system.grant": "Only an admin can do that.",
 };

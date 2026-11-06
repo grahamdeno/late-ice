@@ -64,6 +64,7 @@ Rink staff powers apply only inside their scope (their league or their rink).
 | **Games and sheets** | | | | | | | | |
 | Upload a scan | ✓ signed in | ✓ | ✓ | ✓ | ✓ | ✓ | | ✓ |
 | Confirm a sheet | | own | own | ✓ | ✓ | ✓ | | ✓ |
+| Record who played an imported game | | own | own | | ✓ | ✓ | | ✓ |
 | Dispute a game (within 72 hours) | own | own | own | | | | | |
 | Resolve a dispute, lock a game | | | | | ✓ | ✓ | | ✓ |
 | Correct a confirmed game | | | | | ✓ | ✓ | | ✓ |
@@ -93,6 +94,7 @@ What the running app does, where a cell above is easy to misread:
 - **Connect a rink-wide calendar feed** is not in the app. A rink manager is not on the team-feed grant (`schedule.feed` is assistant, captain, admin).
 - **Show a hidden name again** is the player, an assistant or captain of one of their teams, support, or an admin (`name.unhide`). A commissioner or rink manager is not on that grant. Anyone can hide a name with no account. Support's hide, unhide and stuck-claim fix stay on `support.fix`.
 - **Approve or remove a waitlisted signup** is `signup.approve`: the rink manager at that home rink, or an admin.
+- **Record who played an imported game** is `lineup.record`: assistant or captain of that team, or a commissioner, rink manager or admin. DaySmart games carry a score but no lineup, so they rate players only once a lineup is recorded (Rink Desk, Games and lineups).
 - Filing a dispute, locking a game and correcting a confirmed game are not separate routes. `game.resolve` (commissioner, rink manager, admin) is what staff use to discard a sheet and to open a league on the staff page.
 
 Things nobody can do, on purpose:
