@@ -11,12 +11,12 @@ import { apiUrl, authHeaders } from "@/lib/queryClient";
 
 /** Every setting in one place, in the order people look for them. Reached from the gear on Me. */
 export default function Settings() {
-  const [, nav] = useLocation();
+  const [, , swap] = useLocation();
   const { me, loading } = useMe();
   const [theme, setTheme] = useTheme();
   const [err, setErr] = useState<string | null>(null);
   const [until, setUntil] = useState("");
-  useEffect(() => { if (!loading && !me) nav("/join"); }, [loading, me, nav]);
+  useEffect(() => { if (!loading && !me) swap("/join"); }, [loading, me, swap]);
   useEffect(() => { setUntil(me?.user.statusUntil ?? ""); }, [me?.user.statusUntil]);
   if (loading || !me) return <Loading />;
   const u = me.user;
@@ -24,7 +24,7 @@ export default function Settings() {
 
   return (
     <div>
-      <BackBar href="/me" title="Me" />
+      <BackBar href="/me" to="Me" />
       <h1 className="text-[28px] leading-tight font-black">Settings</h1>
       {err && <p className="text-sm down mt-3 px-1" data-testid="text-error">{err}</p>}
 
@@ -101,7 +101,7 @@ export default function Settings() {
 
       <div className="card mt-7 p-4 flex items-center gap-3">
         <span className="flex-1 min-w-0 text-xs text-[var(--mute)] truncate">Signed in as {u.email ?? u.phone}</span>
-        <button className="btn btn-ghost h-11 text-sm" onClick={async () => { await signOut(); nav("/"); }} data-testid="button-sign-out">Sign out</button>
+        <button className="btn btn-ghost h-11 text-sm" onClick={async () => { await signOut(); swap("/"); }} data-testid="button-sign-out">Sign out</button>
       </div>
 
       <Section title="Your data">
@@ -118,7 +118,7 @@ export default function Settings() {
             if (!confirm("Delete your Late Ice account? Your name comes off every roster and game, and your old game lines stay as \"Player\" and your number. This can't be undone.")) return;
             const r = await fetch(apiUrl("/api/me/delete"), { method: "POST", headers: { ...authHeaders(), "Content-Type": "application/json" }, body: JSON.stringify({ confirm: true }) });
             if (!r.ok) { setErr((await r.json().catch(() => null))?.message ?? "Couldn't delete the account. Email support@tangomike.app and we'll do it."); return; }
-            await signOut(); nav("/");
+            await signOut(); swap("/");
           }} data-testid="button-delete-account">
             <span className="flex-1"><span className="block font-bold text-sm down">Delete my account</span><span className="block text-xs text-[var(--mute)]">Removes your name; past scores stay</span></span>
           </button>

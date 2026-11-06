@@ -30,7 +30,7 @@ async function toDataUrl(file: File, max = 2200): Promise<string> {
 }
 
 export default function Scan() {
-  const [, nav] = useLocation();
+  const [, , swap] = useLocation();
   const { me, loading } = useMe();
   const cam = useRef<HTMLInputElement>(null);
   const lib = useRef<HTMLInputElement>(null);
@@ -46,7 +46,7 @@ export default function Scan() {
       const image = await toDataUrl(f);
       const r = await apiRequest("POST", "/api/sheets", { image });
       const { id } = await r.json();
-      nav(`/sheet/${id}`);
+      swap(`/sheet/${id}`);
     } catch (e: any) {
       const msg = String(e?.message || "");
       if (/too small|Could not read/.test(msg)) setErr(msg);
@@ -58,7 +58,7 @@ export default function Scan() {
     setBusy(true); setErr(null);
     try {
       const r = await apiRequest("POST", `/api/sheets/sample/${id}`);
-      nav(`/sheet/${(await r.json()).id}`);
+      swap(`/sheet/${(await r.json()).id}`);
     } catch (e: any) { setErr(e.message); setBusy(false); }
   };
 

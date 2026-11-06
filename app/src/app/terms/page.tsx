@@ -18,7 +18,7 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
 export default function TermsPage() {
   return (
     <article data-testid="page-terms">
-      <BackBar href="/" title="Late Ice" />
+      <BackBar href="/" to="Late Ice" />
       <h1 className="text-[28px] leading-tight font-black">Terms</h1>
       <p className="text-xs text-[var(--mute)] mt-2">
         Updated {UPDATED}. Questions: <a className="text-[var(--blue)]" href="mailto:support@tangomike.app">support@tangomike.app</a>

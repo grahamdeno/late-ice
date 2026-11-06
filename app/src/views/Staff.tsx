@@ -14,14 +14,14 @@ const when = (s: string) => new Date(s).toLocaleString("en-US", { month: "short"
  * then a rink (details, seasons, leagues, staff, import), then a league (settings and teams).
  */
 export default function Staff({ rinkId, leagueId }: { rinkId?: string; leagueId?: string } = {}) {
-  const [, nav] = useLocation();
+  const [, , swap] = useLocation();
   const { me, loading } = useMe();
   const { data, error } = useQuery<any>({ queryKey: ["/api/staff/overview"], enabled: !!me });
   const [err, setErr] = useState<string | null>(null);
 
-  useEffect(() => { if (!loading && !me) nav("/join"); }, [loading, me, nav]);
+  useEffect(() => { if (!loading && !me) swap("/join"); }, [loading, me, swap]);
   if (loading || !me) return <Loading />;
-  if (error) return <div><BackBar href="/me" title="Profile" /><Empty title="Staff only" body={(error as any).message} /></div>;
+  if (error) return <div><BackBar href="/me" to="Profile" /><Empty title="Staff only" body={(error as any).message} /></div>;
   if (!data) return <Loading />;
   const run = async (method: string, url: string, body?: unknown) => { const e = await act(method, url, body, ["/api/staff", "/api/me", "/api/players", "/api/teams", "/api/rinks", "/api/rink", "/api/leagues", "/api/standings", "/api/bootstrap"]); setErr(e); return !e; };
   const errLine = err && <p className="text-sm down mt-3" data-testid="text-error">{err}</p>;
@@ -29,20 +29,20 @@ export default function Staff({ rinkId, leagueId }: { rinkId?: string; leagueId?
   if (leagueId) {
     const rink = data.rinks.find((r: any) => r.leagues.some((l: any) => String(l.id) === leagueId));
     const league = rink?.leagues.find((l: any) => String(l.id) === leagueId);
-    if (!rink || !league) return <div><BackBar href="/staff" title="Manage" /><Empty title="League not found" body="It may have been removed, or it's outside what you manage." /></div>;
-    return <div><BackBar href={`/staff/rink/${rink.id}`} title={rink.name} />{errLine}<LeagueLevel rink={rink} league={league} run={run} onGone={() => nav(`/staff/rink/${rink.id}`)} /></div>;
+    if (!rink || !league) return <div><BackBar href="/staff" to="Manage" /><Empty title="League not found" body="It may have been removed, or it's outside what you manage." /></div>;
+    return <div><BackBar href={`/staff/rink/${rink.id}`} to={rink.name} />{errLine}<LeagueLevel rink={rink} league={league} run={run} onGone={() => swap(`/staff/rink/${rink.id}`)} /></div>;
   }
   if (rinkId) {
     const rink = data.rinks.find((r: any) => String(r.id) === rinkId);
-    if (!rink) return <div><BackBar href="/staff" title="Manage" /><Empty title="Rink not found" body="It may have been removed, or it's outside what you manage." /></div>;
-    return <div><BackBar href="/staff" title="Manage" />{errLine}<RinkLevel rink={rink} run={run} onGone={() => nav("/staff")} /></div>;
+    if (!rink) return <div><BackBar href="/staff" to="Manage" /><Empty title="Rink not found" body="It may have been removed, or it's outside what you manage." /></div>;
+    return <div><BackBar href="/staff" to="Manage" />{errLine}<RinkLevel rink={rink} run={run} onGone={() => swap("/staff")} /></div>;
   }
 
   const live = data.rinks.filter((r: any) => !r.archived_at);
   const archived = data.rinks.filter((r: any) => r.archived_at);
   return (
     <div>
-      <BackBar href="/me" title="Profile" />
+      <BackBar href="/me" to="Profile" />
       <h1 className="font-black text-2xl">Manage</h1>
       <div className="flex flex-wrap gap-1.5 mt-2">
         {data.roles.filter((r: any) => !["captain", "assistant_captain"].includes(r.role)).map((r: any) => (

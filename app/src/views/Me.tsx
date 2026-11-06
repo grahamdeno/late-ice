@@ -20,12 +20,12 @@ function timeAgo(s: string) {
 
 /** Me: your card, your team, and rows for the rest. Settings live behind the gear. */
 export default function MePage() {
-  const [, nav] = useLocation();
+  const [, , swap] = useLocation();
   const { me, loading } = useMe();
   const [err, setErr] = useState<string | null>(null);
 
-  useEffect(() => { if (!loading && !me) nav("/join"); }, [loading, me, nav]);
-  useEffect(() => { if (me && !me.user.profileComplete) nav("/join"); }, [me, nav]);
+  useEffect(() => { if (!loading && !me) swap("/join"); }, [loading, me, swap]);
+  useEffect(() => { if (me && !me.user.profileComplete) swap("/join"); }, [me, swap]);
 
   if (loading || !me) return <MeSkeleton />;
   const u = me.user;

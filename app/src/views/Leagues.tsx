@@ -131,7 +131,7 @@ export function LeaguePage({ id }: { id: string }) {
   const can = data.can ?? {};
   return (
     <div>
-      <BackBar href="/leagues" title="Standings" />
+      <BackBar href="/leagues" to="Standings" />
       <div className="flex items-center gap-2"><LevelPill level={league.level === "DEMO" ? "Demo" : league.level} /><span className="label">{season?.name}</span></div>
       <h1 className="font-display text-[40px] leading-none font-black uppercase mt-2">{league.name}</h1>
       <p className="text-sm text-[var(--mute)] mt-2">{league.blurb}</p>
@@ -186,13 +186,13 @@ export function LeaguePage({ id }: { id: string }) {
 
 export function TeamPage({ id }: { id: string }) {
   const { data } = useQuery<any>({ queryKey: [`/api/teams/${id}`] });
-  const [, nav] = useLocation();
+  const [, , swap] = useLocation();
   const [removeErr, setRemoveErr] = useState<string | null>(null);
   if (!data) return <Loading />;
   const { team, league, record, roster, games, rating, season, imported } = data;
   return (
     <div>
-      <BackBar href={`/league/${league.id}`} title={league.name} />
+      <BackBar href={`/league/${league.id}`} to={league.name} />
       <div className="hero p-5" style={{ ["--team" as any]: team.color || undefined }}>
         <div className="flex items-center gap-4">
           <TeamBadge team={team} size={64} />
@@ -250,7 +250,7 @@ export function TeamPage({ id }: { id: string }) {
       <More title="Tournaments" testid="button-more-tournaments"><div className="px-3 pb-3"><TeamTournaments teamId={team.id} canManage={!!data.can?.manageRoster} /></div></More>
       {data.can?.remove && (
         <div className="mt-8 text-center">
-          <button className="text-xs text-[var(--mute)] underline" onClick={async () => { if (!confirm(`Remove ${team.name}? It has no games or players, so nothing else changes.`)) return; const e = await act("DELETE", `/api/teams/${team.id}`, undefined, ["/api/teams", "/api/leagues", "/api/standings", "/api/bootstrap", "/api/feed", "/api/players"]); setRemoveErr(e); if (!e) nav(`/league/${league.id}`); }} data-testid="button-remove-team">Remove this team</button>
+          <button className="text-xs text-[var(--mute)] underline" onClick={async () => { if (!confirm(`Remove ${team.name}? It has no games or players, so nothing else changes.`)) return; const e = await act("DELETE", `/api/teams/${team.id}`, undefined, ["/api/teams", "/api/leagues", "/api/standings", "/api/bootstrap", "/api/feed", "/api/players"]); setRemoveErr(e); if (!e) swap(`/league/${league.id}`); }} data-testid="button-remove-team">Remove this team</button>
           {removeErr && <p className="text-xs down mt-1">{removeErr}</p>}
         </div>
       )}

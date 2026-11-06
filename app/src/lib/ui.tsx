@@ -1,6 +1,6 @@
 "use client";
-import { createContext, useContext, useState } from "react";
-import { Link } from "@/lib/router";
+import { createContext, useContext, useEffect, useState } from "react";
+import { Link, canGoBack, useBack } from "@/lib/router";
 
 export const img = (p: string) => p;
 
@@ -237,13 +237,22 @@ export function ScanSkeleton() {
   );
 }
 
-export function BackBar({ title, href }: { title?: string; href: string }) {
+/**
+ * Back goes to the screen the person came from. `href` is the parent, used when there is no
+ * in-app history (a deep link, a fresh tab). `title` names the screen; `to` names the parent
+ * and only shows when Back will actually go there.
+ */
+export function BackBar({ title, to, href }: { title?: string; to?: string; href: string }) {
+  const back = useBack(href);
+  const [history, setHistory] = useState(false);
+  useEffect(() => setHistory(canGoBack()), []);
+  const label = title ?? (!history ? to : undefined);
   return (
     <div className="flex items-center gap-2 mb-4">
-      <Link href={href} className="h-9 w-9 rounded-full card flex items-center justify-center" data-testid="button-back" aria-label="Back">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>
-      </Link>
-      {title && <span className="label">{title}</span>}
+      <a href={href} onClick={(e) => { e.preventDefault(); back(); }} className="h-11 w-11 -ml-1 rounded-full card flex items-center justify-center" data-testid="button-back" aria-label={!history && to ? `Back to ${to}` : "Back"}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
+      </a>
+      {label && <span className="label">{label}</span>}
     </div>
   );
 }

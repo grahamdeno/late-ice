@@ -12,7 +12,7 @@ interface PoolPlayer {
 
 /** Draft pool. /pool, /pool/:teamId (draft onto that team), /pool/:teamId/match/:slotId (match a sheet slot). */
 export default function Pool({ teamId, slotId }: { teamId?: string; slotId?: string }) {
-  const [, nav] = useLocation();
+  const [, nav, swap] = useLocation();
   const { me, loading } = useMe();
   const [team, setTeam] = useState<number | null>(teamId ? Number(teamId) : null);
   const [pos, setPos] = useState<string>("all");
@@ -22,7 +22,7 @@ export default function Pool({ teamId, slotId }: { teamId?: string; slotId?: str
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { if (!loading && !me) nav("/join"); }, [loading, me, nav]);
+  useEffect(() => { if (!loading && !me) swap("/join"); }, [loading, me, swap]);
   useEffect(() => { if (team === null && me?.captainTeams.length) setTeam(me.captainTeams[0].id); }, [me, team]);
 
   const rinkId = me?.captainTeams.find((t) => t.id === team)?.rink_id ?? me?.user.homeRink?.id;

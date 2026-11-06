@@ -15,7 +15,7 @@ function Cell({ v, onChange, w = "w-12", testid }: { v: any; onChange: (x: strin
 
 
 export default function Sheet({ id }: { id: string }) {
-  const [, nav] = useLocation();
+  const [, , swap] = useLocation();
   const { boot } = useFilter();
   const { data: s, refetch } = useQuery<any>({
     queryKey: [`/api/sheets/${id}`],
@@ -40,7 +40,7 @@ export default function Sheet({ id }: { id: string }) {
       setEventId(s.suggestion?.eventId ?? null);
       setTeamIds({ home: s.suggestion?.home.teamId ?? null, away: s.suggestion?.away.teamId ?? null });
     }
-    if (s?.status === "confirmed" && s.gameId) nav(`/game/${s.gameId}`);
+    if (s?.status === "confirmed" && s.gameId) swap(`/game/${s.gameId}`);
   }, [s]);
 
   const league = boot?.leagues.find((l) => l.id === leagueId);
@@ -137,7 +137,7 @@ export default function Sheet({ id }: { id: string }) {
     const j = await res.json();
     if (!res.ok) { setErr(j); setSaving(false); return; }
     await invalidatePrefixes(["/api/sheets", "/api/games", "/api/feed", "/api/standings", "/api/leagues", "/api/players", "/api/me", "/api/teams"]);
-    nav(`/game/${j.gameId}/new`);
+    swap(`/game/${j.gameId}/new`);
   };
 
   const submit = async () => {
@@ -154,7 +154,7 @@ export default function Sheet({ id }: { id: string }) {
   const discard = async () => {
     await apiRequest("POST", `/api/sheets/${id}/discard`);
     await invalidatePrefixes(["/api/sheets", "/api/games", "/api/feed", "/api/standings", "/api/leagues", "/api/players", "/api/me", "/api/teams"]);
-    nav("/");
+    swap("/");
   };
 
   const conf = Math.round((d.confidence ?? 0) * 100);
