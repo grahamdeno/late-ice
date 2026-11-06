@@ -1,28 +1,12 @@
 "use client";
-import { ARCHETYPE_LABEL } from "@/components/Archetypes";
-import { queryClient, authHeaders, apiUrl } from "@/lib/queryClient";
+import { authHeaders, apiUrl } from "@/lib/queryClient";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "@/lib/router";
-import { useMe, act, signOut, POSITION_LABEL, STATUS_LABEL, ROLE_LABEL } from "@/lib/auth";
-import { Empty, LevelPill, Loading, Section, TeamBadge, fmtRating } from "@/lib/ui";
-import { ProfileForm } from "./Join";
-import { useTheme, type Theme } from "@/lib/theme";
-import { GameLine, Rsvp } from "@/components/Schedule";
+import { useMe, act, ROLE_LABEL } from "@/lib/auth";
+import { Empty, LevelPill, MeSkeleton, More, RowLink, Section, TeamBadge } from "@/lib/ui";
+import { GameLine } from "@/components/Schedule";
 import { AvatarBuilder } from "@/components/AvatarBuilder";
-
-function Appearance() {
-  const [theme, setTheme] = useTheme();
-  return (
-    <Section title="Appearance">
-      <div className="card p-1.5 grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Appearance">
-        {([["auto", "Match phone"], ["light", "Light"], ["dark", "Dark"]] as [Theme, string][]).map(([k, label]) => (
-          <button key={k} role="radio" aria-checked={theme === k} onClick={() => setTheme(k)} className={`h-10 rounded-xl text-sm font-bold ${theme === k ? "bg-[var(--red-btn)] text-white" : "text-[var(--mute)]"}`} data-testid={`button-theme-${k}`}>{label}</button>
-        ))}
-      </div>
-      <p className="text-[11px] text-[var(--mute)] mt-2 px-1">Saved on this phone.</p>
-    </Section>
-  );
-}
+import { PlayerCard } from "@/components/PlayerCard";
 
 function timeAgo(s: string) {
   const t = new Date(s).getTime();
@@ -33,24 +17,29 @@ function timeAgo(s: string) {
   return h < 24 ? `${h}h ago` : `${Math.round(h / 24)}d ago`;
 }
 
+/** Me: your card, your team, and rows for the rest. Settings live behind the gear. */
 export default function MePage() {
   const [, nav] = useLocation();
   const { me, loading } = useMe();
-  const [editing, setEditing] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [until, setUntil] = useState("");
 
   useEffect(() => { if (!loading && !me) nav("/join"); }, [loading, me, nav]);
   useEffect(() => { if (me && !me.user.profileComplete) nav("/join"); }, [me, nav]);
-  useEffect(() => { if (me?.unread) { const t = setTimeout(() => act("POST", "/api/me/notifications/read"), 2500); return () => clearTimeout(t); } }, [me?.unread]);
-  useEffect(() => { setUntil(me?.user.statusUntil ?? ""); }, [me?.user.statusUntil]);
 
-  if (loading || !me) return <Loading />;
+  if (loading || !me) return <MeSkeleton />;
   const u = me.user;
-  const run = async (method: string, url: string, body?: unknown) => setErr(await act(method, url, body));
+  const run = async (method: string, url: string, body?: unknown) => setErr(await act(method, url, body, ["/api/me", "/api/players", "/api/teams", "/api/pool", "/api/feed"]));
+  const main = me.slots[0];
+  const archetype = u.archetypeSelf ?? main?.archetype?.archetype ?? null;
+  const gear = (
+    <Link href="/settings" className="h-11 w-11 -mr-2 -mt-2 rounded-full flex items-center justify-center shrink-0" aria-label="Settings" data-testid="link-settings">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
+    </Link>
+  );
 
   return (
     <div>
+      {/* Things waiting on you come first, and only when there are any. */}
       {me.subRequests?.length > 0 && (
         <div className="card mb-3 p-4" data-testid="card-sub-requests">
           <div className="label mb-2">Sub requests</div>
@@ -59,8 +48,8 @@ export default function MePage() {
               <span className="flex-1 min-w-0"><span className="block font-bold truncate">{r.team_name}</span><span className="block text-xs text-[var(--mute)] truncate">{r.local_date}{r.local_time ? ` · ${r.local_time}` : ""}{r.opponent ? ` · ${r.is_home === false ? "@" : "vs"} ${r.opponent}` : ""}</span></span>
               {r.status === "accepted" ? <span className="text-xs font-bold up">You're in</span> : (
                 <>
-                  <button className="btn btn-ghost h-8 text-xs" onClick={() => run("PUT", `/api/sub-requests/${r.id}`, { answer: "no" })} data-testid={`button-sub-no-${r.id}`}>No</button>
-                  <button className="btn btn-red h-8 text-xs" onClick={() => run("PUT", `/api/sub-requests/${r.id}`, { answer: "yes" })} data-testid={`button-sub-yes-${r.id}`}>Yes</button>
+                  <button className="btn btn-ghost h-10 text-xs" onClick={() => run("PUT", `/api/sub-requests/${r.id}`, { answer: "no" })} data-testid={`button-sub-no-${r.id}`}>No</button>
+                  <button className="btn btn-red h-10 text-xs" onClick={() => run("PUT", `/api/sub-requests/${r.id}`, { answer: "yes" })} data-testid={`button-sub-yes-${r.id}`}>Yes</button>
                 </>
               )}
             </div>
@@ -70,238 +59,145 @@ export default function MePage() {
       {u.access === "waiting" && (
         <div className="card mb-3 p-4 border-[var(--amber)]/50" data-testid="card-waitlist">
           <div className="font-bold text-sm">You're on the waitlist</div>
-          <p className="text-xs text-[var(--mute)] mt-0.5">You can look around. To claim your spot, scan sheets and vote, open your captain's invite link, or wait for staff to let you in.</p>
+          <p className="text-xs text-[var(--mute)] mt-0.5">You can look around. To claim your spot, open your captain's invite link, or wait for staff to let you in.</p>
         </div>
       )}
-      <div className="card-hi p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="label">{u.homeRink?.name}</div>
-            <h1 className="font-black text-[26px] leading-tight mt-1" data-testid="text-me-name">{u.name}</h1>
-            <div className="text-sm text-[var(--mute)] mt-1">{u.number ? `#${u.number} · ` : ""}{u.position ? POSITION_LABEL[u.position] : ""}</div>
+      {me.handoffs.map((h) => (
+        <div key={h.id} className="card mb-3 p-4" data-testid={`card-handoff-${h.id}`}>
+          <div className="font-bold text-sm">{h.from_name} wants you to captain {h.team_name}</div>
+          <p className="text-xs text-[var(--mute)] mt-0.5">You'd run the roster, assistants and schedule. {h.from_name} stays on the team as a player.</p>
+          <div className="grid grid-cols-2 gap-2 mt-3">
+            <button className="btn btn-ghost h-11" onClick={() => run("POST", `/api/requests/${h.id}`, { decision: "decline" })} data-testid={`button-decline-handoff-${h.id}`}>Decline</button>
+            <button className="btn btn-red h-11" onClick={() => run("POST", `/api/requests/${h.id}`, { decision: "accept" })} data-testid={`button-accept-handoff-${h.id}`}>Accept</button>
           </div>
-          <button className="btn btn-ghost h-9 text-sm" onClick={() => setEditing((e) => !e)} data-testid="button-edit-profile">{editing ? "Close" : "Edit"}</button>
         </div>
-        {me.roles.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-3" data-testid="list-roles">
-            {me.roles.map((r) => (
-              <span key={r.id} className="chip h-7 text-[11px]">{ROLE_LABEL[r.role] ?? r.role}{r.where ? ` · ${r.where}` : ""}</span>
-            ))}
-          </div>
-        )}
-        {u.hidden && <div className="mt-3 text-xs text-[var(--mute)]">Your name is hidden. Teammates and the public see your number only.</div>}
-      </div>
-      {editing && <ProfileForm submitLabel="Save" onDone={() => setEditing(false)} />}
-      {err && <p className="text-sm down mt-3 px-1" data-testid="text-error">{err}</p>}
-
-      {me.staff && (
-        <Link href="/staff" className="card-hi mt-3 p-4 flex items-center gap-3" data-testid="link-staff">
-          <span className="flex-1"><span className="block font-bold">Manage</span><span className="block text-xs text-[var(--mute)]">Requests, rinks, leagues, teams and staff.</span></span>
-          <span>›</span>
-        </Link>
-      )}
-
-      {me.handoffs.length > 0 && (
-        <Section title="Captaincy offered">
-          <div className="space-y-2">
-            {me.handoffs.map((h) => (
-              <div key={h.id} className="card p-4" data-testid={`card-handoff-${h.id}`}>
-                <div className="font-bold text-sm">{h.from_name} wants you to captain {h.team_name}</div>
-                <p className="text-xs text-[var(--mute)] mt-0.5">You'd run the roster, assistants and schedule. {h.from_name} stays on the team as a player.</p>
-                <div className="grid grid-cols-2 gap-2 mt-3">
-                  <button className="btn btn-ghost h-10" onClick={() => run("POST", `/api/requests/${h.id}`, { decision: "decline" })} data-testid={`button-decline-handoff-${h.id}`}>Decline</button>
-                  <button className="btn btn-red h-10" onClick={() => run("POST", `/api/requests/${h.id}`, { decision: "accept" })} data-testid={`button-accept-handoff-${h.id}`}>Accept</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Section>
-      )}
-
-      {me.notifications.length > 0 && (
-        <Section title="Notifications" action={me.unread ? <span className="label text-[var(--red)]">{me.unread} new</span> : undefined}>
-          <div className="card divide-y divide-[var(--line)]">
-            {me.notifications.slice(0, 8).map((n) => {
-              const body = (
-                <div className="flex gap-3 p-3.5">
-                  <span className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${n.read_at ? "bg-transparent" : "bg-[var(--red)]"}`} />
-                  <span className="flex-1 min-w-0">
-                    <span className="block text-sm font-bold">{n.title}</span>
-                    {n.body && <span className="block text-xs text-[var(--mute)] mt-0.5">{n.body}</span>}
-                  </span>
-                  <span className="text-[11px] text-[var(--mute)] shrink-0">{timeAgo(n.created_at)}</span>
-                </div>
-              );
-              return n.link ? <Link key={n.id} href={n.link} data-testid={`row-notice-${n.id}`}>{body}</Link> : <div key={n.id}>{body}</div>;
-            })}
-          </div>
-        </Section>
-      )}
-
+      ))}
       {me.suggestions.length > 0 && (
-        <Section title="Is this you?">
-          <div className="card divide-y divide-[var(--line)]">
+        <div className="card mb-3" data-testid="card-is-this-you">
+          <div className="px-4 pt-3 font-bold text-sm">Is this you?</div>
+          <div className="divide-y divide-[var(--line)]">
             {me.suggestions.map((s) => (
-              <div key={s.id} className="flex items-center gap-3 p-3.5" data-testid={`row-suggestion-${s.id}`}>
+              <div key={s.id} className="flex items-center gap-3 px-4 py-3" data-testid={`row-suggestion-${s.id}`}>
                 <TeamBadge team={{ id: s.team_id, name: s.team_name, color: s.color, logo: s.logo }} size={32} />
                 <span className="flex-1 min-w-0">
                   <span className="block font-bold truncate">{s.number ? `#${s.number} ` : ""}{s.name}</span>
                   <span className="block text-xs text-[var(--mute)] truncate">{s.team_name} · {s.level} League</span>
                 </span>
-                <button className="btn btn-red h-9 text-sm" onClick={() => run("POST", `/api/players/${s.id}/claim`)} data-testid={`button-claim-${s.id}`}>That's me</button>
+                <button className="btn btn-red h-10 text-sm" onClick={() => run("POST", `/api/players/${s.id}/claim`)} data-testid={`button-claim-${s.id}`}>That's me</button>
               </div>
             ))}
           </div>
-          <p className="text-[11px] text-[var(--mute)] mt-2 px-1">Claiming moves that spot's goals, assists and rating onto your profile. Your captain sees the claim and can undo it.</p>
-        </Section>
+          <p className="text-[11px] text-[var(--mute)] px-4 pb-3">Claiming moves that spot's goals, assists and rating onto your profile. Your captain sees it and can undo it.</p>
+        </div>
       )}
 
-      {me.slots.length > 0 && <FindSpot run={run} />}
+      <PlayerCard
+        name={u.name ?? "You"}
+        avatar={u.avatar}
+        position={u.position}
+        archetype={archetype}
+        teams={me.slots.map((s) => ({ id: s.team_id, name: s.team_name, color: s.color, logo: s.logo, number: s.number }))}
+        rating={main?.rating ?? null}
+        trend5={main?.last?.trend5 ?? null}
+        gamesRated={main?.games_rated}
+        ratingHref={main ? `/player/${main.id}` : undefined}
+        action={gear}
+      />
+      <span className="sr-only" data-testid="text-me-name">{u.name}</span>
+      {me.roles.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2" data-testid="list-roles">
+          {me.roles.map((r) => <span key={r.id} className="chip h-7 text-[11px]">{ROLE_LABEL[r.role] ?? r.role}{r.where ? ` · ${r.where}` : ""}</span>)}
+        </div>
+      )}
+      {err && <p className="text-sm down mt-3 px-1" data-testid="text-error">{err}</p>}
 
-      <Section title="My teams">
+      <Section title={me.slots.length > 1 ? "My teams" : "My team"}>
         {me.slots.length ? (
           <div className="space-y-2">
             {me.slots.map((s) => (
               <div key={`${s.team_id}-${s.id}`} className="card p-4" data-testid={`card-my-team-${s.team_id}`}>
                 <Link href={`/team/${s.team_id}`} className="flex items-center gap-3">
-                  <TeamBadge team={{ id: s.team_id, name: s.team_name, color: s.color, logo: s.logo }} size={40} />
+                  <TeamBadge team={{ id: s.team_id, name: s.team_name, color: s.color, logo: s.logo }} size={36} />
                   <span className="flex-1 min-w-0">
                     <span className="flex items-center gap-2"><LevelPill level={s.level === "DEMO" ? "Demo" : s.level} /><span className="font-bold truncate">{s.team_name}</span></span>
-                    <span className="block text-xs text-[var(--mute)] mt-0.5">
-                      {s.number ? `#${s.number}` : "No number"}{s.isCaptain ? " · Captain" : s.teamRole === "assistant_captain" ? " · Assistant captain" : s.captain ? ` · Captain: ${s.captain.name}` : " · No captain yet"}
-                    </span>
+                    <span className="block text-xs text-[var(--mute)] mt-0.5">{s.number ? `#${s.number}` : "No number"}{s.isCaptain ? " · Captain" : s.teamRole === "assistant_captain" ? " · Assistant captain" : s.captain ? ` · Captain: ${s.captain.name}` : " · No captain yet"}</span>
                   </span>
-                  <span className="text-right">
-                    <span className="block font-display text-2xl tnum">{fmtRating(s.rating)}</span>
-                    <span className="block text-[10px] label">LIR</span>
-                  </span>
+                  <span className="text-[var(--mute)]" aria-hidden="true">›</span>
                 </Link>
-                {s.next && (
-                  <Link href={`/team/${s.team_id}`} className="block mt-3 rounded-xl border border-[var(--line)] p-2.5" data-testid={`next-game-${s.team_id}`}>
-                    <span className="block label mb-1.5">Next game</span>
-                    <GameLine g={s.next} />
-                  </Link>
+                {s.next && <div className="mt-3 pt-3 border-t border-[var(--line)]" data-testid={`next-game-${s.team_id}`}><GameLine g={s.next} /></div>}
+                {(s.teamRole || !s.captain || (s.source === "draft" && !s.isCaptain)) && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {s.teamRole && <Link href={`/team/${s.team_id}/manage`} className="btn btn-red h-10 text-sm" data-testid={`button-manage-${s.team_id}`}>Manage team</Link>}
+                    {!s.captain && <button className="btn btn-ghost h-10 text-sm" onClick={() => run("POST", `/api/teams/${s.team_id}/captain`)} data-testid={`button-become-captain-${s.team_id}`}>I'm the captain</button>}
+                    {s.source === "draft" && !s.isCaptain && <button className="btn btn-ghost h-10 text-sm" onClick={() => confirm(`Leave ${s.team_name}?`) && run("POST", `/api/me/decline/${s.team_id}`)} data-testid={`button-decline-${s.team_id}`}>Not my team</button>}
+                  </div>
                 )}
-                {s.next && s.next.rsvp?.member && (
-                  <div className="mt-2"><Rsvp g={s.next} /></div>
-                )}
-                <div className="flex flex-wrap gap-2 mt-3">
-                  <Link href={`/player/${s.id}`} className="btn btn-ghost h-9 text-sm">Rating history</Link>
-                  {s.teamRole && <Link href={`/team/${s.team_id}/manage`} className="btn btn-red h-9 text-sm" data-testid={`button-manage-${s.team_id}`}>Manage team</Link>}
-                  {!s.captain && <button className="btn btn-ghost h-9 text-sm" onClick={() => run("POST", `/api/teams/${s.team_id}/captain`)} data-testid={`button-become-captain-${s.team_id}`}>I'm the captain</button>}
-                  {s.source === "draft" && !s.isCaptain && <button className="btn btn-ghost h-9 text-sm" onClick={() => confirm(`Leave ${s.team_name}?`) && run("POST", `/api/me/decline/${s.team_id}`)} data-testid={`button-decline-${s.team_id}`}>Not my team</button>}
-                </div>
               </div>
             ))}
           </div>
         ) : (
-          <Empty title="You're in the draft pool" body={`Captains at ${u.homeRink?.name ?? "your rink"} can see you and pull you onto their team. If the scoresheet already has you, it shows up above as "Is this you?"`} />
+          <Empty title="You're in the draft pool" body={`Captains at ${u.homeRink?.name ?? "your rink"} can see you and pull you onto their team. If a scoresheet already has you, it shows up above as "Is this you?"`} />
         )}
       </Section>
 
-      {me.captainTeams.length > 0 && (
-        <Section title="Captain">
-          <div className="space-y-2">
-            {me.captainTeams.map((t) => (
-              <Link key={t.id} href={`/team/${t.id}/manage`} className="card-hi p-4 flex items-center gap-3" data-testid={`link-manage-${t.id}`}>
-                <span className="h-6 w-6 rounded-full shrink-0" style={{ background: t.color }} />
-                <span className="flex-1 min-w-0"><span className="block font-bold truncate">Manage {t.name}</span><span className="block text-xs text-[var(--mute)]">Roster, add players, invites, draft pool.</span></span>
-                <span>›</span>
-              </Link>
-            ))}
-          </div>
-        </Section>
-      )}
-
+      <Notifications me={me} />
+      {main && <RowLink href={`/player/${main.id}`} title="Rating history" hint="Every game, and why your rating moved" testid="link-rating-history" />}
       {me.slots.length > 0 && (
-        <AvatarBuilder saved={u.avatar} jersey={me.slots[0].color} number={me.slots[0].number} archetype={u.archetypeSelf ? { archetype: u.archetypeSelf, votes: 0 } : me.slots[0].archetype ?? null} goalie={u.position === "G"} />
+        <More title="Your bobblehead" hint="Skin, hair, helmet and gear" testid="row-avatar">
+          <AvatarBuilder bare saved={u.avatar} jersey={main.color} number={main.number} archetype={u.archetypeSelf ? { archetype: u.archetypeSelf, votes: 0 } : main.archetype ?? null} goalie={u.position === "G"} />
+        </More>
       )}
-
-      {me.roles.some((r) => r.role === "admin") && (
-        <Section title="Your archetype">
-          <div className="card p-4" data-testid="card-own-archetype">
-            <p className="text-xs text-[var(--mute)]">As system admin you can pick your own. Your team's vote is kept and still shows next to it.</p>
-            <select className="input w-full mt-2" value={u.archetypeSelf ?? ""} onChange={async (e) => { await act("PATCH", "/api/me", { archetypeSelf: e.target.value || null }); await queryClient.invalidateQueries(); }} data-testid="select-own-archetype">
-              <option value="">Let my team decide</option>
-              {Object.entries(ARCHETYPE_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-            </select>
-          </div>
-        </Section>
+      {me.slots.length > 0 && (
+        <More title="On another team too?" hint="Find your spot on a second team or as a sub" testid="button-find-spot">
+          <FindSpot run={run} />
+        </More>
       )}
+      {me.captainTeams.length > 0 && <RowLink href="/pool" title="Draft pool" hint="Registered players at your rink" testid="link-pool" />}
+      {me.staff && <RowLink href="/staff" title="Manage" hint="Requests, rinks, leagues, teams and staff" testid="link-staff" />}
+    </div>
+  );
+}
 
-      <Section title="Availability">
-        <div className="card p-4">
-          <div className="grid grid-cols-3 gap-2">
-            {(["active", "ir", "away"] as const).map((s) => (
-              <button key={s} className={`h-12 px-1 rounded-xl border text-[13px] leading-tight font-bold ${u.status === s ? "border-[var(--red)] bg-[var(--red-dim)]" : "border-[var(--line)] bg-[var(--ice-3)]"}`} onClick={() => run("PATCH", "/api/me", { status: s, statusUntil: until || null })} data-testid={`button-status-${s}`}>
-                {STATUS_LABEL[s]}
-              </button>
-            ))}
-          </div>
-          {(u.status === "ir" || u.status === "away") && (
-            <label className="block mt-3">
-              <span className="label">Back on</span>
-              <input type="date" className="input w-full mt-1.5" value={until} onChange={(e) => setUntil(e.target.value)} onBlur={() => run("PATCH", "/api/me", { status: u.status, statusUntil: until || null })} data-testid="input-status-until" />
-            </label>
-          )}
-          <p className="text-[11px] text-[var(--mute)] mt-3">{u.status === "active" ? "Answer In, Out or Late on each game. Injured reserve and Away keep your roster spot and mark you out until the date you set, then switch back on their own." : `You're marked out of games${u.statusUntil ? ` until ${u.statusUntil}` : ""}. Your roster spot stays, and your rating doesn't move while you're out.`}</p>
-          <div className="mt-4 divide-y divide-[var(--line)] border-t border-[var(--line)]">
-            {([["lookingForTeam", "Looking for a team", "Captains at your rink see you in their draft pool."], ["willSub", "Will sub", "Other teams can ask you to fill in."]] as const).map(([k, label, hint]) => (
-              <div key={k} className="flex items-center gap-3 pt-3 pb-1">
-                <span className="flex-1"><span className="block font-bold text-sm">{label}</span><span className="block text-xs text-[var(--mute)]">{hint}</span></span>
-                <button role="switch" aria-checked={u[k]} aria-label={label} onClick={() => run("PATCH", "/api/me", { [k]: !u[k] })} className={`h-7 w-12 shrink-0 rounded-full relative transition-colors ${u[k] ? "bg-[var(--red-btn)]" : "bg-[var(--ice-3)] border border-[var(--line)]"}`} data-testid={`switch-${k}`}>
-                  <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${u[k] ? "left-[22px]" : "left-0.5"}`} />
-                </button>
+function Notifications({ me }: { me: any }) {
+  if (!me.notifications.length) return null;
+  const markRead = () => { if (me.unread) act("POST", "/api/me/notifications/read", undefined, ["/api/me"]); };
+  return (
+    <div onClick={markRead}>
+      <More title="Notifications" hint={me.unread ? `${me.unread} new` : "All caught up"} count={me.notifications.length} testid="row-notifications">
+        <div className="divide-y divide-[var(--line)]">
+          {me.notifications.slice(0, 15).map((n: any) => {
+            const body = (
+              <div className="flex gap-3 px-4 py-3">
+                <span className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${n.read_at ? "bg-transparent" : "bg-[var(--red)]"}`} />
+                <span className="flex-1 min-w-0">
+                  <span className="block text-sm font-bold">{n.title}</span>
+                  {n.body && <span className="block text-xs text-[var(--mute)] mt-0.5">{n.body}</span>}
+                </span>
+                <span className="text-[11px] text-[var(--mute)] shrink-0">{timeAgo(n.created_at)}</span>
               </div>
-            ))}
-          </div>
+            );
+            return n.link ? <Link key={n.id} href={n.link} data-testid={`row-notice-${n.id}`}>{body}</Link> : <div key={n.id}>{body}</div>;
+          })}
         </div>
-      </Section>
-
-      <Appearance />
-
-      <Section title="Privacy">
-        <div className="card p-4 flex items-center gap-3">
-          <span className="flex-1">
-            <span className="block font-bold text-sm">Hide my name</span>
-            <span className="block text-xs text-[var(--mute)]">Show "Player #{u.number ?? "?"}" everywhere. Your games still count for your team.</span>
-          </span>
-          <button role="switch" aria-checked={u.hidden} onClick={() => run("PATCH", "/api/me", { hidden: !u.hidden })} className={`h-7 w-12 rounded-full relative transition-colors ${u.hidden ? "bg-[var(--red)]" : "bg-[var(--ice-3)] border border-[var(--line)]"}`} data-testid="switch-hidden">
-            <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white transition-all ${u.hidden ? "left-[22px]" : "left-0.5"}`} />
-          </button>
-        </div>
-      </Section>
-
-      <a href={`mailto:support@tangomike.app?subject=${encodeURIComponent("Late Ice help")}&body=${encodeURIComponent(`\n\n---\nApp: Late Ice\nAccount: ${u.id}`)}`} className="card mt-6 p-4 flex items-center gap-3" data-testid="link-help">
-        <span className="flex-1"><span className="block font-bold text-sm">Get help</span><span className="block text-xs text-[var(--mute)]">Questions or problems? Email us.</span></span>
-        <span>›</span>
-      </a>
-      <Link href="/privacy" className="block text-center text-xs text-[var(--mute)] mt-3 underline" data-testid="link-privacy">Terms and privacy</Link>
-
-      <div className="mt-8 flex justify-between items-center px-1">
-        <span className="text-xs text-[var(--mute)]">Signed in as {u.email ?? u.phone}</span>
-        <button className="btn btn-ghost h-9 text-sm" onClick={async () => { await signOut(); nav("/"); }} data-testid="button-sign-out">Sign out</button>
-      </div>
+      </More>
     </div>
   );
 }
 
 /** Second team, or a sub spot the app didn't suggest: search unclaimed spots by name or team, then claim. */
 function FindSpot({ run }: { run: (m: string, u: string, b?: unknown) => Promise<unknown> }) {
-  const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [rows, setRows] = useState<any[] | null>(null);
   useEffect(() => {
-    if (!open || text.trim().length < 2) { setRows(null); return; }
+    if (text.trim().length < 2) { setRows(null); return; }
     const t = setTimeout(async () => {
       try { const r = await fetch(apiUrl(`/api/me/spots?q=${encodeURIComponent(text)}`), { headers: authHeaders() }); setRows((await r.json()).spots ?? []); } catch { setRows([]); }
     }, 250);
     return () => clearTimeout(t);
-  }, [text, open]);
-  if (!open) return <button className="text-sm font-bold text-[var(--blue)] mt-5 px-1" onClick={() => setOpen(true)} data-testid="button-find-spot">On another team too? Find your spot</button>;
+  }, [text]);
   return (
-    <Section title="Find your spot">
-      <div className="card p-4 space-y-2" data-testid="card-find-spot">
+    <>
+      <div className="p-4 space-y-2" data-testid="card-find-spot">
         <input className="input w-full" autoFocus placeholder="Your name or the team's" value={text} onChange={(e) => setText(e.target.value)} data-testid="input-find-spot" />
         {rows && rows.length === 0 && <p className="text-xs text-[var(--mute)]">Nothing unclaimed matches. Ask that team's captain to add you.</p>}
         <div className="divide-y divide-[var(--line)]">
@@ -313,8 +209,7 @@ function FindSpot({ run }: { run: (m: string, u: string, b?: unknown) => Promise
             </div>
           ))}
         </div>
-        <button className="text-xs text-[var(--mute)]" onClick={() => { setOpen(false); setText(""); }}>Close</button>
       </div>
-    </Section>
+    </>
   );
 }

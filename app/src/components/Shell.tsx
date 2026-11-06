@@ -15,10 +15,10 @@ function Icon({ d, active }: { d: string; active: boolean }) {
 
 const NAV = [
   { href: "/", label: "Home", d: "M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z" },
-  { href: "/leagues", label: "Leagues", d: "M4 20V10M10 20V4M16 20v-7M22 20H2" },
+  { href: "/leagues", label: "Standings", d: "M4 20V10M10 20V4M16 20v-7M22 20H2" },
   { href: "/scan", label: "Scan", d: "" },
   { href: "/players", label: "Players", d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" },
-  { href: "/rink", label: "Rink", d: "M3 7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4zM3 12h18M12 3v18" },
+  { href: "/me", label: "Me", d: "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8" },
 ];
 
 // Appears while you scroll back up on a long page; hides when you scroll down or stop.
@@ -81,7 +81,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     Object.assign(b, { position: "fixed", top: `-${y}px`, left: "0", right: "0", overflow: "hidden" });
     return () => { Object.assign(b, prev); window.scrollTo(0, y); };
   }, [open]);
-  const isActive = (href: string) => (href === "/" ? loc === "/" : loc.startsWith(href) || (href === "/leagues" && loc.startsWith("/league")));
+  const isActive = (href: string) => (href === "/" ? loc === "/" : loc.startsWith(href) || (href === "/leagues" && (loc.startsWith("/league") || loc.startsWith("/team"))) || (href === "/me" && (loc.startsWith("/settings") || loc.startsWith("/join"))));
 
   return (
     <div className="min-h-[100dvh] rink-bg w-full overflow-x-clip">
@@ -107,15 +107,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
               data-testid="button-league-switcher"
               aria-expanded={open}
             >
-              {current ? <><LevelPill level={current.level === "DEMO" ? "Demo" : current.level} /> <span className="min-w-0 max-w-[110px] truncate">{current.name}</span></> : <span className="min-w-0 max-w-[150px] truncate" data-testid="text-pill-rink">{boot?.rink?.name ?? "Late Ice"}</span>}
+              {current ? <><LevelPill level={current.level === "DEMO" ? "Demo" : current.level} /> <span className="min-w-0 max-w-[170px] truncate">{current.name}</span></> : <span className="min-w-0 max-w-[200px] truncate" data-testid="text-pill-rink">{boot?.rink?.name ?? "Late Ice"}</span>}
               <svg className="shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" style={{ transform: open ? "rotate(180deg)" : "", transition: "transform .2s" }}><path d="M6 9l6 6 6-6" /></svg>
             </button>
-            {(
-              <Link href={me ? "/me" : "/join"} className="relative shrink-0 h-9 min-w-9 px-2.5 rounded-full bg-[var(--ice-3)] border border-[var(--line)] flex items-center justify-center text-xs font-black" data-testid="link-me" aria-label={me ? "My profile" : "Join"}>
-                {me?.user.name ? (me.user.number ? `#${me.user.number}` : me.user.name.split(" ").map((w) => w[0]).join("").slice(0, 2)) : "Join"}
-                {me?.unread ? <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-[var(--red)] border-2 border-[var(--ice)]" /> : null}
-              </Link>
-            )}
             </div>
           </div>
           <div className="flex justify-center"><div className="mt-1 h-1 w-10 rounded-full bg-[var(--grip)]" /></div>
@@ -132,7 +126,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
                   <div className="label">Rink</div>
                   <div className="font-black text-lg mt-0.5">{boot?.rink?.name}</div>
                   <div className="text-sm text-[var(--mute)]">{boot?.region ? `${boot.region.name}, ${boot.region.state}` : ""}{boot?.season ? ` · ${boot.season.name}` : ""}</div>
-                  <button className="mt-1 text-sm font-bold text-[var(--blue)]" onClick={() => setPicking((p) => !p)} data-testid="button-change-rink">{picking ? "Keep this rink" : "Change rink"}</button>
+                  <div className="flex items-center gap-4 mt-1">
+                    <button className="min-h-[36px] text-sm font-bold text-[var(--blue)]" onClick={() => setPicking((p) => !p)} data-testid="button-change-rink">{picking ? "Keep this rink" : "Change rink"}</button>
+                    {!picking && <Link href="/rink" onClick={() => setOpen(false)} className="min-h-[36px] inline-flex items-center text-sm font-bold text-[var(--blue)]" data-testid="link-rink-details">Rink details</Link>}
+                  </div>
                 </div>
                 <button onClick={() => { setOpen(false); setPicking(false); }} className="h-9 w-9 rounded-full bg-[var(--ice-3)] flex items-center justify-center" aria-label="Close" data-testid="button-close-switcher">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
@@ -186,9 +183,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
                   </span>
                 </Link>
               ) : (
-                <Link key={n.href} href={n.href} className="flex flex-col items-center gap-1" data-testid={`nav-${n.label.toLowerCase()}`}>
-                  <Icon d={n.d} active={isActive(n.href)} />
-                  <span className={`text-[11px] font-bold ${isActive(n.href) ? "text-[var(--white)]" : "text-[var(--dim)]"}`}>{n.label}</span>
+                <Link key={n.href} href={n.href === "/me" && !me ? "/join" : n.href} className="flex flex-col items-center justify-center gap-1 min-h-[48px]" data-testid={`nav-${n.href === "/" ? "home" : n.href.slice(1)}`} aria-current={isActive(n.href) ? "page" : undefined}>
+                  <span className="relative"><Icon d={n.d} active={isActive(n.href)} />{n.href === "/me" && me?.unread ? <span className="absolute -top-0.5 -right-1 h-2.5 w-2.5 rounded-full bg-[var(--red)] border-2 border-[var(--ice)]" /> : null}</span>
+                  <span className={`text-[11px] font-bold ${isActive(n.href) ? "text-[var(--white)]" : "text-[var(--dim)]"}`}>{n.href === "/me" && !me ? "Join" : n.label}</span>
                 </Link>
               ),
             )}

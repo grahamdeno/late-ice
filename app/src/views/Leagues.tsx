@@ -7,13 +7,13 @@ import { AddButton, AddTeamForm } from "@/components/ManageForms";
 import { ArchetypeChip, ArchetypeVotes } from "@/components/Archetypes";
 import { Bobble } from "@/components/Bobble";
 import { TeamTournaments } from "@/views/Event";
-import { act } from "@/lib/auth";
+import { act, useMe } from "@/lib/auth";
 import { useLocation } from "@/lib/router";
 import { Link } from "@/lib/router";
 import { useState } from "react";
-import { BackBar, Empty, GameRow, LevelPill, Loading, Section, TeamBadge, fmtDate, fmtRating, useFilter } from "@/lib/ui";
+import { BackBar, Empty, GameRow, LevelPill, Loading, More, Section, StandingsSkeleton, TeamBadge, fmtDate, fmtRating, useFilter } from "@/lib/ui";
 
-function StandingsTable({ rows, compact = false }: { rows: any[]; compact?: boolean }) {
+function StandingsTable({ rows, compact = false, mine = [] }: { rows: any[]; compact?: boolean; mine?: number[] }) {
   return (
     <table className="w-full text-sm tnum table-fixed">
       <thead>
@@ -27,7 +27,7 @@ function StandingsTable({ rows, compact = false }: { rows: any[]; compact?: bool
       </thead>
       <tbody>
         {rows.map((t, i) => (
-          <tr key={t.id} className="border-t border-[var(--line)]">
+          <tr key={t.id} className={`border-t border-[var(--line)] ${mine.includes(t.id) ? "bg-[var(--red-dim)]" : ""}`} data-mine={mine.includes(t.id) || undefined}>
             <td className="py-2.5 pl-4 overflow-hidden">
               <Link href={`/team/${t.id}`} className="flex items-center gap-2 min-w-0" data-testid={`link-standings-team-${t.id}`}>
                 <span className="w-4 shrink-0 text-[var(--mute)] text-xs">{i + 1}</span>
@@ -51,30 +51,73 @@ function StandingsTable({ rows, compact = false }: { rows: any[]; compact?: bool
   );
 }
 
-function LeagueCard({ id }: { id: number }) {
-  const { data } = useQuery<any>({ queryKey: [`/api/leagues/${id}`] });
-  if (!data) return <div className="card h-40" />;
-  const gp = data.standings.reduce((a: number, t: any) => a + t.gp, 0) / 2;
+function LeagueCard({ league, mine }: { league: any; mine: number[] }) {
+  const rows = league.standings ?? [];
+  const gp = rows.reduce((a: number, t: any) => a + t.gp, 0) / 2;
   return (
-    <div className="card overflow-hidden">
-      <Link href={`/league/${id}`} className="flex items-center justify-between px-4 pt-4 pb-2" data-testid={`link-league-${data.league.level}`}>
-        <div className="flex items-center gap-2"><LevelPill level={data.league.level === "DEMO" ? "Demo" : data.league.level} /><span className="font-black">{data.league.name}</span></div>
-        <span className="text-xs text-[var(--mute)]">{gp} games ›</span>
+    <div className="card overflow-hidden" data-testid={`card-league-${league.id}`}>
+      <Link href={`/league/${league.id}`} className="flex items-center justify-between px-4 pt-4 pb-2 min-h-[48px]" data-testid={`link-league-${league.level}`}>
+        <div className="flex items-center gap-2"><LevelPill level={league.level === "DEMO" ? "Demo" : league.level} /><span className="font-black">{league.name}</span></div>
+        <span className="text-xs text-[var(--mute)]">{gp} games · Leaders and results ›</span>
       </Link>
-      <StandingsTable rows={data.standings} compact />
+      <StandingsTable rows={rows} mine={mine} />
     </div>
   );
 }
 
+/** One league as a closed row: name and who leads. Opens in place to the full table. */
+function LeagueRow({ league }: { league: any }) {
+  const [open, setOpen] = useState(false);
+  const rows = league.standings ?? [];
+  const leader = rows[0];
+  return (
+    <div className="card overflow-hidden mt-2" data-testid={`row-league-${league.id}`}>
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="w-full min-h-[52px] px-4 py-3 flex items-center gap-3 text-left" data-testid={`button-open-league-${league.level}`}>
+        <LevelPill level={league.level} />
+        <span className="flex-1 min-w-0">
+          <span className="block font-bold truncate">{league.name}</span>
+          <span className="block text-xs text-[var(--mute)] truncate">{leader && leader.gp > 0 ? `1st: ${leader.name}, ${leader.pts} pts` : `${rows.length} teams`}</span>
+        </span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true" style={{ transform: open ? "rotate(180deg)" : "", transition: "transform .2s", color: "var(--mute)" }}><path d="M6 9l6 6 6-6" /></svg>
+      </button>
+      {open && (
+        <div className="border-t border-[var(--line)]">
+          <StandingsTable rows={rows} compact />
+          <Link href={`/league/${league.id}`} className="flex items-center justify-center min-h-[44px] text-sm font-bold text-[var(--blue)] border-t border-[var(--line)]">Leaders and results</Link>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Standings answers "where is my team" first: your league open, your team marked; other leagues one tap away. */
 export function Leagues() {
-  const { boot } = useFilter();
-  if (!boot) return <Loading />;
+  const { boot, leagueId } = useFilter();
+  const { me } = useMe();
+  const rinkId = boot?.rink?.id ?? null;
+  const seasonId = boot?.season?.id ?? null;
+  const key = rinkId ? `/api/standings?rink=${rinkId}${seasonId ? `&season=${seasonId}` : ""}` : "/api/standings";
+  const { data } = useQuery<any>({ queryKey: [key], enabled: !!rinkId });
+  if (!boot || (rinkId && !data)) return <StandingsSkeleton />;
+  const all = (data?.leagues ?? []).filter((l: any) => l.level !== "DEMO" && l.level !== "TOURN");
+  const myTeams = (me?.slots ?? []).map((s) => s.team_id);
+  const myLeagues = new Set((me?.slots ?? []).map((s) => s.league_id));
+  // Open: the league picked in the top sheet, else the leagues you play in, else the first one.
+  const open = leagueId ? all.filter((l: any) => l.id === leagueId) : all.filter((l: any) => myLeagues.has(l.id));
+  const first = open.length ? open : all.slice(0, 1);
+  const rest = all.filter((l: any) => !first.includes(l));
   return (
     <div>
       <div className="label">{boot.rink?.name} · {boot.season?.name}</div>
-      <h1 className="font-display text-[40px] leading-none font-black uppercase mt-1">Standings</h1>
-      <p className="text-sm text-[var(--mute)] mt-2">Two points a win, one a tie. Standings reset every season; ratings carry over.</p>
-      <div className="space-y-3 mt-5">{boot.leagues.filter((l) => l.level !== "DEMO" && l.level !== "TOURN").map((l) => <LeagueCard key={l.id} id={l.id} />)}</div>
+      <h1 className="text-[28px] leading-tight font-black mt-1">Standings</h1>
+      <div className="space-y-3 mt-3">{first.map((l: any) => <LeagueCard key={l.id} league={l} mine={myTeams} />)}</div>
+      {rest.length > 0 && (
+        <>
+          <div className="label px-1 mt-6 mb-1">Other leagues at {boot.rink?.name}</div>
+          {rest.map((l: any) => <LeagueRow key={l.id} league={l} />)}
+        </>
+      )}
+      <p className="text-[11px] text-[var(--mute)] mt-4 px-1">Two points a win, one a tie. Standings reset every season; ratings carry over.</p>
     </div>
   );
 }
@@ -179,11 +222,18 @@ export function TeamPage({ id }: { id: string }) {
         {roster.length ? (
           <div className="card divide-y divide-[var(--line)]">
             {roster.filter((p: any) => !p.is_sub).map((p: any) => (
-              <Link key={p.id} href={`/player/${p.id}`} className="flex items-center gap-3 px-4 py-3 text-sm" data-testid={`row-roster-${p.id}`}>
-                <Bobble avatar={p.avatar} jersey={team.color} archetype={data.archetypes?.won?.[p.id]?.archetype} goalie={p.position === "G"} size={30} />
-                <span className="tnum text-[var(--mute)] w-8">{p.number ? `#${p.number}` : ""}</span>
-                <span className="flex-1 truncate font-bold">{p.name}{p.position === "G" && <span className="text-[var(--mute)] font-medium"> · G</span>}{p.registered ? <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-[var(--green,#38D996)] align-middle" title="Registered" /> : null}{p.badge ? <span className="ml-1.5 inline-flex h-4 w-4 rounded-full bg-[var(--ice-3)] border border-[var(--line)] text-[9px] font-black items-center justify-center align-middle" title={p.badge === "C" ? "Captain" : "Assistant captain"} data-testid={`badge-${p.badge}-${p.id}`}>{p.badge}</span> : null}<ArchetypeChip a={data.archetypes?.won?.[p.id]} /></span>
-                <span className="tnum text-[var(--mute)]">{p.gp}GP {p.g}G {p.a}A</span>
+              <Link key={p.id} href={`/player/${p.id}`} className="flex items-center gap-3 px-4 py-2.5 min-h-[56px]" data-testid={`row-roster-${p.id}`}>
+                <Bobble avatar={p.avatar} jersey={team.color} archetype={data.archetypes?.won?.[p.id]?.archetype} goalie={p.position === "G"} size={32} />
+                <span className="flex-1 min-w-0">
+                  <span className="flex items-center gap-1.5 min-w-0">
+                    <span className="tnum text-[var(--mute)] text-sm shrink-0">{p.number ? `#${p.number}` : ""}</span>
+                    <span className="truncate font-bold text-sm">{p.name}</span>
+                    {p.badge ? <span className="shrink-0 inline-flex h-4 w-4 rounded-full bg-[var(--ice-3)] border border-[var(--line)] text-[9px] font-black items-center justify-center" title={p.badge === "C" ? "Captain" : "Assistant captain"} data-testid={`badge-${p.badge}-${p.id}`}>{p.badge}</span> : null}
+                  </span>
+                  <span className="block text-xs text-[var(--mute)] truncate">
+                    {p.position === "G" ? "Goalie · " : ""}{p.gp} GP · {p.g} G · {p.a} A{p.registered ? " · Registered" : ""}<ArchetypeChip a={data.archetypes?.won?.[p.id]} />
+                  </span>
+                </span>
                 <span className="tnum font-display text-lg w-12 text-right">{fmtRating(p.rating)}</span>
               </Link>
             ))}
@@ -193,15 +243,15 @@ export function TeamPage({ id }: { id: string }) {
           <p className="text-xs text-[var(--mute)] mt-2 px-1" data-testid="text-subs">Subs this season: {roster.filter((p: any) => p.is_sub).map((p: any) => p.name).join(", ")}. Their games count for them, not as roster spots.</p>
         )}
       </Section>
-      <ArchetypeVotes teamId={team.id} roster={roster} data={data.archetypes} />
-      <TeamTournaments teamId={team.id} canManage={!!data.can?.manageRoster} />
-      <ShotMap teamId={team.id} />
-      <Section title="Games">
-        {games.length ? <div className="space-y-3">{games.map((g: any) => <GameRow key={g.id} g={g} />)}</div> : <Empty title="No games yet" body="Snap the sheet after this team's next game." />}
-      </Section>
+      <More title="Games" hint="Every final this season" count={games.length} testid="button-more-games">
+        {games.length ? <div className="space-y-3 p-3">{games.map((g: any) => <GameRow key={g.id} g={g} />)}</div> : <div className="p-4 text-sm text-[var(--mute)]">No games yet. Snap the sheet after this team's next game.</div>}
+      </More>
+      <More title="Archetypes" hint="What teammates say each player is" testid="button-more-archetypes"><div className="px-3 pb-3"><ArchetypeVotes teamId={team.id} roster={roster} data={data.archetypes} /></div></More>
+      <More title="Where the goals come from" hint="Shot map from scanned sheets" testid="button-more-shotmap"><div className="px-3 pb-3"><ShotMap teamId={team.id} /></div></More>
+      <More title="Tournaments" testid="button-more-tournaments"><div className="px-3 pb-3"><TeamTournaments teamId={team.id} canManage={!!data.can?.manageRoster} /></div></More>
       {data.can?.remove && (
         <div className="mt-8 text-center">
-          <button className="text-xs text-[var(--mute)] underline" onClick={async () => { if (!confirm(`Remove ${team.name}? It has no games or players, so nothing else changes.`)) return; const e = await act("DELETE", `/api/teams/${team.id}`); setRemoveErr(e); if (!e) nav(`/league/${league.id}`); }} data-testid="button-remove-team">Remove this team</button>
+          <button className="text-xs text-[var(--mute)] underline" onClick={async () => { if (!confirm(`Remove ${team.name}? It has no games or players, so nothing else changes.`)) return; const e = await act("DELETE", `/api/teams/${team.id}`, undefined, ["/api/teams", "/api/leagues", "/api/standings", "/api/bootstrap", "/api/feed", "/api/players"]); setRemoveErr(e); if (!e) nav(`/league/${league.id}`); }} data-testid="button-remove-team">Remove this team</button>
           {removeErr && <p className="text-xs down mt-1">{removeErr}</p>}
         </div>
       )}

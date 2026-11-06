@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@/lib/router";
-import { apiRequest, authHeaders, queryClient } from "@/lib/queryClient";
+import { apiRequest, authHeaders, invalidatePrefixes } from "@/lib/queryClient";
 import { BackBar, FaceoffDot, Loading, TeamBadge, img, useFilter } from "@/lib/ui";
 
 type Side = "home" | "away";
@@ -34,7 +34,7 @@ export default function Sheet({ id }: { id: string }) {
   const [err, setErr] = useState<{ message: string; gameId?: number } | null>(null);
 
   useEffect(() => {
-    if ((s?.status === "review" || s?.status === "awaiting") && !d) {
+    if ((s?.status === "review" || s?.status === "awaiting") && s.data?.is_scoresheet && !d) {
       setD(structuredClone(s.data));
       setLeagueId(s.suggestion?.leagueId ?? null);
       setEventId(s.suggestion?.eventId ?? null);
@@ -69,19 +69,14 @@ export default function Sheet({ id }: { id: string }) {
     );
   }
 
-  if (s.status === "failed") {
+  if (s.status === "failed" || s.data?.is_scoresheet === false) {
     return (
-      <div>
-        <BackBar href="/scan" title="Scan" />
-        <div className="card p-6 text-center">
-          <div className="font-black text-lg">Couldn't read that one</div>
-          <p className="text-sm text-[var(--mute)] mt-1">Try again, or retake the photo flat and in good light.</p>
-          <div className="flex gap-2 justify-center mt-4">
-            <button className="btn btn-red" onClick={async () => { await apiRequest("POST", `/api/sheets/${id}/retry`); refetch(); }} data-testid="button-retry">Try again</button>
-            <Link href="/scan" className="btn btn-ghost" data-testid="button-retake">Retake</Link>
-          </div>
-        </div>
-      </div>
+      <StuckSheet
+        id={id}
+        title={s.status === "failed" ? "Couldn't read that one" : "That doesn't look like a scoresheet"}
+        leagues={boot?.leagues ?? []}
+        onDone={() => refetch()}
+      />
     );
   }
 
@@ -98,19 +93,6 @@ export default function Sheet({ id }: { id: string }) {
   }
 
   if (!d) return <Loading />;
-
-  if (!d.is_scoresheet) {
-    return (
-      <div>
-        <BackBar href="/scan" title="Scan" />
-        <div className="card p-6 text-center">
-          <div className="font-black text-lg">That doesn't look like a scoresheet</div>
-          <p className="text-sm text-[var(--mute)] mt-1">Snap the official sheet from the scorer's box.</p>
-          <Link href="/scan" className="btn btn-red mt-4" data-testid="button-retake">Retake photo</Link>
-        </div>
-      </div>
-    );
-  }
 
   const set = (fn: (x: any) => void) => setD((prev: any) => { const n = structuredClone(prev); fn(n); return n; });
   const leagueTeams = league?.teams ?? [];
@@ -150,7 +132,7 @@ export default function Sheet({ id }: { id: string }) {
     });
     const j = await res.json();
     if (!res.ok) { setErr(j); setSaving(false); return; }
-    await queryClient.invalidateQueries();
+    await invalidatePrefixes(["/api/sheets", "/api/games", "/api/feed", "/api/standings", "/api/leagues", "/api/players", "/api/me", "/api/teams"]);
     nav(`/game/${j.gameId}/new`);
   };
 
@@ -159,7 +141,7 @@ export default function Sheet({ id }: { id: string }) {
     setSaving(true); setErr(null);
     try {
       await apiRequest("POST", `/api/sheets/${id}/submit`, { leagueId, homeTeamId: teamIds.home, awayTeamId: teamIds.away, data: d, eventId });
-      await queryClient.invalidateQueries();
+      await invalidatePrefixes(["/api/sheets", "/api/games", "/api/feed", "/api/standings", "/api/leagues", "/api/players", "/api/me", "/api/teams"]);
       setSent(true);
     } catch (e: any) { setErr({ message: e.message }); }
     setSaving(false);
@@ -167,7 +149,7 @@ export default function Sheet({ id }: { id: string }) {
 
   const discard = async () => {
     await apiRequest("POST", `/api/sheets/${id}/discard`);
-    await queryClient.invalidateQueries();
+    await invalidatePrefixes(["/api/sheets", "/api/games", "/api/feed", "/api/standings", "/api/leagues", "/api/players", "/api/me", "/api/teams"]);
     nav("/");
   };
 
@@ -339,6 +321,98 @@ export default function Sheet({ id }: { id: string }) {
           <img src={img(`/api/sheets/${id}/image`)} alt="Scoresheet photo" className="min-w-[900px] w-full" />
         </div>
       )}
+    </div>
+  );
+}
+
+function StuckSheet({ id, title, leagues, onDone }: { id: string; title: string; leagues: { id: number; level: string }[]; onDone: () => Promise<unknown> }) {
+  const [mode, setMode] = useState<null | "hand" | "send">(null);
+  const [homeName, setHomeName] = useState("");
+  const [awayName, setAwayName] = useState("");
+  const [homeScore, setHomeScore] = useState("");
+  const [awayScore, setAwayScore] = useState("");
+  const [homeNumbers, setHomeNumbers] = useState("");
+  const [awayNumbers, setAwayNumbers] = useState("");
+  const [leagueId, setLeagueId] = useState<number | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const save = async (send: boolean) => {
+    if (send && !leagueId) { setErr("Pick the league this game was in."); return; }
+    setBusy(true); setErr(null);
+    try {
+      const res = await apiRequest("POST", `/api/sheets/${id}/manual`, { homeName, awayName, homeScore, awayScore, homeNumbers, awayNumbers });
+      const saved = await res.json();
+      if (send) {
+        await apiRequest("POST", `/api/sheets/${id}/submit`, { leagueId, homeTeamId: null, awayTeamId: null, data: saved.data, eventId: null });
+      }
+      await invalidatePrefixes(["/api/sheets", "/api/games", "/api/feed", "/api/standings", "/api/leagues", "/api/players", "/api/me", "/api/teams"]);
+      await onDone();
+    } catch (e: any) {
+      setErr(e?.message || "That didn't save. Check the fields and try again.");
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div>
+      <BackBar href="/scan" title="Scan" />
+      <div className="card p-5">
+        <div className="font-black text-lg text-center" data-testid="text-sheet-stuck">{title}</div>
+        <p className="text-sm text-[var(--mute)] mt-1 text-center">You can take another photo, type the score, or send it to the captain.</p>
+        <div className="grid gap-2 mt-4">
+          <Link href="/scan" className="btn btn-red" data-testid="button-retry-photo">Retry with a new photo</Link>
+          <button type="button" className="btn btn-ghost" onClick={() => { setMode("hand"); setErr(null); }} data-testid="button-enter-by-hand">Enter the score by hand</button>
+          <button type="button" className="btn btn-ghost" onClick={() => { setMode("send"); setErr(null); }} data-testid="button-send-to-captain">Send to the captain</button>
+        </div>
+        {mode && (
+          <div className="mt-4 grid gap-3">
+            <label className="block text-sm">
+              <span className="label">Home team</span>
+              <input className="input w-full mt-1" value={homeName} onChange={(e) => setHomeName(e.target.value)} data-testid="input-manual-home-name" />
+            </label>
+            <label className="block text-sm">
+              <span className="label">Visitor team</span>
+              <input className="input w-full mt-1" value={awayName} onChange={(e) => setAwayName(e.target.value)} data-testid="input-manual-away-name" />
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="block text-sm">
+                <span className="label">Home score</span>
+                <input className="input w-full mt-1" inputMode="numeric" value={homeScore} onChange={(e) => setHomeScore(e.target.value)} data-testid="input-manual-home-score" />
+              </label>
+              <label className="block text-sm">
+                <span className="label">Visitor score</span>
+                <input className="input w-full mt-1" inputMode="numeric" value={awayScore} onChange={(e) => setAwayScore(e.target.value)} data-testid="input-manual-away-score" />
+              </label>
+            </div>
+            <label className="block text-sm">
+              <span className="label">Home numbers</span>
+              <input className="input w-full mt-1" value={homeNumbers} onChange={(e) => setHomeNumbers(e.target.value)} placeholder="12 14 31" data-testid="input-manual-home-numbers" />
+            </label>
+            <label className="block text-sm">
+              <span className="label">Visitor numbers</span>
+              <input className="input w-full mt-1" value={awayNumbers} onChange={(e) => setAwayNumbers(e.target.value)} placeholder="9 19 1" data-testid="input-manual-away-numbers" />
+            </label>
+            <p className="text-xs text-[var(--mute)]">Jersey numbers, separated by spaces. Who dressed, not who scored.</p>
+            {mode === "send" && (
+              <div>
+                <div className="label mb-2">League</div>
+                <div className="flex gap-2 overflow-x-auto scrollbar-none">
+                  {leagues.map((l) => (
+                    <button key={l.id} type="button" className="chip" data-active={leagueId === l.id} onClick={() => setLeagueId(l.id)} data-testid={`chip-manual-league-${l.level}`}>{l.level}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {err && <div className="text-sm text-[var(--down)]" data-testid="text-manual-error">{err}</div>}
+            {mode === "hand" ? (
+              <button type="button" className="btn btn-red" disabled={busy} onClick={() => save(false)} data-testid="button-manual-save">{busy ? "Saving…" : "Save and check it"}</button>
+            ) : (
+              <button type="button" className="btn btn-red" disabled={busy} onClick={() => save(true)} data-testid="button-manual-send">{busy ? "Sending…" : "Send to the captain"}</button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

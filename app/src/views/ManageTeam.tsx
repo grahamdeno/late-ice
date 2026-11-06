@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@/lib/router";
 import { useMe, act, STATUS_LABEL, POSITION_LABEL } from "@/lib/auth";
-import { Loading, Section, TeamBadge, fmtRating } from "@/lib/ui";
+import { Loading, More, Section, TeamBadge, fmtRating } from "@/lib/ui";
 
 const COLORS = ["#EF4444", "#F97316", "#F5B301", "#22C55E", "#14B8A6", "#3B82F6", "#8B5CF6", "#EC4899", "#A3A3A3", "#F8FAFC"];
 const ACTION_TEXT: Record<string, string> = {
@@ -28,7 +28,7 @@ export default function ManageTeam({ id }: { id: string }) {
   const myRole = me.captainTeams.find((t) => t.id === teamId)?.role ?? null;
   const isCaptain = myRole === "captain" || (!myRole && me.staff);
   const assistants: { id: number; name: string }[] = team.data?.assistants ?? [];
-  const run = async (method: string, url: string, body?: unknown) => { const r = await act(method, url, body); setErr(r); return !r; };
+  const run = async (method: string, url: string, body?: unknown) => { const r = await act(method, url, body, ["/api/teams", "/api/me", "/api/players", "/api/standings", "/api/pool"]); setErr(r); return !r; };
   const c = data.counts;
   const skaters = data.slots.filter((s: any) => !s.is_sub && s.position !== "G" && !isOut(s));
   const goalies = data.slots.filter((s: any) => !s.is_sub && s.position === "G" && !isOut(s));
@@ -58,11 +58,13 @@ export default function ManageTeam({ id }: { id: string }) {
         {data.slots.length === 0 && <div className="card p-4 text-sm text-[var(--mute)]">Nobody on the roster yet. Add players below, or draft from the pool.</div>}
       </Section>
 
-      <Section title="Add a player">
-        <AddSpot teamId={teamId} full={{ skaters: c.skaters >= c.rosterMax, goalies: c.goalies >= c.goalieMax }} run={run} />
-      </Section>
+      <More title="Add a player" hint="For a teammate who isn't in the app yet" testid="button-more-add-player">
+        <div className="p-3"><AddSpot teamId={teamId} full={{ skaters: c.skaters >= c.rosterMax, goalies: c.goalies >= c.goalieMax }} run={run} /></div>
+      </More>
 
-      <Section title="Invites" action={<Link href={`/pool/${teamId}`} className="btn btn-red h-8 text-xs" data-testid="link-draft">Draft pool</Link>}>
+      <More title="Invites and the draft pool" hint="Share a link, or pull a registered player onto the roster" count={data.joined.length || undefined} testid="button-more-invites">
+        <div className="p-3">
+        <Link href={`/pool/${teamId}`} className="btn btn-red h-11 w-full mb-2" data-testid="link-draft">Open the draft pool</Link>
         <InviteLink teamId={teamId} teamName={data.team.name} invites={data.invites} />
         {data.joined.length > 0 && (
           <div className="card mt-2 p-3.5" data-testid="card-joined">
@@ -75,10 +77,11 @@ export default function ManageTeam({ id }: { id: string }) {
             ))}
           </div>
         )}
-      </Section>
+        </div>
+      </More>
 
       {isCaptain && (
-        <Section title="Leadership">
+        <More title="Leadership" hint="Assistant captains and handing off the captaincy" testid="button-more-leadership"><div className="p-3">
           <div className="card p-4" data-testid="card-assistant-picker">
             <div className="text-sm font-bold">Assistant captains <span className="text-[var(--mute)] font-medium">({assistants.length} of 2)</span></div>
             <p className="text-[11px] text-[var(--mute)] mt-0.5">They run the roster and schedule with you. Only the captain names assistants, hands off or edits the team.</p>
@@ -106,16 +109,16 @@ export default function ManageTeam({ id }: { id: string }) {
               ))}
             </select>
           </div>
-        </Section>
+        </div></More>
       )}
 
       {isCaptain && (
-        <Section title="Team">
+        <More title="Team" hint="Name, colors and the calendar feed" testid="button-more-team"><div className="p-3">
           <TeamForm teamId={teamId} team={data.team} run={run} />
           <Link href={`/team/${teamId}#schedule`} className="card mt-2 p-3.5 flex items-center gap-3 text-sm" data-testid="link-team-schedule">
             <span className="flex-1"><span className="block font-bold">Schedule and calendar feed</span><span className="block text-xs text-[var(--mute)]">Connect the rink's calendar so games fill in on their own.</span></span><span>›</span>
           </Link>
-        </Section>
+        </div></More>
       )}
 
       {data.actions.length > 0 && (
@@ -283,11 +286,11 @@ export function InviteLink({ teamId, teamName, invites }: { teamId: number; team
           <div className="text-[11px] text-[var(--mute)] mt-1">{inv.uses} of {inv.maxUses ?? inv.max_uses} uses</div>
           <div className="grid grid-cols-2 gap-2 mt-2">
             <button className="btn btn-red h-10 text-sm" onClick={share} data-testid="button-share-invite">{copied ? "Copied" : "Share link"}</button>
-            <button className="btn btn-ghost h-10 text-sm" onClick={async () => { if (!confirm("Turn this link off? Anyone who has it won't get in.")) return; setErr(await act("DELETE", `/api/teams/${teamId}/invite`)); }} data-testid="button-revoke-invite">Turn off link</button>
+            <button className="btn btn-ghost h-10 text-sm" onClick={async () => { if (!confirm("Turn this link off? Anyone who has it won't get in.")) return; setErr(await act("DELETE", `/api/teams/${teamId}/invite`, undefined, ["/api/teams"])); }} data-testid="button-revoke-invite">Turn off link</button>
           </div>
         </>
       ) : (
-        <button className="btn btn-red h-10 text-sm mt-2" onClick={async () => setErr(await act("POST", `/api/teams/${teamId}/invite`))} data-testid="button-make-invite">Make an invite link</button>
+        <button className="btn btn-red h-10 text-sm mt-2" onClick={async () => setErr(await act("POST", `/api/teams/${teamId}/invite`, undefined, ["/api/teams"]))} data-testid="button-make-invite">Make an invite link</button>
       )}
       {err && <p className="text-xs down mt-2">{err}</p>}
     </div>

@@ -4,46 +4,63 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@/lib/router";
 import { useMe, act, posMatch } from "@/lib/auth";
 import { Bobble } from "@/components/Bobble";
+import { PlayerCard } from "@/components/PlayerCard";
 import { ARCHETYPE_BLURB, ARCHETYPE_LABEL } from "@/components/Archetypes";
-import { BackBar, Delta, Empty, LevelPill, Loading, TeamBadge, fmtDate, fmtRating, useFilter } from "@/lib/ui";
+import { BackBar, Delta, Empty, LevelPill, Loading, PlayersSkeleton, TeamBadge, fmtDate, fmtRating, useFilter } from "@/lib/ui";
 
+/** Players answers "where do I rank": your row pinned, the top ten, the full list one tap away. */
 export function Players() {
   const { leagueId, rinkId, boot } = useFilter();
+  const { me } = useMe();
   const [qs, setQs] = useState("");
+  const [searching, setSearching] = useState(false);
   const [pos, setPos] = useState("skaters");
+  const [all, setAll] = useState(false);
   const { data } = useQuery<any[]>({ queryKey: [leagueId ? `/api/players?league=${leagueId}` : rinkId ? `/api/players?rink=${rinkId}` : "/api/players"] });
   const league = boot?.leagues.find((l) => l.id === leagueId);
   const rows = (data ?? []).filter((p) => posMatch(pos, p.position) && p.name.toLowerCase().includes(qs.toLowerCase()));
+  const myIds = new Set((me?.slots ?? []).map((s) => s.id));
+  const myIndex = rows.findIndex((p) => myIds.has(p.id));
+  const shown = all || qs ? rows : rows.slice(0, 10);
+  const row = (p: any, i: number, pinned = false) => (
+    <Link key={`${pinned ? "me-" : ""}${p.id}`} href={`/player/${p.id}`} className={`flex items-center gap-3 px-4 py-3 min-h-[56px] ${myIds.has(p.id) ? "bg-[var(--red-dim)]" : ""}`} data-testid={pinned ? "row-player-me" : `row-player-${p.id}`}>
+      <span className="w-7 text-center font-display text-lg text-[var(--mute)]">{i + 1}</span>
+      <span className="flex-1 min-w-0">
+        <span className="block font-bold truncate">{pinned ? "You" : p.name}{p.position && p.position !== "F" && <span className="text-[var(--mute)] font-medium"> · {p.position}</span>}</span>
+        <span className="block text-xs text-[var(--mute)] truncate">{p.teams} · {p.levels}</span>
+      </span>
+      <span className="text-right">
+        <span className="block font-display text-xl tnum">{fmtRating(p.rating)}</span>
+        <Delta d={p.last_delta} className="text-[11px]" />
+      </span>
+    </Link>
+  );
   return (
     <div>
       <div className="label">{league ? league.name : boot?.rink?.name ?? "All leagues"} · Late Ice Rating</div>
-      <h1 className="font-display text-[40px] leading-none font-black uppercase mt-1">Players</h1>
-      <p className="text-sm text-[var(--mute)] mt-2">Every player on a scanned sheet gets a rating. Win against better teams and it climbs.</p>
-      <input value={qs} onChange={(e) => setQs(e.target.value)} placeholder="Find a player" className="mt-4 w-full h-11 rounded-xl bg-[var(--ice-2)] border border-[var(--line)] px-4 focus:outline-none focus:border-[var(--red)]" data-testid="input-player-search" />
-      <div className="flex gap-1.5 mt-3 overflow-x-auto scrollbar-none -mx-4 px-4">
+      <div className="flex items-center justify-between gap-2 mt-1">
+        <h1 className="text-[28px] leading-tight font-black">Players</h1>
+        <button className="h-11 w-11 -mr-2 rounded-full flex items-center justify-center" aria-label="Find a player" aria-expanded={searching} onClick={() => { setSearching((v) => !v); setQs(""); }} data-testid="button-player-search">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
+        </button>
+      </div>
+      {searching && <input autoFocus value={qs} onChange={(e) => setQs(e.target.value)} placeholder="Find a player" className="mt-3 w-full h-11 rounded-xl bg-[var(--ice-2)] border border-[var(--line)] px-4 focus:outline-none focus:border-[var(--red)]" data-testid="input-player-search" />}
+      <div className="flex gap-2 mt-3 overflow-x-auto scrollbar-none -mx-4 px-4">
         {([["skaters", "Skaters"], ["C", "Center"], ["W", "Wing"], ["D", "Defense"], ["G", "Goalie"]] as const).map(([k, label]) => (
-          <button key={k} onClick={() => setPos(k)} data-active={pos === k} className="chip shrink-0" data-testid={`button-pos-${k}`}>{label}</button>
+          <button key={k} onClick={() => setPos(k)} data-active={pos === k} className="chip shrink-0 h-9" data-testid={`button-pos-${k}`}>{label}</button>
         ))}
       </div>
-      {pos === "C" || pos === "W" ? <p className="text-[11px] text-[var(--mute)] mt-2">Shows players who picked {pos === "C" ? "center" : "wing"} on their profile. Imported spots are just "forward" until someone claims them.</p> : null}
-      {!data ? <Loading /> : rows.length === 0 ? (
-        <div className="mt-4"><Empty title={qs ? "No match" : pos !== "skaters" ? "Nobody at this position yet" : "No players yet"} body={qs ? "Try another spelling." : pos !== "skaters" ? "Players set their position on their profile." : "Players appear the moment their first scoresheet is scanned."} /></div>
+      {!data ? <PlayersSkeleton /> : rows.length === 0 ? (
+        <div className="mt-4"><Empty title={qs ? "No match" : pos !== "skaters" ? "Nobody at this position yet" : "No players yet"} body={qs ? "Try another spelling." : pos !== "skaters" ? "Players set their position on their profile. Imported spots are just forward until someone claims them." : "Players appear the moment their first scoresheet is scanned."} /></div>
       ) : (
-        <div className="card divide-y divide-[var(--line)] mt-4">
-          {rows.map((p, i) => (
-            <Link key={p.id} href={`/player/${p.id}`} className="flex items-center gap-3 px-4 py-3" data-testid={`row-player-${p.id}`}>
-              <span className="w-6 text-center font-display text-lg text-[var(--mute)]">{i + 1}</span>
-              <span className="flex-1 min-w-0">
-                <span className="block font-bold truncate">{p.name}{p.position && p.position !== "F" && <span className="text-[var(--mute)] font-medium"> · {p.position}</span>}</span>
-                <span className="block text-xs text-[var(--mute)] truncate">{p.teams} · {p.levels}</span>
-              </span>
-              <span className="text-right">
-                <span className="block font-display text-xl tnum">{fmtRating(p.rating)}</span>
-                <Delta d={p.last_delta} className="text-[11px]" />
-              </span>
-            </Link>
-          ))}
-        </div>
+        <>
+          {myIndex >= 10 && !all && !qs && <div className="card mt-4 overflow-hidden">{row(rows[myIndex], myIndex, true)}</div>}
+          <div className="card divide-y divide-[var(--line)] mt-3">{shown.map((p, i) => row(p, i))}</div>
+          {!all && !qs && rows.length > 10 && (
+            <button className="card mt-3 w-full min-h-[52px] text-sm font-bold text-[var(--blue)]" onClick={() => setAll(true)} data-testid="button-show-all-players">Show all {rows.length}</button>
+          )}
+          <p className="text-[11px] text-[var(--mute)] mt-3 px-1">Every player on a scanned sheet gets a rating. Win against better teams and it climbs.</p>
+        </>
       )}
     </div>
   );
@@ -76,47 +93,29 @@ export function PlayerPage({ id }: { id: string }) {
   return (
     <div>
       <BackBar href="/players" title="Player" />
-      <div className="card-hi p-5">
-        <div className="flex items-start justify-between gap-3">
-          <Bobble avatar={player.avatar} jersey={teams[0]?.color} number={teams[0]?.number} archetype={data.archetype?.archetype} goalie={player.position === "G"} size={72} label={`${player.name}'s bobblehead`} />
-          <div className="min-w-0 flex-1">
-            <h1 className="font-black text-[26px] leading-tight" data-testid="text-player-name">{player.name}</h1>
-            {data.archetype && (
-              <div className="mt-1 flex items-center gap-2 flex-wrap" data-testid="player-archetype">
-                <span className="inline-flex items-center h-6 px-2 rounded-md text-[11px] font-black uppercase tracking-wide" style={{ background: "var(--red-dim)", color: "var(--red)" }}>{ARCHETYPE_LABEL[data.archetype.archetype]}</span>
-                <span className="text-[11px] text-[var(--mute)]">
-                  {data.archetype.self
-                    ? `Picked by ${player.registered ? "the player" : "staff"}${data.archetype.teamVote && data.archetype.teamVote !== data.archetype.archetype ? ` · team says ${ARCHETYPE_LABEL[data.archetype.teamVote]}` : ""}`
-                    : `${ARCHETYPE_BLURB[data.archetype.archetype]} · ${data.archetype.votes} teammates agree`}
-                </span>
-              </div>
-            )}
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {teams.map((t: any) => (
-                <Link key={t.id} href={`/team/${t.id}`} className="chip h-7 text-xs" data-testid={`link-player-team-${t.id}`}>
-                  <TeamBadge team={t} size={16} /> {t.name} {t.number && <span className="text-[var(--mute)]">#{t.number}</span>}
-                </Link>
-              ))}
-            </div>
-          </div>
-          {!player.registered && <span className="chip h-7 text-[11px] text-[var(--mute)] shrink-0">Unclaimed</span>}
-        </div>
-        <div className="mt-5 flex items-end gap-3">
-          <div>
-            <div className="label">Late Ice Rating</div>
-            <div className="font-display text-[64px] leading-none tnum" data-testid="text-player-rating">{fmtRating(player.rating)}</div>
-          </div>
-          {history.length > 0 && <div className="pb-2"><Delta d={player.rating - start} className="text-lg" /><div className="text-[11px] text-[var(--mute)]">since first game</div></div>}
-        </div>
-        <Spark pts={series} />
-        <div className="mt-4">
-          <div className="flex justify-between text-xs"><span className="label">Reliability</span><span className="text-[var(--mute)]">{reliability}%{provisional ? " · provisional" : ""}</span></div>
+      <PlayerCard
+        name={player.name}
+        avatar={player.avatar}
+        position={player.position}
+        archetype={data.archetype?.archetype ?? null}
+        teams={teams}
+        rating={player.rating}
+        trend5={history.length ? history.slice(-5).reduce((acc: number, h: any) => acc + (h.after - h.before), 0) : null}
+        gamesRated={player.games_rated}
+        badges={data.badges ?? []}
+        unclaimed={!player.registered}
+        ratingHref="#why"
+      />
+      <span className="sr-only" data-testid="text-player-rating">{fmtRating(player.rating)}</span>
+      {series.length > 1 && (
+        <div className="card mt-3 p-4">
+          <div className="flex justify-between text-xs"><span className="label">Rating over time</span>{history.length > 0 && <span><Delta d={player.rating - start} /> <span className="text-[var(--mute)]">since first game</span></span>}</div>
+          <Spark pts={series} />
+          <div className="flex justify-between text-xs mt-3"><span className="label">Reliability</span><span className="text-[var(--mute)]">{reliability}%{provisional ? " · provisional" : ""}</span></div>
           <div className="h-1.5 rounded-full bg-[var(--ice-3)] mt-1.5 overflow-hidden"><div className="h-full rounded-full bg-[var(--red)]" style={{ width: `${reliability}%` }} /></div>
-          <div className="text-[11px] text-[var(--mute)] mt-1.5">{provisional ? `Moves fast for the first 5 games. ${5 - player.games_rated} to go.` : "Settled. Each game nudges it."}</div>
         </div>
-      </div>
-
-      {data.badges?.length > 0 && (
+      )}
+      {data.badges?.length > 3 && (
         <div className="flex flex-wrap gap-2 mt-3" data-testid="player-badges">
           {data.badges.map((b: any, i: number) => (
             <span key={i} className="chip h-8 text-xs" title={b.detail}><span className="font-black text-[var(--amber)] uppercase tracking-wide">{b.label}</span><span className="text-[var(--mute)] truncate max-w-[160px]">{b.detail}</span></span>
@@ -132,7 +131,7 @@ export function PlayerPage({ id }: { id: string }) {
                 <span className="block text-xs text-[var(--mute)]">{x.won ? (x.won.self ? `Picked by the player.${x.won.teamVote ? ` Team vote: ${ARCHETYPE_LABEL[x.won.teamVote]}.` : ""}` : `${ARCHETYPE_BLURB[x.won.archetype]}. ${x.won.votes} teammates agree.`) : `Shows once ${x.minVotes} teammates agree.`}</span>
               </span>
               {x.canVote && (
-                <select className="input h-9 text-sm w-[140px]" aria-label={`Your vote for ${player.name}`} value={x.mine ?? ""} onChange={async (e) => setVoteErr(await act("PUT", `/api/teams/${x.teamId}/archetypes`, { playerId: player.id, archetype: e.target.value || null }))} data-testid={`select-player-archetype-${x.teamId}`}>
+                <select className="input h-9 text-sm w-[140px]" aria-label={`Your vote for ${player.name}`} value={x.mine ?? ""} onChange={async (e) => setVoteErr(await act("PUT", `/api/teams/${x.teamId}/archetypes`, { playerId: player.id, archetype: e.target.value || null }, ["/api/players", "/api/teams"]))} data-testid={`select-player-archetype-${x.teamId}`}>
                   <option value="">Your vote</option>
                   {Object.entries(ARCHETYPE_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
                 </select>
@@ -179,7 +178,7 @@ export function PlayerPage({ id }: { id: string }) {
         </>
       )}
 
-      <h2 className="font-black text-[17px] mt-7 mb-3 px-1">Why it moved</h2>
+      <h2 id="why" className="font-black text-[17px] mt-7 mb-3 px-1 scroll-mt-24">Why it moved</h2>
       {history.length === 0 ? <Empty title="No rated games yet" body="Ratings start after the first scanned game." /> : (
         <div className="space-y-2">
           {[...history].reverse().map((h: any) => {
@@ -239,7 +238,7 @@ function ClaimCard({ player }: { player: any }) {
             onClick={async () => {
               if (!me) return nav("/join");
               if (!me.user.profileComplete) return nav("/join");
-              const e = await act("POST", `/api/players/${player.id}/claim`);
+              const e = await act("POST", `/api/players/${player.id}/claim`, undefined, ["/api/me", "/api/players", "/api/teams"]);
               setErr(e);
               if (!e) nav("/me");
             }}
@@ -255,7 +254,7 @@ function ClaimCard({ player }: { player: any }) {
           {!hideOpen ? (
             <button className="text-xs text-[var(--mute)] underline" onClick={() => setHideOpen(true)} data-testid="button-hide-open">Don't want your name here? Hide it.</button>
           ) : (
-            <form className="card p-4 space-y-2" onSubmit={async (e) => { e.preventDefault(); const r = await act("POST", `/api/players/${player.id}/hide`, { contact }); setErr(r); if (!r) setHidden(true); }}>
+            <form className="card p-4 space-y-2" onSubmit={async (e) => { e.preventDefault(); const r = await act("POST", `/api/players/${player.id}/hide`, { contact }, ["/api/players", "/api/me"]); setErr(r); if (!r) setHidden(true); }}>
               <div className="text-sm font-bold">Hide this name</div>
               <p className="text-xs text-[var(--mute)]">The name is replaced with the jersey number everywhere. Games still count for the team. No account needed.</p>
               <input className="input w-full" placeholder="Phone or email (optional, so we can reach you)" value={contact} onChange={(e) => setContact(e.target.value)} data-testid="input-hide-contact" />

@@ -57,11 +57,17 @@ function getClient() {
   return client;
 }
 
+class SheetParseError extends Error {}
+
 function parseJson(text: string): any {
   const s = text.indexOf("{");
   const e = text.lastIndexOf("}");
-  if (s < 0 || e < 0) throw new Error("Model returned no JSON");
-  return JSON.parse(text.slice(s, e + 1));
+  if (s < 0 || e < 0) throw new SheetParseError("Model returned no JSON");
+  try {
+    return JSON.parse(text.slice(s, e + 1));
+  } catch (e) {
+    throw new SheetParseError(e instanceof Error ? e.message : "Model returned no JSON");
+  }
 }
 
 function normTeam(t: any): OcrTeam {
@@ -85,44 +91,122 @@ function normTeam(t: any): OcrTeam {
   };
 }
 
-export async function readScoresheet(imageBase64: string, mime: string): Promise<{ result: OcrResult; model: string }> {
-  // Sonnet reads most sheets; Opus is the fallback for hard handwriting or a failed parse.
+type Usage = { input: number; output: number };
+
+function fail(e: unknown, usage: Usage): never {
+  if (e && typeof e === "object") (e as { usage?: Usage }).usage = usage;
+  throw e;
+}
+
+type ModelReply = { text: string; input: number; output: number };
+
+/** Test double. LATEICE_FAKE_OCR=1 never calls the provider. A script may be appended to the image bytes. */
+function fakeReply(imageBase64: string, followup: boolean, maxTokens: number, cursor: { i: number }): ModelReply {
+  if (maxTokens !== 8192) throw new Error("max_tokens was not 8192");
+  const buf = Buffer.from(imageBase64, "base64");
+  const marker = "LATEICE_FAKE:";
+  const at = buf.indexOf(marker);
+  if (at < 0) throw new Error("The scoresheet reader has no API key.");
+  const rest = buf.subarray(at + marker.length).toString("utf8").trim();
+  const end = rest.lastIndexOf("]");
+  if (end < 0) throw new Error("fake OCR script is not a JSON list");
+  const steps = JSON.parse(rest.slice(0, end + 1));
+  if (!Array.isArray(steps)) throw new Error("fake OCR script is not a JSON list");
+  const step = steps[cursor.i++];
+  if (!step) throw new Error("fake OCR received an unexpected call");
+  if (step.expectFollowup === true && !followup) throw new Error("fake OCR expected a JSON follow-up");
+  if (step.expectFollowup === false && followup) throw new Error("fake OCR did not expect a follow-up");
+  if (step.op === "error") throw new Error(step.message || "The scoresheet reader could not be reached.");
+  const text = step.op === "json" ? JSON.stringify(step.body ?? {}) : String(step.text ?? "");
+  return { text, input: step.inputTokens ?? 0, output: step.outputTokens ?? 0 };
+}
+
+async function callModel(model: string, imageBase64: string, mime: string, followup: { previous: string } | null, cursor: { i: number }): Promise<ModelReply> {
+  if (process.env.LATEICE_FAKE_OCR === "1") return fakeReply(imageBase64, followup !== null, 8192, cursor);
+  const image = { type: "image" as const, source: { type: "base64" as const, media_type: mime as any, data: imageBase64 } };
+  const messages: Anthropic.MessageParam[] = followup
+    ? [
+        { role: "user", content: [image, { type: "text", text: PROMPT }] },
+        { role: "assistant", content: followup.previous || " " },
+        { role: "user", content: "Return only the JSON object." },
+      ]
+    : [{ role: "user", content: [image, { type: "text", text: PROMPT }] }];
+  const msg = await getClient().messages.create({ model, max_tokens: 8192, messages });
+  const text = msg.content.map((c) => (c.type === "text" ? c.text : "")).join("");
+  return { text, input: msg.usage?.input_tokens ?? 0, output: msg.usage?.output_tokens ?? 0 };
+}
+
+function resultFromText(text: string): OcrResult {
+  const raw = parseJson(text);
+  return {
+    is_scoresheet: raw.is_scoresheet !== false,
+    date: raw.date ?? null,
+    time: raw.time ?? null,
+    league_text: raw.league_text ?? null,
+    rink_text: raw.rink_text ?? null,
+    home: normTeam(raw.home),
+    away: normTeam(raw.away),
+    confidence: typeof raw.confidence === "number" ? raw.confidence : 0.5,
+    notes: Array.isArray(raw.notes) ? raw.notes.map(String) : [],
+  };
+}
+
+export async function readScoresheet(imageBase64: string, mime: string): Promise<{ result: OcrResult; model: string; inputTokens: number; outputTokens: number }> {
+  // Primary model, then one fallback. The list is LATE_ICE_OCR_MODELS; the default stays sonnet then opus.
+  // A JSON parse failure retries the same model once. The fallback runs only after a read succeeded
+  // and (confidence < 0.6 or checkSheet reports 3 or more warnings). Network, auth, and a second parse failure do not.
   const models = (process.env.LATE_ICE_OCR_MODELS || "claude-sonnet-5-5,claude-opus-5-5").split(",").map((m) => m.trim()).filter(Boolean);
-  let lastErr: unknown;
-  for (const model of models) {
+  const primary = models[0];
+  if (!primary) throw new Error("No OCR model configured");
+  const usage: Usage = { input: 0, output: 0 };
+  const cursor = { i: 0 };
+
+  let first: ModelReply;
+  try {
+    first = await callModel(primary, imageBase64, mime, null, cursor);
+  } catch (e) {
+    fail(e, usage);
+  }
+  usage.input += first.input;
+  usage.output += first.output;
+
+  let result: OcrResult;
+  try {
+    result = resultFromText(first.text);
+  } catch (e) {
+    if (!(e instanceof SheetParseError)) fail(e, usage);
+    let second: ModelReply;
     try {
-      const msg = await getClient().messages.create({
-        model,
-        max_tokens: 4096,
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "image", source: { type: "base64", media_type: mime as any, data: imageBase64 } },
-              { type: "text", text: PROMPT },
-            ],
-          },
-        ],
-      });
-      const text = msg.content.map((c: any) => (c.type === "text" ? c.text : "")).join("");
-      const raw = parseJson(text);
-      const result: OcrResult = {
-        is_scoresheet: raw.is_scoresheet !== false,
-        date: raw.date ?? null,
-        time: raw.time ?? null,
-        league_text: raw.league_text ?? null,
-        rink_text: raw.rink_text ?? null,
-        home: normTeam(raw.home),
-        away: normTeam(raw.away),
-        confidence: typeof raw.confidence === "number" ? raw.confidence : 0.5,
-        notes: Array.isArray(raw.notes) ? raw.notes.map(String) : [],
-      };
-      return { result, model };
-    } catch (e) {
-      lastErr = e;
+      second = await callModel(primary, imageBase64, mime, { previous: first.text }, cursor);
+    } catch (e2) {
+      fail(e2, usage);
+    }
+    usage.input += second.input;
+    usage.output += second.output;
+    try {
+      result = resultFromText(second.text);
+    } catch (e3) {
+      fail(e3, usage);
     }
   }
-  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
+
+  const warnings = checkSheet(result);
+  const fallback = models[1];
+  // Precedence: the read succeeded, and (low confidence or 3 or more warnings).
+  if (fallback && (result.confidence < 0.6 || warnings.length >= 3)) {
+    try {
+      const alt = await callModel(fallback, imageBase64, mime, null, cursor);
+      usage.input += alt.input;
+      usage.output += alt.output;
+      const altResult = resultFromText(alt.text);
+      if (checkSheet(altResult).length < warnings.length) {
+        return { result: altResult, model: fallback, inputTokens: usage.input, outputTokens: usage.output };
+      }
+    } catch {
+      // The first read succeeded. A fallback that fails to answer does not replace it.
+    }
+  }
+  return { result, model: primary, inputTokens: usage.input, outputTokens: usage.output };
 }
 
 /** Cross-check the sheet against itself. Every warning is something a human should glance at. */

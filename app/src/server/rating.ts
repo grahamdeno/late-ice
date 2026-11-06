@@ -15,6 +15,50 @@ export const ALGO_VERSION = "lir-1";
 
 interface Line { player_id: number; team_id: number; goals: number; assists: number; pim: number; is_goalie: number; shots_against: number | null; goals_against: number | null }
 
+/** Per-player rating move for one game. Pure: no database. rateGame stores the result. */
+export function ratePlayer(input: {
+  rating: number;
+  gamesRated: number;
+  goals: number;
+  assists: number;
+  pim: number;
+  isGoalie: number;
+  shotsAgainst: number | null;
+  goalsAgainst: number | null;
+  own: number;
+  opp: number;
+  gf: number;
+  ga: number;
+  eventId: unknown;
+}): { reasons: { label: string; value: number }[]; after: number } {
+  const { rating, gamesRated, goals, assists, pim, isGoalie, shotsAgainst, goalsAgainst, own, opp, gf, ga, eventId } = input;
+  const S = gf > ga ? 1 : gf === ga ? 0.5 : 0;
+  const E = 1 / (1 + Math.pow(10, (opp - own) / 0.8));
+  const K = gamesRated < 5 ? 0.12 : 0.06;
+  const margin = Math.abs(gf - ga) >= 2 ? 1 + 0.1 * Math.min(3, Math.abs(gf - ga) - 1) : 1;
+  const reasons: { label: string; value: number }[] = [];
+  const res = K * margin * (S - E);
+  const outcome = S === 1 ? "Win" : S === 0.5 ? "Tie" : "Loss";
+  reasons.push({ label: `${outcome} ${gf}-${ga} vs a ${opp >= own ? "stronger" : "weaker"} team (expected ${(E * 100).toFixed(0)}%)`, value: res });
+  const pts = goals + assists;
+  if (pts > 0) reasons.push({ label: `${goals}G ${assists}A on the sheet`, value: Math.min(0.012, 0.004 * pts) });
+  if (isGoalie && shotsAgainst) {
+    const sa = shotsAgainst, gaa = goalsAgainst ?? 0;
+    const sv = (sa - gaa) / sa;
+    const b = Math.max(-0.01, Math.min(0.012, (sv - 0.88) * 0.1));
+    reasons.push({ label: `Goalie: ${sa - gaa} saves on ${sa} (${sv.toFixed(3).replace(/^0/, "")})`, value: b });
+  }
+  if (pim >= 6) reasons.push({ label: `${pim} penalty minutes`, value: -0.004 });
+  if (gamesRated < 5) reasons.push({ label: `Provisional: game ${gamesRated + 1} of 5 moves faster`, value: 0 });
+  if (eventId) {
+    for (const r of reasons) r.value = r.value / 2;
+    reasons.push({ label: "Tournament game: counts half", value: 0 });
+  }
+  const delta = reasons.reduce((s, r) => s + r.value, 0);
+  const after = Math.max(1, Math.min(7, Math.round((rating + delta) * 1000) / 1000));
+  return { reasons, after };
+}
+
 export async function rateGame(db: Tx, gameId: number) {
   const g = await one<any>(db, "SELECT * FROM games WHERE id=$1", [gameId]);
   if (!g) return;
@@ -38,30 +82,18 @@ export async function rateGame(db: Tx, gameId: number) {
     if (!p) continue;
     const own = avg[l.team_id], opp = avg[l.team_id === homeId ? awayId : homeId];
     const gf = l.team_id === homeId ? hs : as, ga = l.team_id === homeId ? as : hs;
-    const S = gf > ga ? 1 : gf === ga ? 0.5 : 0;
-    const E = 1 / (1 + Math.pow(10, (opp - own) / 0.8));
-    const K = p.games_rated < 5 ? 0.12 : 0.06;
-    const margin = Math.abs(gf - ga) >= 2 ? 1 + 0.1 * Math.min(3, Math.abs(gf - ga) - 1) : 1;
-    const reasons: { label: string; value: number }[] = [];
-    const res = K * margin * (S - E);
-    const outcome = S === 1 ? "Win" : S === 0.5 ? "Tie" : "Loss";
-    reasons.push({ label: `${outcome} ${gf}-${ga} vs a ${opp >= own ? "stronger" : "weaker"} team (expected ${(E * 100).toFixed(0)}%)`, value: res });
-    const pts = l.goals + l.assists;
-    if (pts > 0) reasons.push({ label: `${l.goals}G ${l.assists}A on the sheet`, value: Math.min(0.012, 0.004 * pts) });
-    if (l.is_goalie && l.shots_against) {
-      const sa = l.shots_against, gaa = l.goals_against ?? 0;
-      const sv = (sa - gaa) / sa;
-      const b = Math.max(-0.01, Math.min(0.012, (sv - 0.88) * 0.1));
-      reasons.push({ label: `Goalie: ${sa - gaa} saves on ${sa} (${sv.toFixed(3).replace(/^0/, "")})`, value: b });
-    }
-    if (l.pim >= 6) reasons.push({ label: `${l.pim} penalty minutes`, value: -0.004 });
-    if (p.games_rated < 5) reasons.push({ label: `Provisional: game ${p.games_rated + 1} of 5 moves faster`, value: 0 });
-    if (g.event_id) {
-      for (const r of reasons) r.value = r.value / 2;
-      reasons.push({ label: "Tournament game: counts half", value: 0 });
-    }
-    const delta = reasons.reduce((s, r) => s + r.value, 0);
-    const after = Math.max(1, Math.min(7, Math.round((p.rating + delta) * 1000) / 1000));
+    const { reasons, after } = ratePlayer({
+      rating: p.rating,
+      gamesRated: p.games_rated,
+      goals: l.goals,
+      assists: l.assists,
+      pim: l.pim,
+      isGoalie: l.is_goalie,
+      shotsAgainst: l.shots_against,
+      goalsAgainst: l.goals_against,
+      own, opp, gf, ga,
+      eventId: g.event_id,
+    });
     await q(db, "UPDATE players SET rating=$1, games_rated=games_rated+1, position=CASE WHEN $2=1 THEN 'G' ELSE position END WHERE id=$3", [after, l.is_goalie ? 1 : 0, p.id]);
     await q(db, "INSERT INTO rating_history (player_id,game_id,before,after,reasons_json,algo_version) VALUES ($1,$2,$3,$4,$5,$6)", [p.id, gameId, p.rating, after, JSON.stringify(reasons), ALGO_VERSION]);
   }

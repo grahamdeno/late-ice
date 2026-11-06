@@ -1,15 +1,20 @@
 "use client";
 import { COUNTRIES, guessCountry, regionLabel, regionsOf } from "@/lib/geo";
 import { useState } from "react";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, invalidatePrefixes } from "@/lib/queryClient";
 
 /** One small form pattern for every "+ Add": a button that opens into a short form, then closes. */
 function useSend() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const send = async (method: string, url: string, body?: unknown) => {
+  const send = async (method: string, url: string, body?: unknown, keys?: string[]) => {
     setBusy(true); setErr(null);
-    try { const r = await (await apiRequest(method, url, body)).json(); await queryClient.invalidateQueries(); setBusy(false); return r; }
+    try {
+      const r = await (await apiRequest(method, url, body)).json();
+      await invalidatePrefixes(keys?.length ? keys : ["/api/me", "/api/bootstrap"]);
+      setBusy(false);
+      return r;
+    }
     catch (e: any) { setErr(e.message); setBusy(false); return null; }
   };
   return { busy, err, setErr, send };
@@ -29,7 +34,7 @@ export function AddLeagueForm({ rinkId, onDone }: { rinkId: number; onDone: () =
   const [name, setName] = useState("");
   const { busy, err, send } = useSend();
   return (
-    <form className="card p-4 space-y-2.5" onSubmit={async (e) => { e.preventDefault(); if (await send("POST", `/api/rinks/${rinkId}/leagues`, { level, tag, name })) onDone(); }} data-testid="form-add-league">
+    <form className="card p-4 space-y-2.5" onSubmit={async (e) => { e.preventDefault(); if (await send("POST", `/api/rinks/${rinkId}/leagues`, { level, tag, name }, ["/api/rinks", "/api/leagues", "/api/standings", "/api/bootstrap", "/api/feed"])) onDone(); }} data-testid="form-add-league">
       <div className="label">New league</div>
       <input className="input w-full" placeholder="Name the rink uses, e.g. Monday A League" value={name} onChange={(e) => setName(e.target.value)} data-testid="input-league-name" />
       <div className="grid grid-cols-2 gap-2">
@@ -58,7 +63,7 @@ export function AddTeamForm({ leagueId, leagueName, request = false, onDone }: {
   return (
     <form className="card p-4 space-y-2.5" data-testid="form-add-team" onSubmit={async (e) => {
       e.preventDefault();
-      const r = await send("POST", request ? "/api/team-requests" : `/api/leagues/${leagueId}/teams`, { leagueId, name, color, captain });
+      const r = await send("POST", request ? "/api/team-requests" : `/api/leagues/${leagueId}/teams`, { leagueId, name, color, captain }, ["/api/leagues", "/api/teams", "/api/standings", "/api/bootstrap", "/api/me"]);
       if (!r) return;
       if (r.requested) setSent(true); else onDone();
     }}>
@@ -82,7 +87,7 @@ export function AddSeasonForm({ rinkId, onDone }: { rinkId: number; onDone: () =
   const [ends, setEnds] = useState("");
   const { busy, err, send } = useSend();
   return (
-    <form className="card p-4 space-y-2.5" onSubmit={async (e) => { e.preventDefault(); if (await send("POST", `/api/rinks/${rinkId}/seasons`, { name, startsOn: starts, endsOn: ends })) onDone(); }} data-testid="form-add-season">
+    <form className="card p-4 space-y-2.5" onSubmit={async (e) => { e.preventDefault(); if (await send("POST", `/api/rinks/${rinkId}/seasons`, { name, startsOn: starts, endsOn: ends }, ["/api/rinks", "/api/bootstrap", "/api/standings"])) onDone(); }} data-testid="form-add-season">
       <div className="label">New season</div>
       <input className="input w-full" placeholder="Name, e.g. Winter 2027" value={name} onChange={(e) => setName(e.target.value)} required data-testid="input-season-name" />
       <div className="grid grid-cols-2 gap-2">
@@ -102,7 +107,7 @@ export function EditRinkForm({ rink, onDone }: { rink: any; onDone: () => void }
     <input className="input w-full" placeholder={ph} inputMode={mode} value={v[k]} onChange={(e) => setV({ ...v, [k]: e.target.value })} data-testid={`input-rink-${k}`} />
   );
   return (
-    <form className="card p-4 space-y-2.5" onSubmit={async (e) => { e.preventDefault(); if (await send("PATCH", `/api/rinks/${rink.id}`, v)) onDone(); }} data-testid="form-edit-rink">
+    <form className="card p-4 space-y-2.5" onSubmit={async (e) => { e.preventDefault(); if (await send("PATCH", `/api/rinks/${rink.id}`, v, ["/api/rinks", "/api/rink", "/api/bootstrap"])) onDone(); }} data-testid="form-edit-rink">
       <div className="label">Rink profile</div>
       {f("name", "Rink name")}{f("address", "Street address")}{f("phone", "Front desk phone", "tel")}{f("website", "Website", "url")}{f("sheets", "Sheets of ice", "numeric")}
       {err && <p className="text-sm down">{err}</p>}
@@ -126,7 +131,7 @@ export function RinkRequestForm({ onDone, admin = false }: { onDone: () => void;
     setErr(null);
     try {
       const r = await (await apiRequest("POST", "/api/rink-requests", { ...v, manage, role, confirmNew })).json();
-      await queryClient.invalidateQueries();
+      await invalidatePrefixes(["/api/rinks", "/api/rink", "/api/staff", "/api/bootstrap"]);
       setDone(r.created ? `${v.name} is added.` : "Sent. An admin checks that the rink is real" + (manage ? " and that you work there" : "") + ", and you'll get a notice.");
     } catch (e: any) {
       let j: any = null;

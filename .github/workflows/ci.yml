@@ -33,6 +33,13 @@ jobs:
             git add package-lock.json && git commit -qm "Add package-lock.json [ci]" && git push
           fi
 
+      - name: Lint
+        continue-on-error: true
+        run: |
+          # No ESLint config exists, so next lint offers to create one. Close stdin so it
+          # exits instead of waiting. The step stays non-blocking.
+          npx next lint < /dev/null
+
       - name: Start local Supabase (Postgres, Auth, Storage)
         run: |
           # Image registries rate-limit shared CI runners; try each, with a pause between.
@@ -58,6 +65,9 @@ jobs:
       - name: Build (includes the type check)
         run: npm run build
 
+      - name: Unit tests
+        run: npm test
+
       - name: Smoke test (API end to end)
         run: npx tsx script/smoke.ts
 
@@ -71,8 +81,18 @@ jobs:
           npx playwright install --with-deps chromium
           node script/ui-shots.mjs
 
+      - name: Keep the screenshots with this run
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-shots
+          path: app/shots
+          if-no-files-found: ignore
+
+      # Only the production branch publishes to ci-shots. Every push there used to cost a Vercel deploy,
+      # and the free plan allows 100 a day; the vercel.json written below turns deploys off for this branch.
       - name: Publish screenshots to the ci-shots branch
-        if: always() && github.event_name == 'push'
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/nextjs-supabase'
         working-directory: .
         run: |
           [ -d app/shots ] || exit 0
@@ -80,5 +100,6 @@ jobs:
           git config user.name "ci" && git config user.email "ci@users.noreply.github.com"
           git stash -u -q || true
           git checkout -q --orphan ci-shots && git rm -rfq . && rm -rf app
-          cp /tmp/s/*.png . && git add *.png && git commit -qm "UI shots for ${GITHUB_SHA::7}"
+          cp /tmp/s/*.png . && mkdir -p app && printf '{ "git": { "deploymentEnabled": false } }\n' > app/vercel.json
+          git add *.png app/vercel.json && git commit -qm "UI shots for ${GITHUB_SHA::7}"
           git push -f origin ci-shots
