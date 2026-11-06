@@ -14,10 +14,10 @@ export interface CardBadge { label: string; detail?: string }
  * Everything else about a player lives below the card.
  */
 export function PlayerCard({
-  name, avatar, position, archetype, teams, rating, trend5, gamesRated, badges = [], unclaimed = false, ratingHref, action,
+  name, avatar, position, archetype, teams, rating, trend5, gamesRated, seasonRated = false, badges = [], unclaimed = false, ratingHref, action,
 }: {
   name: string; avatar?: any; position?: string | null; archetype?: string | null; teams: CardTeam[]; rating: number | null;
-  trend5?: number | null; gamesRated?: number; badges?: CardBadge[]; unclaimed?: boolean; ratingHref?: string; action?: React.ReactNode;
+  trend5?: number | null; gamesRated?: number; seasonRated?: boolean; badges?: CardBadge[]; unclaimed?: boolean; ratingHref?: string; action?: React.ReactNode;
 }) {
   const main = teams[0];
   const provisional = (gamesRated ?? 0) < 5;
@@ -32,7 +32,7 @@ export function PlayerCard({
             {up ? "▲" : "▼"} {Math.abs(trend5).toFixed(3)} <span className="text-[var(--mute)] font-medium">last 5</span>
           </span>
         )}
-        <span className="block text-xs text-[var(--mute)]">{tier ? `${tier}` : "Not rated yet"}{provisional && rating !== null ? ` · provisional, ${Math.max(0, 5 - (gamesRated ?? 0))} to go` : ""}</span>
+        <span className="block text-xs text-[var(--mute)]">{tier ? `${tier}` : "Not rated yet"}{seasonRated && !gamesRated ? " · season rating from the rink's totals" : provisional && rating !== null ? ` · provisional, ${Math.max(0, 5 - (gamesRated ?? 0))} to go` : ""}</span>
       </span>
     </span>
   );

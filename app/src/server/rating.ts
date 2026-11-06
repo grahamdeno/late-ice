@@ -115,6 +115,49 @@ export async function rateGame(db: Tx, gameId: number) {
   await q(db, "UPDATE games SET rated_at=now() WHERE id=$1", [gameId]);
 }
 
+/**
+ * Season rating: the starting point before any rated game. League baseline, nudged by points per
+ * game against the league's skaters, with the nudge growing as games played grow. Goalies and
+ * players with no season totals start at the baseline. Pure, so it can be tested.
+ */
+export const SEASON = { weight: 0.25, cap: 0.35, minSd: 0.2, settle: 4 };
+export function seasonStart(base: number, ppg: number, avg: number, sd: number, gp: number) {
+  if (!gp) return base;
+  const z = (ppg - avg) / Math.max(sd, SEASON.minSd);
+  const nudge = Math.max(-SEASON.cap, Math.min(SEASON.cap, SEASON.weight * z)) * (gp / (gp + SEASON.settle));
+  return Math.max(1, Math.min(7, Math.round((base + nudge) * 1000) / 1000));
+}
+
+/** Set every player's start_rating from the baseline and the rink's season totals. */
+export async function applySeasonStarts(tx: Tx) {
+  await q(tx, "UPDATE players SET base_rating=start_rating WHERE base_rating IS NULL");
+  await q(tx, "UPDATE players SET start_rating=base_rating WHERE start_rating IS DISTINCT FROM base_rating");
+  // One row per skater: the league where they have the most imported games.
+  const rows = await q<{ player_id: number; league_id: number; gp: number; pts: number; base: number }>(tx, `
+    SELECT DISTINCT ON (x.player_id) x.player_id, x.league_id, x.gp, x.pts, p.base_rating AS base
+    FROM (SELECT i.player_id, t.league_id, SUM(i.gp)::float gp, SUM(COALESCE(i.g,0)+COALESCE(i.a,0))::float pts
+          FROM player_imports i JOIN teams t ON t.id=i.team_id GROUP BY i.player_id, t.league_id HAVING SUM(i.gp) > 0) x
+    JOIN players p ON p.id=x.player_id
+    WHERE p.position IS DISTINCT FROM 'G'
+    ORDER BY x.player_id, x.gp DESC`);
+  const byLeague = new Map<number, number[]>();
+  for (const r of rows) byLeague.set(r.league_id, [...(byLeague.get(r.league_id) ?? []), r.pts / r.gp]);
+  const stats = new Map<number, { avg: number; sd: number }>();
+  for (const [l, xs] of byLeague) {
+    const avg = xs.reduce((a, b) => a + b, 0) / xs.length;
+    const sd = Math.sqrt(xs.reduce((a, b) => a + (b - avg) ** 2, 0) / xs.length);
+    stats.set(l, { avg, sd });
+  }
+  const ids: number[] = [], starts: number[] = [];
+  for (const r of rows) {
+    const st = stats.get(r.league_id)!;
+    ids.push(r.player_id);
+    starts.push(seasonStart(Number(r.base), r.pts / r.gp, st.avg, st.sd, Number(r.gp)));
+  }
+  if (ids.length) await q(tx, "UPDATE players p SET start_rating=x.s FROM unnest($1::int[], $2::float8[]) AS x(id, s) WHERE p.id=x.id", [ids, starts]);
+  return ids.length;
+}
+
 /** Replay every game from starting ratings. Deterministic: same games in, same ratings out. */
 export async function recomputeAll() {
   const t0 = Date.now();
@@ -122,6 +165,7 @@ export async function recomputeAll() {
   await sql.begin(async (tx) => {
     await q(tx, "LOCK TABLE rating_history IN EXCLUSIVE MODE");
     await q(tx, "DELETE FROM rating_history");
+    await applySeasonStarts(tx);
     await q(tx, "UPDATE players SET rating=COALESCE(start_rating, rating), games_rated=0");
     // Sheets always; imported games only once a lineup (poll attendance) has been recorded.
     const games = await q<{ id: number }>(tx, "SELECT id FROM games WHERE source='sheet' OR EXISTS (SELECT 1 FROM imported_game_attendance a WHERE a.game_id=games.id) ORDER BY played_on NULLS LAST, id");
