@@ -40,7 +40,6 @@ Rink staff powers apply only inside their scope (their league or their rink).
 | **Self** | | | | | | | | |
 | Edit own profile, availability, hide own name | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Claim an unlinked roster spot | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Plot own shots and assists | own | own | own | | | | | |
 | **Roster** | | | | | | | | |
 | Draft, match, release a claim, merge spots | | own | own | | ✓ | ✓ | | ✓ |
 | Merge two roster spots that are the same person | | | own | | ✓ | ✓ | | ✓ |
@@ -52,8 +51,9 @@ Rink staff powers apply only inside their scope (their league or their rink).
 | **Schedule and game night** | | | | | | | | |
 | Connect a team calendar feed | | own | own | | | | | ✓ |
 | Add or edit a manual game (tournament, exhibition) | | own | own | | ✓ | ✓ | | ✓ |
-| Connect a rink-wide calendar feed | | | | | | ✓ | | ✓ |
-| Set lines, see team RSVPs | | own | own | | | | | |
+| Connect a rink-wide calendar feed | | | | | | | | |
+| Set lines | | own | own | | ✓ | ✓ | | ✓ |
+| See team RSVPs | own team | own team | own team | | ✓ | ✓ | | ✓ |
 | Answer In / Late / Out for a game | own | own | own | | | | | |
 | **Rinks, leagues and teams** | | | | | | | | |
 | Ask to add a missing rink, or to start a team | ✓ signed in | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -62,25 +62,38 @@ Rink staff powers apply only inside their scope (their league or their rink).
 | Rename a league | | | | | ✓ | ✓ | | ✓ |
 | Add a team, approve a team request, remove an empty team | | | | | ✓ | ✓ | | ✓ |
 | **Games and sheets** | | | | | | | | |
-| Scan a sheet | ✓ signed in | ✓ | ✓ | ✓ official | ✓ | ✓ | | ✓ |
+| Upload a scan | ✓ signed in | ✓ | ✓ | ✓ | ✓ | ✓ | | ✓ |
+| Confirm a sheet | | own | own | ✓ | ✓ | ✓ | | ✓ |
 | Dispute a game (within 72 hours) | own | own | own | | | | | |
 | Resolve a dispute, lock a game | | | | | ✓ | ✓ | | ✓ |
 | Correct a confirmed game | | | | | ✓ | ✓ | | ✓ |
 | **Visibility** | | | | | | | | |
 | See team shot maps | own team | own | own | | | | | |
-| See attendance, no-shows, reasons | own | own team | own team | | | ✓ | | ✓ |
+| See attendance, no-shows, reasons | own team | own team | own team | | ✓ | ✓ | | ✓ |
 | See the draft pool | | rink | rink | | | ✓ | | ✓ |
 | **Rink** | | | | | | | | |
 | Edit rink profile, seasons, leagues | | | | | | ✓ | | ✓ |
 | Grant scorekeepers and commissioners | | | | | | ✓ | | ✓ |
+| Approve or remove a waitlisted signup | | | | | | ✓ | | ✓ |
 | **Help desk** | | | | | | | | |
 | Look up any account (read only) | | | | | | | ✓ | ✓ |
 | Release a stuck claim, hide or unhide a name on request | | | | | | | ✓ | ✓ |
+| Show a hidden name again | own | own | own | | | | ✓ | ✓ |
 | Merge two accounts for the same person | | | | | | | ✓ (24 h hold) | ✓ |
 | Read the audit log | | | | | | own rink | ✓ | ✓ |
 | **System** | | | | | | | | |
 | Grant rink managers, support, admins | | | | | | | | ✓ |
 | Run the rating recompute | | | | | | | | ✓ |
+
+What the running app does, where a cell above is easy to misread:
+
+- **Upload a scan** is any approved signed-in user. **Confirm a sheet** is `sheet.confirm`: assistant or captain of one of the teams, or a scorekeeper, commissioner, rink manager or admin. A scorekeeper's confirm is not marked official, and nothing skips a duplicate wait.
+- **Set lines** is `roster.manage`, so a commissioner, rink manager or admin can set them too. **See team RSVPs** and **attendance names** are every roster member, plus anyone with `schedule.manual` (assistant, captain, commissioner, rink manager, admin). A player sees the whole list, not only their own answer. Counts on the schedule are public. `team.private` (assistant, captain, rink manager, admin) is in the matrix and no route checks it.
+- **See the team shot map** is anyone on that team. Players do not plot shots. The spots are samples from goals. Staff who are not on the team cannot open it.
+- **Connect a rink-wide calendar feed** is not in the app. A rink manager is not on the team-feed grant (`schedule.feed` is assistant, captain, admin).
+- **Show a hidden name again** is the player, an assistant or captain of one of their teams, support, or an admin (`name.unhide`). A commissioner or rink manager is not on that grant. Anyone can hide a name with no account. Support's hide, unhide and stuck-claim fix stay on `support.fix`.
+- **Approve or remove a waitlisted signup** is `signup.approve`: the rink manager at that home rink, or an admin.
+- Filing a dispute, locking a game and correcting a confirmed game are not separate routes. `game.resolve` (commissioner, rink manager, admin) is what staff use to discard a sheet and to open a league on the staff page.
 
 Things nobody can do, on purpose:
 - Edit a rating by hand. Ratings only come from games; fixing a game fixes the rating at the next nightly replay.
@@ -93,25 +106,25 @@ Things nobody can do, on purpose:
 ### Captain
 - **First captain:** the first registered player on the roster to tap "I'm the captain." Already built.
 - **Contest:** a roster member who says they're the real captain files a contest. It goes to the league commissioner, then the rink manager, then support's queue if the rink has no staff yet. Support routes it to an admin; support does not decide it.
-- **Hand off:** the captain picks any registered roster member. That person accepts, and the old captain becomes a regular player (or keeps an assistant slot if one is open and they choose it).
+- **Hand off:** the captain picks any registered roster member. That person accepts, and the old captain becomes a regular player.
 - **Vacancy:** if the captain leaves the roster, steps down, or is removed by rink staff, the longest-serving assistant becomes captain automatically and the team is notified. With no assistants, the role is open and any roster member can take it.
 - One captain per team. A person can captain several teams.
 
 ### Assistant captain
 - Named by the captain from registered roster members. Two at most.
-- Can do the roster and schedule work a captain does, except: naming or removing assistants, handing off or stepping down as captain, removing the captain or another assistant from the roster, and renaming the team.
+- Can do the roster and schedule work a captain does, except: naming or removing assistants, handing off or stepping down as captain, removing the captain or another assistant from the roster, merging two spots that are the same person, and renaming the team.
 - Loses the role automatically on leaving the roster.
 - Shown as **A** on the roster, the captain as **C**, the way jerseys do it.
 
 ### Scorekeeper
 - Granted by the rink manager at one rink.
-- Their scans are marked official and skip the duplicate wait. A captain scan stays provisional until the 72-hour dispute window passes.
+- Confirming a sheet uses the same grant as a captain. The scan is not marked official, and there is no dispute window that a scorekeeper skips.
 - Can't edit a game after confirming it. Corrections go to the commissioner.
 
 ### League commissioner
 - Granted by the rink manager for one league. A rink can have one per league or one person for several.
-- Resolves disputes, locks games, corrects confirmed games, reassigns captains, renames teams.
-- A correction re-rates by replaying every game. The game page shows "Corrected by the commissioner" with the change.
+- Reassigns captains and renames teams. Dispute, lock and correct are not separate routes yet. `game.resolve` lets them discard a sheet and open a league on the staff page.
+- A correction, once it exists, re-rates by replaying every game.
 
 ### Rink manager
 - Usually the hockey director. Granted by an admin only after a human check (a call to the rink's listed number). There is a "Run this rink? Request access" form that lands in the admin queue.

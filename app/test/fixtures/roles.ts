@@ -51,18 +51,28 @@ export const SECTION3: Section3Row[] = [
   },
   {
     action: "game.resolve",
-    row: "Resolve a dispute, lock a game; Correct a confirmed game",
+    row: "Resolve a dispute, lock a game; Correct a confirmed game (game.resolve; no separate route yet)",
     roles: ["commissioner", "rink_manager", "admin"],
   },
   {
     action: "sheet.confirm",
-    row: "Scan a sheet",
+    row: "Confirm a sheet",
     roles: ["assistant_captain", "captain", "scorekeeper", "commissioner", "rink_manager", "admin"],
   },
   {
+    action: "signup.approve",
+    row: "Approve or remove a waitlisted signup",
+    roles: ["rink_manager", "admin"],
+  },
+  {
     action: "team.private",
-    row: "See attendance, no-shows, reasons",
+    row: "team.private grant, not checked by a route",
     roles: ["assistant_captain", "captain", "rink_manager", "admin"],
+  },
+  {
+    action: "name.unhide",
+    row: "Show a hidden name again",
+    roles: ["assistant_captain", "captain", "support", "admin"],
   },
   {
     action: "pool.view",

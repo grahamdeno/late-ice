@@ -18,19 +18,10 @@ describe("permission MATRIX", () => {
     expect(mismatches).toEqual([]);
   });
 
-  it("covers every MATRIX action from a section 3 row, plus the two actions section 3 does not name", () => {
+  it("covers every MATRIX action from a section 3 row", () => {
     const fromDoc = new Set(SECTION3.map((row) => row.action));
-    // signup.approve has no section 3 row. name.unhide is wider than the support row
-    // (support.fix is the section 3 "hide or unhide a name on request" grant).
-    const unnamed = {
-      "signup.approve": ["rink_manager", "admin"],
-      "name.unhide": ["assistant_captain", "captain", "support", "admin"],
-    } as const;
     const keys = Object.keys(MATRIX).slice().sort();
-    expect(keys).toEqual([...fromDoc, ...Object.keys(unnamed)].sort());
-    for (const [action, roles] of Object.entries(unnamed)) {
-      expect(sameRoles(MATRIX[action as keyof typeof MATRIX], roles), action).toBe(true);
-    }
+    expect(keys).toEqual([...fromDoc].sort());
   });
 
   it("does not store the player role", () => {
