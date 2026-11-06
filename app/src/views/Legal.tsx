@@ -44,7 +44,7 @@ export default function Legal() {
       </Block>
 
       <Block title="Fair play">
-        <p>Scan real sheets, claim only your own spot, and vote archetypes in good fun. We may remove scans, claims or accounts that are fake or abusive. Scanning has daily and monthly limits so the app stays free.</p>
+        <p>Scan real sheets, claim only your own spot, and vote on each other's player type in good fun. We may remove scans, claims or accounts that are fake or abusive. Scanning has daily and monthly limits so the app stays free.</p>
       </Block>
 
       <Block title="No warranty">

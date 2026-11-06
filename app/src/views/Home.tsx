@@ -11,8 +11,11 @@ type Feed = { games: GameCard[]; movers: any[]; leaders: any[]; pending: any[] }
 export default function Home() {
   const { leagueId, rinkId, boot } = useFilter();
   const { me } = useMe();
+  // Your own league's results come first. With no league picked, a signed-in player sees theirs.
+  const myLeagueId = me?.slots?.[0]?.league_id ?? null;
+  const feedLeague = leagueId ?? myLeagueId;
   const { data, isLoading } = useQuery<Feed>({
-    queryKey: [leagueId ? `/api/feed?league=${leagueId}` : rinkId ? `/api/feed?rink=${rinkId}` : "/api/feed"],
+    queryKey: [feedLeague ? `/api/feed?league=${feedLeague}` : rinkId ? `/api/feed?rink=${rinkId}` : "/api/feed"],
   });
   const league = boot?.leagues.find((l) => l.id === leagueId);
   const place = league ? `${league.name} · ${boot?.season?.name ?? ""}` : `${boot?.rink?.name ?? ""}${boot?.season ? ` · ${boot.season.name}` : ""}`;
@@ -45,7 +48,7 @@ export default function Home() {
             </div>
           </>
         ) : (
-          <p className="text-sm text-[var(--mute)]">No game on the schedule. <Link href={`/team/${slot.team_id}#schedule`} className="text-[var(--blue)] font-bold">Add the schedule</Link></p>
+          <p className="text-sm text-[var(--mute)]">No game on the schedule yet. <Link href={`/team/${slot.team_id}#schedule`} className="text-[var(--blue)] font-bold">Connect your team's calendar</Link> to see games here.</p>
         )}
       </div>
 
@@ -67,7 +70,7 @@ export default function Home() {
 
       {isLoading ? <HomeFeedSkeleton /> : data && (
         <>
-          <Section title="Latest finals" action={<Link href={`/league/${slot.league_id}`} className="text-sm text-[var(--mute)] min-h-[32px] inline-flex items-center" data-testid="link-all-results">All results</Link>}>
+          <Section title={feedLeague === slot.league_id ? `Latest in ${slot.league_name}` : "Latest finals"} action={<Link href={`/league/${slot.league_id}`} className="text-sm text-[var(--mute)] min-h-[32px] inline-flex items-center" data-testid="link-all-results">All results</Link>}>
             {data.games.length ? <div className="space-y-3">{data.games.slice(0, 3).map((g) => <GameRow key={g.id} g={g} />)}</div>
               : <Empty title="No finals yet" body="The first scanned sheet puts this league on the board." />}
           </Section>

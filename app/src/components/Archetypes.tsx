@@ -25,7 +25,7 @@ export function ArchetypeVotes({ teamId, roster, data }: { teamId: number; roste
   const mates = roster.filter((p) => !data.own.includes(p.id));
   if (!mates.length) return null;
   return (
-    <Section title="Archetypes" action={<button className="text-sm text-[var(--blue)] font-bold" onClick={() => setOpen((o) => !o)} data-testid="button-archetype-votes">{open ? "Done" : "Vote"}</button>}>
+    <Section title="Player types" action={<button className="text-sm text-[var(--blue)] font-bold" onClick={() => setOpen((o) => !o)} data-testid="button-archetype-votes">{open ? "Done" : "Vote"}</button>}>
       <p className="text-xs text-[var(--mute)] px-1 -mt-1">Pick one for each teammate this season. It shows on their profile once {data.minVotes} teammates agree. Yours is up to them.</p>
       {open && (
         <div className="card divide-y divide-[var(--line)] mt-2">
