@@ -30,8 +30,8 @@
 
   --ice: #05070b;
   --ice-2: #0b0f16;
-  --ice-3: #121823;
-  --line: #1c2431;
+  --ice-3: #1f2836;
+  --line: #243041;
   --red: #ff3b3b;
   --red-dim: rgba(255, 59, 59, 0.14);
   --white: #eef3f8;
@@ -57,15 +57,15 @@
   --hi-a: #111723;
   --hi-b: #0b0f16;
   --hi-line: #222b3a;
-  --ghost-hover: #18202d;
+  --ghost-hover: #263142;
   --rink: #0e141e;
   --rink-line: #2a3446;
   --glow: rgba(255, 59, 59, 0.09);
   /* Deeper red behind white button text so it stays readable (4.7:1). */
   --red-btn: #e0262b;
   --red-btn-hover: #ec3035;
-  --surface: #0d1219;
-  --surface-2: #111823;
+  --surface: #151c28;
+  --surface-2: #19212e;
   --surface-shadow: none;
   --hero-mix: 26%;
   --hero-mute: #b9c6d6;
