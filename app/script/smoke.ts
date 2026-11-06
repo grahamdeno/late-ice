@@ -145,7 +145,7 @@ const vapidStub = {
 };
 
 async function cronCall() {
-  const res = await fetch(`${BASE}/api/cron/recompute`, { headers: { Authorization: `Bearer ${env.CRON_SECRET}` } });
+  const res = await fetch(`${BASE}/api/cron/gameday`, { headers: { Authorization: `Bearer ${env.CRON_SECRET}` } });
   const json = await res.json().catch(() => null);
   return { status: res.status, json };
 }
@@ -188,7 +188,7 @@ async function pushChecks(ctx: { graham: string; sam: string; outsider: string; 
   ok((await call("POST", "/api/push/subscribe", sub("https://push.example/graham-morning"), ctx.graham)).status === 200, "Graham's browser is subscribed for the stubbed sends");
   ok((await call("POST", `/api/teams/${ctx.hh}/schedule`, { date: "2026-01-15", time: "9:15 PM", opponentTeamId: blId, kind: "league" }, ctx.graham)).status === 200, "a game on the morning clock's date");
   const morning = await cronCall();
-  ok(morning.status === 200 && morning.json.gameDay >= 1, "the nightly job writes one game-day notice per player");
+  ok(morning.status === 200 && morning.json.gameDay >= 1, "the morning job writes one game-day notice per player");
   const grahamDay = () => pushLines().filter((l) => l.userId === ctx.ids.graham && l.kind === "game_day");
   ok(grahamDay().length === 1 && grahamDay()[0].sent === true && (grahamDay()[0].devices ?? 0) >= 1, "Graham gets one game-day push, and nothing is sent to a push service");
   const again = await cronCall();

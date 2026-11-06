@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@/lib/router";
 import { useMe, type MeSlot } from "@/lib/auth";
 import { GameLine, Rsvp } from "@/components/Schedule";
-import { Delta, Empty, FaceoffDot, GameRow, Loading, More, Section, TeamBadge, fmtDate, fmtRating, useFilter, type GameCard } from "@/lib/ui";
+import { Delta, Empty, FaceoffDot, GameRow, HomeFeedSkeleton, More, Section, TeamBadge, fmtDate, fmtRating, useFilter, type GameCard } from "@/lib/ui";
 
 type Feed = { games: GameCard[]; movers: any[]; leaders: any[]; pending: any[] };
 
@@ -33,7 +33,7 @@ export default function Home() {
         <div className="flex items-center gap-2 mb-3">
           <TeamBadge team={{ id: slot.team_id, name: slot.team_name, color: slot.color, logo: slot.logo }} size={22} />
           <Link href={`/team/${slot.team_id}`} className="font-bold text-sm truncate flex-1">{slot.team_name}</Link>
-          {next?.rsvp?.counts && <span className="text-xs text-[var(--mute)] tnum" data-testid="text-next-counts">{next.rsvp.counts.in} in{next.rsvp.counts.out ? `, ${next.rsvp.counts.out} out` : ""}</span>}
+          {next?.rsvp?.counts && <span className="text-xs text-[var(--mute)] tnum" data-testid="text-next-counts">{next.rsvp.counts.in || next.rsvp.counts.out || next.rsvp.counts.late ? `${next.rsvp.counts.in} in${next.rsvp.counts.late ? `, ${next.rsvp.counts.late} late` : ""}${next.rsvp.counts.out ? `, ${next.rsvp.counts.out} out` : ""}` : "No answers yet"}</span>}
         </div>
         {next ? (
           <>
@@ -65,7 +65,7 @@ export default function Home() {
         <span className="text-[var(--mute)]" aria-hidden="true">›</span>
       </Link>
 
-      {isLoading ? <Loading /> : data && (
+      {isLoading ? <HomeFeedSkeleton /> : data && (
         <>
           <Section title="Latest finals" action={<Link href={`/league/${slot.league_id}`} className="text-sm text-[var(--mute)] min-h-[32px] inline-flex items-center" data-testid="link-all-results">All results</Link>}>
             {data.games.length ? <div className="space-y-3">{data.games.slice(0, 3).map((g) => <GameRow key={g.id} g={g} />)}</div>
@@ -99,8 +99,8 @@ function LastResult({ slot }: { slot: MeSlot }) {
       <div className="flex items-center gap-3 mt-2">
         <span className={`h-10 w-10 rounded-xl flex items-center justify-center font-black ${res === "W" ? "bg-[rgba(56,217,150,.15)] up" : res === "L" ? "bg-[rgba(255,107,107,.15)] down" : "bg-[var(--ice-3)]"}`}>{res}</span>
         <span className="flex-1 min-w-0">
-          <span className="block font-bold truncate">{mine}–{theirs} vs {opp.name}</span>
-          <span className="block text-xs text-[var(--mute)]">{dressed ? (g.is_goalie ? "In goal" : `${g.goals} G, ${g.assists} A${g.pim ? `, ${g.pim} PIM` : ""}`) : "You weren't on the sheet"}</span>
+          <span className="block font-bold truncate">{mine}-{theirs} vs {opp.name}</span>
+          <span className="block text-xs text-[var(--mute)]">{dressed ? (g.is_goalie ? "In goal" : `${g.goals} G, ${g.assists} A${g.pim ? `, ${g.pim} PIM` : ""}`) : g.source !== "sheet" ? "Imported from DaySmart, no lines yet" : "You weren't on the sheet"}</span>
         </span>
         {delta !== null && (
           <span className="text-right">
@@ -157,7 +157,7 @@ function Welcome({ place, data, isLoading, pending, signedIn }: { place: string;
           <span className="text-sm font-bold text-[var(--amber)]">Review</span>
         </Link>
       ))}
-      {isLoading ? <Loading /> : data && (
+      {isLoading ? <HomeFeedSkeleton /> : data && (
         <>
           <Section title="Latest finals" action={<Link href="/leagues" className="text-sm text-[var(--mute)]" data-testid="link-all-standings">Standings</Link>}>
             {data.games.length ? (

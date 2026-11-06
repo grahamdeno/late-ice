@@ -3,7 +3,7 @@ import { authHeaders, apiUrl } from "@/lib/queryClient";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "@/lib/router";
 import { useMe, act, ROLE_LABEL } from "@/lib/auth";
-import { Empty, LevelPill, Loading, More, RowLink, Section, TeamBadge } from "@/lib/ui";
+import { Empty, LevelPill, MeSkeleton, More, RowLink, Section, TeamBadge } from "@/lib/ui";
 import { GameLine } from "@/components/Schedule";
 import { AvatarBuilder } from "@/components/AvatarBuilder";
 import { PlayerCard } from "@/components/PlayerCard";
@@ -26,9 +26,9 @@ export default function MePage() {
   useEffect(() => { if (!loading && !me) nav("/join"); }, [loading, me, nav]);
   useEffect(() => { if (me && !me.user.profileComplete) nav("/join"); }, [me, nav]);
 
-  if (loading || !me) return <Loading />;
+  if (loading || !me) return <MeSkeleton />;
   const u = me.user;
-  const run = async (method: string, url: string, body?: unknown) => setErr(await act(method, url, body));
+  const run = async (method: string, url: string, body?: unknown) => setErr(await act(method, url, body, ["/api/me", "/api/players", "/api/teams", "/api/pool", "/api/feed"]));
   const main = me.slots[0];
   const archetype = u.archetypeSelf ?? main?.archetype?.archetype ?? null;
   const gear = (
@@ -160,7 +160,7 @@ export default function MePage() {
 
 function Notifications({ me }: { me: any }) {
   if (!me.notifications.length) return null;
-  const markRead = () => { if (me.unread) act("POST", "/api/me/notifications/read"); };
+  const markRead = () => { if (me.unread) act("POST", "/api/me/notifications/read", undefined, ["/api/me"]); };
   return (
     <div onClick={markRead}>
       <More title="Notifications" hint={me.unread ? `${me.unread} new` : "All caught up"} count={me.notifications.length} testid="row-notifications">

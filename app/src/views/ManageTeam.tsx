@@ -30,7 +30,7 @@ export default function ManageTeam({ id }: { id: string }) {
   const isCaptain = myRole === "captain" || (!myRole && me.staff);
   const canMerge = myRole === "captain" || (me.roles ?? []).some((r: any) => ["commissioner", "rink_manager", "admin"].includes(r.role));
   const assistants: { id: number; name: string }[] = team.data?.assistants ?? [];
-  const run = async (method: string, url: string, body?: unknown) => { const r = await act(method, url, body); setErr(r); return !r; };
+  const run = async (method: string, url: string, body?: unknown) => { const r = await act(method, url, body, ["/api/teams", "/api/me", "/api/players", "/api/standings", "/api/pool"]); setErr(r); return !r; };
   const c = data.counts;
   const skaters = data.slots.filter((s: any) => !s.is_sub && s.position !== "G" && !isOut(s));
   const goalies = data.slots.filter((s: any) => !s.is_sub && s.position === "G" && !isOut(s));
@@ -309,11 +309,11 @@ export function InviteLink({ teamId, teamName, invites }: { teamId: number; team
           <div className="text-[11px] text-[var(--mute)] mt-1">{inv.uses} of {inv.maxUses ?? inv.max_uses} uses</div>
           <div className="grid grid-cols-2 gap-2 mt-2">
             <button className="btn btn-red h-10 text-sm" onClick={share} data-testid="button-share-invite">{copied ? "Copied" : "Share link"}</button>
-            <button className="btn btn-ghost h-10 text-sm" onClick={async () => { if (!confirm("Turn this link off? Anyone who has it won't get in.")) return; setErr(await act("DELETE", `/api/teams/${teamId}/invite`)); }} data-testid="button-revoke-invite">Turn off link</button>
+            <button className="btn btn-ghost h-10 text-sm" onClick={async () => { if (!confirm("Turn this link off? Anyone who has it won't get in.")) return; setErr(await act("DELETE", `/api/teams/${teamId}/invite`, undefined, ["/api/teams"])); }} data-testid="button-revoke-invite">Turn off link</button>
           </div>
         </>
       ) : (
-        <button className="btn btn-red h-10 text-sm mt-2" onClick={async () => setErr(await act("POST", `/api/teams/${teamId}/invite`))} data-testid="button-make-invite">Make an invite link</button>
+        <button className="btn btn-red h-10 text-sm mt-2" onClick={async () => setErr(await act("POST", `/api/teams/${teamId}/invite`, undefined, ["/api/teams"]))} data-testid="button-make-invite">Make an invite link</button>
       )}
       {err && <p className="text-xs down mt-2">{err}</p>}
     </div>

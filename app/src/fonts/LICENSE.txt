@@ -1,0 +1,21 @@
+Satoshi
+Copyright Indian Type Foundry.
+
+These three files are the Satoshi faces served by Fontshare's public CSS for weights 500, 700 and 900:
+
+https://api.fontshare.com/v2/css?f[]=satoshi@500,700,900&display=swap
+https://www.fontshare.com/fonts/satoshi
+
+Satoshi-Medium.woff2 is font-weight 500.
+Satoshi-Bold.woff2 is font-weight 700.
+Satoshi-Black.woff2 is font-weight 900.
+
+The family name inside that stylesheet is Satoshi. A Zodiak face that the same stylesheet also referenced was not copied.
+
+Fontshare publishes Satoshi for use in personal and commercial projects, including websites and apps. These files are not sold here and are not offered as a font product of their own. See https://www.fontshare.com/fonts/satoshi for the foundry's terms.
+
+Big Shoulders Display
+Copyright 2019 The Big Shoulders Project Authors (https://github.com/xotypeco/big_shoulders)
+Licensed under the SIL Open Font License 1.1. The full text is BigShouldersDisplay-OFL.txt in this folder.
+
+BigShouldersDisplay-latin.woff2 is the Latin subset Google Fonts serves for Big Shoulders Display, weights 700 through 900 (one variable file). This Next.js version's next/font/google module does not export that family (it exports Big Shoulders, a different set of files), so the Display face is loaded with next/font/local instead of being renamed.

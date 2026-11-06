@@ -46,7 +46,7 @@ export function AvatarBuilder({ saved, jersey, number, archetype, goalie, bare =
           <Row label="Extras"><Pill on={a.eyeBlack} onClick={() => set({ eyeBlack: !a.eyeBlack })}>Eye black</Pill></Row>
         </div>
         {err && <p className="text-sm down mt-3">{err}</p>}
-        <button className="btn btn-red w-full h-11 mt-4" disabled={!dirty && !!saved} onClick={async () => { const e = await act("PATCH", "/api/me", { avatar: a }); setErr(e); if (!e) setSavedAt(Date.now()); }} data-testid="button-save-avatar">{savedAt && !dirty ? "Saved" : "Save my bobblehead"}</button>
+        <button className="btn btn-red w-full h-11 mt-4" disabled={!dirty && !!saved} onClick={async () => { const e = await act("PATCH", "/api/me", { avatar: a }, ["/api/me"]); setErr(e); if (!e) setSavedAt(Date.now()); }} data-testid="button-save-avatar">{savedAt && !dirty ? "Saved" : "Save my bobblehead"}</button>
       </div>
   );
   return bare ? inner : <Section title="Your bobblehead">{inner}</Section>;

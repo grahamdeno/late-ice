@@ -6,7 +6,7 @@ import { useMe, act, posMatch } from "@/lib/auth";
 import { Bobble } from "@/components/Bobble";
 import { PlayerCard } from "@/components/PlayerCard";
 import { ARCHETYPE_BLURB, ARCHETYPE_LABEL } from "@/components/Archetypes";
-import { BackBar, Delta, Empty, LevelPill, Loading, TeamBadge, fmtDate, fmtRating, useFilter } from "@/lib/ui";
+import { BackBar, Delta, Empty, LevelPill, Loading, PlayersSkeleton, TeamBadge, fmtDate, fmtRating, useFilter } from "@/lib/ui";
 
 /** Players answers "where do I rank": your row pinned, the top ten, the full list one tap away. */
 export function Players() {
@@ -45,12 +45,12 @@ export function Players() {
         </button>
       </div>
       {searching && <input autoFocus value={qs} onChange={(e) => setQs(e.target.value)} placeholder="Find a player" className="mt-3 w-full h-11 rounded-xl bg-[var(--ice-2)] border border-[var(--line)] px-4 focus:outline-none focus:border-[var(--red)]" data-testid="input-player-search" />}
-      <div className="flex gap-1.5 mt-3 overflow-x-auto scrollbar-none -mx-4 px-4">
+      <div className="flex gap-2 mt-3 overflow-x-auto scrollbar-none -mx-4 px-4">
         {([["skaters", "Skaters"], ["C", "Center"], ["W", "Wing"], ["D", "Defense"], ["G", "Goalie"]] as const).map(([k, label]) => (
           <button key={k} onClick={() => setPos(k)} data-active={pos === k} className="chip shrink-0 h-9" data-testid={`button-pos-${k}`}>{label}</button>
         ))}
       </div>
-      {!data ? <Loading /> : rows.length === 0 ? (
+      {!data ? <PlayersSkeleton /> : rows.length === 0 ? (
         <div className="mt-4"><Empty title={qs ? "No match" : pos !== "skaters" ? "Nobody at this position yet" : "No players yet"} body={qs ? "Try another spelling." : pos !== "skaters" ? "Players set their position on their profile. Imported spots are just forward until someone claims them." : "Players appear the moment their first scoresheet is scanned."} /></div>
       ) : (
         <>
@@ -131,7 +131,7 @@ export function PlayerPage({ id }: { id: string }) {
                 <span className="block text-xs text-[var(--mute)]">{x.won ? (x.won.self ? `Picked by the player.${x.won.teamVote ? ` Team vote: ${ARCHETYPE_LABEL[x.won.teamVote]}.` : ""}` : `${ARCHETYPE_BLURB[x.won.archetype]}. ${x.won.votes} teammates agree.`) : `Shows once ${x.minVotes} teammates agree.`}</span>
               </span>
               {x.canVote && (
-                <select className="input h-9 text-sm w-[140px]" aria-label={`Your vote for ${player.name}`} value={x.mine ?? ""} onChange={async (e) => setVoteErr(await act("PUT", `/api/teams/${x.teamId}/archetypes`, { playerId: player.id, archetype: e.target.value || null }))} data-testid={`select-player-archetype-${x.teamId}`}>
+                <select className="input h-9 text-sm w-[140px]" aria-label={`Your vote for ${player.name}`} value={x.mine ?? ""} onChange={async (e) => setVoteErr(await act("PUT", `/api/teams/${x.teamId}/archetypes`, { playerId: player.id, archetype: e.target.value || null }, ["/api/players", "/api/teams"]))} data-testid={`select-player-archetype-${x.teamId}`}>
                   <option value="">Your vote</option>
                   {Object.entries(ARCHETYPE_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
                 </select>
@@ -238,7 +238,7 @@ function ClaimCard({ player }: { player: any }) {
             onClick={async () => {
               if (!me) return nav("/join");
               if (!me.user.profileComplete) return nav("/join");
-              const e = await act("POST", `/api/players/${player.id}/claim`);
+              const e = await act("POST", `/api/players/${player.id}/claim`, undefined, ["/api/me", "/api/players", "/api/teams"]);
               setErr(e);
               if (!e) nav("/me");
             }}
@@ -254,7 +254,7 @@ function ClaimCard({ player }: { player: any }) {
           {!hideOpen ? (
             <button className="text-xs text-[var(--mute)] underline" onClick={() => setHideOpen(true)} data-testid="button-hide-open">Don't want your name here? Hide it.</button>
           ) : (
-            <form className="card p-4 space-y-2" onSubmit={async (e) => { e.preventDefault(); const r = await act("POST", `/api/players/${player.id}/hide`, { contact }); setErr(r); if (!r) setHidden(true); }}>
+            <form className="card p-4 space-y-2" onSubmit={async (e) => { e.preventDefault(); const r = await act("POST", `/api/players/${player.id}/hide`, { contact }, ["/api/players", "/api/me"]); setErr(r); if (!r) setHidden(true); }}>
               <div className="text-sm font-bold">Hide this name</div>
               <p className="text-xs text-[var(--mute)]">The name is replaced with the jersey number everywhere. Games still count for the team. No account needed.</p>
               <input className="input w-full" placeholder="Phone or email (optional, so we can reach you)" value={contact} onChange={(e) => setContact(e.target.value)} data-testid="input-hide-contact" />

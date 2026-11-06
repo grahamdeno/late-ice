@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@/lib/router";
-import { apiRequest, queryClient, setToken } from "@/lib/queryClient";
+import { apiRequest, invalidatePrefixes, queryClient, setToken } from "@/lib/queryClient";
 import { useMe, normEmail, POSITION_LABEL, INVITE_KEY } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import { FaceoffDot, Loading, useFilter } from "@/lib/ui";
@@ -89,11 +89,11 @@ export default function Join() {
     const { data, error } = await supabase().auth.verifyOtp({ email: addr, token: code, type: "email" });
     if (error || !data.session) { setErr(codeError(error?.message ?? "invalid", sentAt)); setBusy(false); return; }
     setToken(data.session.access_token);
-    // AuthProvider also picks up the session; load the profile to decide where to go.
+    // The account changed. Drop anonymous responses before the profile decides where to go.
+    queryClient.removeQueries();
     try {
       const res = await apiRequest("GET", "/api/me");
       const j = await res.json();
-      await queryClient.invalidateQueries();
       if (j.user.profileComplete) nav("/me"); else setStep("profile");
     } catch (e: any) { setErr(e.message); }
     setBusy(false);
@@ -173,7 +173,7 @@ export function ProfileForm({ onDone, submitLabel = "Join the draft pool" }: { o
     try {
       await apiRequest("PATCH", "/api/me", { name, number, position, homeRinkId: rink, age18: age });
       if (rink) setRinkId(rink);
-      await queryClient.invalidateQueries();
+      await invalidatePrefixes(["/api/me", "/api/players", "/api/feed", "/api/bootstrap", "/api/standings", "/api/teams"]);
       onDone();
     } catch (e: any) { setErr(e.message); }
     setBusy(false);

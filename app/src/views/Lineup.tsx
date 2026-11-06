@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@/lib/router";
 import { act, POSITION_LABEL } from "@/lib/auth";
-import { queryClient } from "@/lib/queryClient";
 import { Loading, fmtDate } from "@/lib/ui";
 import { Bobble } from "@/components/Bobble";
 
@@ -39,8 +38,8 @@ export default function Lineup({ teamId, gameId }: { teamId: string; gameId: str
   };
   const save = async () => {
     setBusy("save"); setErr(null);
-    const e = await act("PUT", key, L);
-    setErr(e); if (!e) { setDirty(false); await queryClient.invalidateQueries({ queryKey: [key] }); }
+    const e = await act("PUT", key, L, [key, "/api/teams", "/api/me"]);
+    setErr(e); if (!e) setDirty(false);
     setBusy(null);
   };
   const share = async () => {
