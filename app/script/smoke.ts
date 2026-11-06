@@ -597,10 +597,10 @@ async function main() {
   ok((await call("GET", `/api/leagues/${hhLeague}`)).json.standings.some((t: any) => t.id === hh), "restored team is back in the standings");
   ok((await call("PATCH", `/api/rinks/${rinkId}`, { archived: true }, mt)).status === 403, "only admins archive rinks");
   const seasonsBefore = (await call("GET", "/api/staff/overview", undefined, boss)).json.rinks.find((r: any) => r.id === rinkId).seasons;
-  const added = await call("POST", `/api/rinks/${rinkId}/seasons`, { name: "Spring 2031", startsOn: "2031-04-01", endsOn: "2031-06-30" }, boss);
-  ok(added.status === 200, "admin adds a season");
-  ok((await call("PATCH", `/api/seasons/${added.json.id}`, { name: "Spring 31" }, boss)).status === 200, "and renames it");
-  ok((await call("DELETE", `/api/seasons/${added.json.id}`, undefined, boss)).status === 200, "an empty season can be deleted");
+  const addedSeason = await call("POST", `/api/rinks/${rinkId}/seasons`, { name: "Spring 2031", startsOn: "2031-04-01", endsOn: "2031-06-30" }, boss);
+  ok(addedSeason.status === 200, "admin adds a season");
+  ok((await call("PATCH", `/api/seasons/${addedSeason.json.id}`, { name: "Spring 31" }, boss)).status === 200, "and renames it");
+  ok((await call("DELETE", `/api/seasons/${addedSeason.json.id}`, undefined, boss)).status === 200, "an empty season can be deleted");
   const withGames = seasonsBefore.find((x: any) => x.games > 0);
   if (withGames) ok((await call("DELETE", `/api/seasons/${withGames.id}`, undefined, boss)).status === 409, "a season with games can't be deleted");
   ok((await call("POST", "/api/rink-access", { rinkId, message: "front desk" }, sam)).status === 200, "a player requests rink access");
