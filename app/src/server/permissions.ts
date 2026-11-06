@@ -65,7 +65,8 @@ export function forget(user: any) { if (user) grantCache.delete(user); }
 
 /** Fill in league and rink from the most specific id given. */
 async function resolve(db: Tx, s: Scope): Promise<Required<Scope> | { teamId: number | undefined; leagueId: number | undefined; rinkId: number | undefined }> {
-  let { teamId, leagueId, rinkId } = s;
+  const { teamId } = s;
+  let { leagueId, rinkId } = s;
   if (teamId && !leagueId) leagueId = (await one<{ league_id: number }>(db, "SELECT league_id FROM teams WHERE id=$1", [teamId]))?.league_id;
   if (leagueId && !rinkId) rinkId = (await one<{ rink_id: number }>(db, "SELECT rink_id FROM leagues WHERE id=$1", [leagueId]))?.rink_id;
   return { teamId, leagueId, rinkId };
