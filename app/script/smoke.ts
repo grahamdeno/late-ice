@@ -6,7 +6,7 @@ import { readFileSync, unlinkSync } from "node:fs";
 import { createServer } from "node:http";
 import postgres from "postgres";
 import { createClient } from "@supabase/supabase-js";
-// @ts-ignore plain JS helper
+// @ts-expect-error plain JS helper, outside the TypeScript program
 import { latestCode, lastMailId } from "./mail.mjs";
 
 const PORT = 3099;
@@ -521,7 +521,7 @@ async function main() {
 
   console.log("roles: bootstrap admin");
   const boss = await signUp("boss@example.com", { name: "Pat Boss", number: "1", position: "G" });
-  let bossMe = await call("GET", "/api/me", undefined, boss);
+  const bossMe = await call("GET", "/api/me", undefined, boss);
   ok(bossMe.json.staff === true && bossMe.json.roles.some((r: any) => r.role === "admin"), "BOOTSTRAP_ADMIN_EMAIL becomes admin on first sign-in");
   ok((await call("GET", "/api/me", undefined, graham)).json.roles.every((r: any) => r.role !== "admin"), "nobody else becomes admin");
   ok((await call("GET", "/api/staff/overview", undefined, sam)).status === 403, "staff page is closed to players");

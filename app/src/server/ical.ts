@@ -93,7 +93,8 @@ export function parseSummary(summary: string, ownName: string, similarity: (a: s
   const s = summary.replace(/\s+/g, " ").trim();
   const m = s.match(/^(.*?)\s+(?:(W|L|T|OTL|SOL|OTW|SOW)\s+(\d+)\s*-\s*(\d+)\s+)?(vs\.?|v\.?|@|at)\s+(.+)$/i);
   if (!m) return { opponent: null as string | null, isHome: null as boolean | null, result: null as string | null };
-  let [, left, wl, a, b, sep, right] = m;
+  const [, left, wl, a, b, sep, rightRaw] = m;
+  let right = rightRaw;
   right = right.replace(/\s*[-–(].*$/, "").trim();
   const away = /^(@|at)$/i.test(sep);
   // Whichever side looks less like us is the opponent.
