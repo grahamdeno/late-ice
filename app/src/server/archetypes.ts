@@ -61,7 +61,7 @@ export async function canSetCaptainArchetype(db: Tx, userId: number | null | und
 
 /** Captain of this team, or an admin, sets the archetype shown for one roster player. Null clears it. */
 export async function setCaptainArchetype(db: Tx, actorId: number, teamId: number, playerId: number, archetype: string | null) {
-  if (archetype !== null && !(ARCHETYPES as readonly string[]).includes(archetype)) throw new HttpError(400, "Pick one of the archetypes.");
+  if (archetype !== null && !(ARCHETYPES as readonly string[]).includes(archetype)) throw new HttpError(400, "Pick one of the player types.");
   if (!(await canSetCaptainArchetype(db, actorId, teamId))) throw new HttpError(403, "Only this team's captain can set that.");
   if (!(await one(db, "SELECT 1 FROM roster_entries WHERE team_id=$1 AND player_id=$2", [teamId, playerId]))) throw new HttpError(404, "That player isn't on this team.");
   await q(db, "UPDATE roster_entries SET archetype_override=$1 WHERE team_id=$2 AND player_id=$3", [archetype, teamId, playerId]);
@@ -75,13 +75,13 @@ export async function setArchetypeOptOut(db: Tx, actorId: number, targetUserId: 
 
 /** Set or clear your own archetype. System admin only. */
 export async function setOwnArchetype(db: Tx, userId: number, archetype: string | null) {
-  if (archetype !== null && !(ARCHETYPES as readonly string[]).includes(archetype)) throw new HttpError(400, "Pick one of the archetypes.");
+  if (archetype !== null && !(ARCHETYPES as readonly string[]).includes(archetype)) throw new HttpError(400, "Pick one of the player types.");
   if (!(await one(db, "SELECT 1 FROM role_grants WHERE user_id=$1 AND role='admin' AND revoked_at IS NULL", [userId]))) throw new HttpError(403, "Your teammates pick yours.");
   await q(db, "UPDATE users SET archetype_self=$1 WHERE id=$2", [archetype, userId]);
 }
 
 export async function castVote(db: Tx, teamId: number, voterId: number, playerId: number, archetype: string | null) {
-  if (archetype !== null && !(ARCHETYPES as readonly string[]).includes(archetype)) throw new HttpError(400, "Pick one of the archetypes.");
+  if (archetype !== null && !(ARCHETYPES as readonly string[]).includes(archetype)) throw new HttpError(400, "Pick one of the player types.");
   if (!(await one(db, "SELECT 1 FROM players p JOIN roster_entries re ON re.player_id=p.id WHERE p.user_id=$1 AND re.team_id=$2 AND NOT re.is_sub", [voterId, teamId]))) throw new HttpError(403, "Only players on this team vote.");
   const target = await one<any>(db, "SELECT p.user_id FROM players p JOIN roster_entries re ON re.player_id=p.id WHERE p.id=$1 AND re.team_id=$2 AND NOT re.is_sub", [playerId, teamId]);
   if (!target) throw new HttpError(404, "That player isn't on this team.");

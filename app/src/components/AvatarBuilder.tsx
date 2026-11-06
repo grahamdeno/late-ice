@@ -28,7 +28,7 @@ export function AvatarBuilder({ saved, jersey, number, archetype, goalie, bare =
         <div className="flex items-center gap-4">
           <Bobble avatar={a} jersey={jersey} number={number} archetype={archetype?.archetype} goalie={goalie} size={112} label="Your bobblehead" />
           <div className="text-sm min-w-0">
-            <div className="font-bold">{archetype ? ARCHETYPE_LABEL[archetype.archetype] : "No archetype yet"}</div>
+            <div className="font-bold">{archetype ? ARCHETYPE_LABEL[archetype.archetype] : "No player type yet"}</div>
             <p className="text-xs text-[var(--mute)] mt-0.5">{archetype ? `Your teammates voted (${archetype.votes}). It sets the face and the prop.` : "Your teammates vote it from the team page. It sets the face and adds a prop."}</p>
             <p className="text-xs text-[var(--mute)] mt-1">Jersey and number come from your team.</p>
           </div>

@@ -130,7 +130,7 @@ export function PlayerPage({ id }: { id: string }) {
           {data.archetypes.filter((x: any) => x.won || x.canVote).map((x: any) => (
             <div key={x.teamId} className="p-3.5 flex items-center gap-3 text-sm">
               <span className="flex-1 min-w-0">
-                <span className="block font-bold">{x.won ? ARCHETYPE_LABEL[x.won.archetype] : "No archetype yet"}<span className="text-[var(--mute)] font-medium"> · {x.teamName}</span></span>
+                <span className="block font-bold">{x.won ? ARCHETYPE_LABEL[x.won.archetype] : "No player type yet"}<span className="text-[var(--mute)] font-medium"> · {x.teamName}</span></span>
                 <span className="block text-xs text-[var(--mute)]">{x.won ? (x.won.self ? `Picked by the player.${x.won.teamVote ? ` Team vote: ${ARCHETYPE_LABEL[x.won.teamVote]}.` : ""}` : `${ARCHETYPE_BLURB[x.won.archetype]}. ${x.won.votes} teammates agree.`) : `Shows once ${x.minVotes} teammates agree.`}</span>
               </span>
               {x.canVote && (

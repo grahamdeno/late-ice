@@ -72,12 +72,12 @@ export default function Settings() {
       <Section title="Privacy">
         <div className="card p-4">
           <Toggle label="Hide my name" hint={`Show "Player #${u.number ?? "?"}" everywhere. Your games still count for your team.`} on={u.hidden} onClick={() => run("PATCH", "/api/me", { hidden: !u.hidden })} testid="switch-hidden" />
-          <Toggle label="Hide my archetype" hint="No label from your team's vote, your captain or anyone else shows on your profile or your team page." on={!!u.archetypeOptOut} onClick={() => run("PATCH", "/api/me", { archetypeOptOut: !u.archetypeOptOut })} testid="switch-archetype-opt-out" />
+          <Toggle label="Hide my player type" hint="No label from your team's vote, your captain or anyone else shows on your profile or your team page." on={!!u.archetypeOptOut} onClick={() => run("PATCH", "/api/me", { archetypeOptOut: !u.archetypeOptOut })} testid="switch-archetype-opt-out" />
         </div>
       </Section>
 
       {me.roles.some((r) => r.role === "admin") && (
-        <Section title="Your archetype">
+        <Section title="Your player type">
           <div className="card p-4" data-testid="card-own-archetype">
             <p className="text-xs text-[var(--mute)]">As system admin you can pick your own. Your team's vote is kept and still shows next to it.</p>
             <select className="input w-full mt-2" value={u.archetypeSelf ?? ""} onChange={async (e) => setErr(await act("PATCH", "/api/me", { archetypeSelf: e.target.value || null }, ["/api/me", "/api/players"]))} data-testid="select-own-archetype">

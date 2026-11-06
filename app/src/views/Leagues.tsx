@@ -246,7 +246,7 @@ export function TeamPage({ id }: { id: string }) {
       <More title="Games" hint="Every final this season" count={games.length} testid="button-more-games">
         {games.length ? <div className="space-y-3 p-3">{games.map((g: any) => <GameRow key={g.id} g={g} />)}</div> : <div className="p-4 text-sm text-[var(--mute)]">No games yet. Snap the sheet after this team's next game.</div>}
       </More>
-      <More title="Archetypes" hint="What teammates say each player is" testid="button-more-archetypes"><div className="px-3 pb-3"><ArchetypeVotes teamId={team.id} roster={roster} data={data.archetypes} />{data.can?.overrideArchetype && <ArchetypeOverride teamId={team.id} roster={roster} data={data.archetypes} />}</div></More>
+      <More title="Player types" hint="Sniper, grinder, playmaker: what teammates say each player is" testid="button-more-archetypes"><div className="px-3 pb-3"><ArchetypeVotes teamId={team.id} roster={roster} data={data.archetypes} />{data.can?.overrideArchetype && <ArchetypeOverride teamId={team.id} roster={roster} data={data.archetypes} />}</div></More>
       <More title="Where the goals come from" hint="Shot map from scanned sheets" testid="button-more-shotmap"><div className="px-3 pb-3"><ShotMap teamId={team.id} /></div></More>
       <More title="Tournaments" testid="button-more-tournaments"><div className="px-3 pb-3"><TeamTournaments teamId={team.id} canManage={!!data.can?.manageRoster} /></div></More>
       {data.can?.remove && (
