@@ -33,6 +33,13 @@ jobs:
             git add package-lock.json && git commit -qm "Add package-lock.json [ci]" && git push
           fi
 
+      - name: Lint
+        continue-on-error: true
+        run: |
+          # No ESLint config exists, so next lint offers to create one. Close stdin so it
+          # exits instead of waiting. The step stays non-blocking.
+          npx next lint < /dev/null
+
       - name: Start local Supabase (Postgres, Auth, Storage)
         run: |
           # Image registries rate-limit shared CI runners; try each, with a pause between.
@@ -57,6 +64,9 @@ jobs:
 
       - name: Build (includes the type check)
         run: npm run build
+
+      - name: Unit tests
+        run: npm test
 
       - name: Smoke test (API end to end)
         run: npx tsx script/smoke.ts

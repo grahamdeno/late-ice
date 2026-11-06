@@ -125,6 +125,12 @@ async function main() {
 
   await start();
 
+  console.log("health");
+  {
+    const health = await call("GET", "/api/health");
+    ok(health.status === 200 && health.json?.ok === true && health.json?.db === true, "health check reads the database");
+  }
+
   console.log("database is locked to the server");
   const anon = createClient(env.NEXT_PUBLIC_SUPABASE_URL!, env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false } });
   const leak = await anon.from("players").select("name").limit(1);
