@@ -32,7 +32,7 @@ export default function Game({ id, fresh }: { id: string; fresh?: boolean }) {
         </div>
       )}
 
-      <div className="card-hi p-5">
+      <div className="hero p-5">
         <div className="flex items-center justify-between mb-4">
           <LevelPill level={g.league.level} />
           <span className="label">Final{g.startTime ? ` · ${g.startTime}` : ""}</span>

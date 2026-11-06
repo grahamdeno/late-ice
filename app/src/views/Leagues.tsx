@@ -193,9 +193,8 @@ export function TeamPage({ id }: { id: string }) {
   return (
     <div>
       <BackBar href={`/league/${league.id}`} title={league.name} />
-      <div className="card-hi p-5 overflow-hidden relative">
-        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full opacity-20" style={{ background: team.color }} />
-        <div className="flex items-center gap-4 relative">
+      <div className="hero p-5" style={{ ["--team" as any]: team.color || undefined }}>
+        <div className="flex items-center gap-4">
           <TeamBadge team={team} size={64} />
           <div className="min-w-0">
             <div className="flex items-center gap-2"><LevelPill level={league.level === "DEMO" ? "Demo" : league.level} /><span className="label">{season?.name ?? "Polar Ice"}</span></div>
@@ -204,9 +203,9 @@ export function TeamPage({ id }: { id: string }) {
         </div>
         <div className="grid grid-cols-4 gap-2 mt-5 text-center">
           {[["Record", `${record.w}-${record.l}-${record.t}`], ["Points", record.pts], ["GF-GA", record.gf != null && record.gp ? `${record.gf}-${record.ga}` : "–"], ["Strength", fmtRating(rating)]].map(([k, v]) => (
-            <div key={k as string} className="rounded-xl bg-[var(--ice-3)] py-2.5">
+            <div key={k as string} className="tile py-2.5">
               <div className="font-display text-xl tnum">{v}</div>
-              <div className="text-[10px] label">{k}</div>
+              <div className="text-[11px] text-[var(--mute)] font-bold">{k}</div>
             </div>
           ))}
         </div>

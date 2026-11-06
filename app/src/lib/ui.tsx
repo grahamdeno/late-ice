@@ -113,9 +113,9 @@ export function GameRow({ g }: { g: GameCard }) {
 
 export function Section({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="mt-7">
+    <section className="mt-8">
       <div className="flex items-end justify-between gap-3 mb-3 px-1">
-        <h2 className="min-w-0 text-[17px] font-black tracking-tight">{title}</h2>
+        <h2 className="min-w-0 text-[18px] font-black tracking-tight">{title}</h2>
         {action}
       </div>
       {children}

@@ -37,7 +37,7 @@ export function PlayerCard({
     </span>
   );
   return (
-    <div className="card-hi p-4" data-testid="card-player">
+    <div className="hero p-5" style={{ ["--team" as any]: main?.color || undefined }} data-testid="card-player">
       <div className="flex items-start gap-3">
         <Bobble avatar={avatar} jersey={main?.color} number={main?.number ?? null} archetype={archetype ?? null} goalie={position === "G"} size={60} label={`${name}'s bobblehead`} />
         <div className="min-w-0 flex-1">

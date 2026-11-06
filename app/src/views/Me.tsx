@@ -227,7 +227,7 @@ function StaffCard({ roles }: { roles: { role: string }[] }) {
   const waiting = (requests?.length ?? 0) + (signups?.length ?? 0);
   const title = admin ? "Admin tools" : roles.some((r) => r.role === "support") ? "Support tools" : "Rink tools";
   return (
-    <Link href="/staff" className="mt-3 flex items-center gap-3 rounded-2xl p-4 border border-[var(--red)] bg-[var(--red-dim)]" data-testid="link-staff">
+    <Link href="/staff" className="mt-3 flex items-center gap-3 rounded-[22px] p-4 bg-[var(--red-dim)]" data-testid="link-staff">
       <span className="flex-1 min-w-0">
         <span className="block font-black">{title}</span>
         <span className="block text-xs text-[var(--mute)]">{admin ? "Rinks, leagues, teams, seasons, staff and requests" : "Leagues, teams, seasons and requests"}</span>
