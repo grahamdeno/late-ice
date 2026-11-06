@@ -73,7 +73,12 @@ export function NotificationSettings({ overlay = false }: { overlay?: boolean })
       const perm = await Notification.requestPermission();
       if (perm !== "granted") { setStatus("Notifications stay off in this browser."); return; }
       const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(prefs.publicKey) });
+      const key = urlBase64ToUint8Array(prefs.publicKey);
+      // A subscription made with an older server key can't be reused or replaced in place.
+      const old = await reg.pushManager.getSubscription();
+      const oldKey = old?.options?.applicationServerKey ? new Uint8Array(old.options.applicationServerKey as ArrayBuffer) : null;
+      if (old && (!oldKey || oldKey.length !== key.length || oldKey.some((b, i) => b !== key[i]))) await old.unsubscribe();
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
       await apiRequest("POST", "/api/push/subscribe", sub.toJSON());
       setStatus("This browser can send notifications.");
     } catch {

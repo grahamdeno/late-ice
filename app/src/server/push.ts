@@ -154,7 +154,9 @@ export async function deliverNotice(db: Tx, userId: number, n: Notice) {
       await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, payload);
     } catch (e: any) {
       const status = e?.statusCode;
-      if (status === 404 || status === 410) await q(db, "DELETE FROM push_subscriptions WHERE id=$1 AND user_id=$2", [sub.id, userId]);
+      // 404/410: the device unsubscribed. 401/403: it was made with an older key (after a key
+      // rotation) and can never be reached again. Either way, drop it; the person turns it back on.
+      if (status === 404 || status === 410 || status === 401 || status === 403) await q(db, "DELETE FROM push_subscriptions WHERE id=$1 AND user_id=$2", [sub.id, userId]);
     }
   }
 }
