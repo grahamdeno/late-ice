@@ -94,6 +94,7 @@ async function join(page, email, name, number, pos) {
   await page.getByTestId("input-name").fill(name);
   await page.getByTestId("input-number").fill(number);
   await page.getByTestId(`button-position-${pos}`).click();
+  await page.getByTestId("input-age").check();
 }
 
 try {
@@ -149,6 +150,7 @@ try {
   await shoot(page, "manage-team");
   await page.locator('[data-testid^="button-slot-"]').first().click();
   await shoot(page, "manage-team-row-open");
+  await page.getByTestId("button-more-add-player").click();
   await page.getByTestId("input-spot-name").fill("Pat Newguy");
   await page.getByTestId("button-spot-position-D").click();
   await page.getByTestId("button-add-spot").click();
@@ -167,6 +169,7 @@ try {
   }
   // The draft pool link lives on the Manage team page, so go back there first.
   await page.goto(BASE + `/team/${manageTeamId}/manage`); await page.waitForTimeout(1000);
+  await page.getByTestId("button-more-invites").click();
   await page.getByTestId("link-draft").click();
   await page.waitForURL(/\/pool\//);
   await page.waitForTimeout(1000);
@@ -214,7 +217,7 @@ try {
     await pg.goto(BASE + path); await pg.waitForTimeout(1200);
     return (await pg.$$eval(`a[href^="${prefix}"]`, (as) => as.map((a) => a.getAttribute("href")))).filter((h, i, arr) => arr.indexOf(h) === i).slice(0, k);
   };
-  const routes = ["/", "/leagues", "/players", "/rink", "/scan", "/me", "/staff"];
+  const routes = ["/", "/leagues", "/players", "/rink", "/scan", "/me", "/settings", "/staff"];
   routes.push(...await hrefs(page, "/", "/game/", 3));
   routes.push(...await hrefs(page, "/leagues", "/league/", 1));
   routes.push(...await hrefs(page, "/leagues", "/team/", 2));
@@ -261,6 +264,7 @@ try {
   await page.getByTestId("button-pos-D").click(); await shoot(page, "players-defense");
   await api(page, "PATCH", "/api/me", { avatar: { skin: 3, hair: 1, helmet: "team", guard: "cage", beard: "full", style: "flow", eyeBlack: false } });
   await page.goto(`${BASE}/me`); await page.waitForTimeout(1200);
+  await page.getByTestId("row-avatar").click(); await page.waitForTimeout(400);
   await page.getByTestId("card-avatar-builder").scrollIntoViewIfNeeded().catch(() => {});
   await shoot(page, "me-bobblehead");
   // Light mode: the phone's setting, then the profile override.
@@ -269,7 +273,7 @@ try {
     await page.goto(BASE + path); await page.waitForTimeout(1100); await shoot(page, name);
   }
   await page.emulateMedia({ colorScheme: "dark" });
-  await page.goto(`${BASE}/me`); await page.waitForTimeout(1000);
+  await page.goto(`${BASE}/settings`); await page.waitForTimeout(1000);
   await page.getByTestId("button-theme-light").click();
   await page.reload(); await page.waitForTimeout(1000);
   if ((await page.evaluate(() => document.documentElement.dataset.theme)) !== "light") errors.push("picking Light on the profile didn't stick");

@@ -7,6 +7,7 @@ import { syncAllFeeds } from "@/server/schedule";
 import { runBackup } from "@/server/backup";
 import { escalateWaitingSheets } from "@/server/sheetconfirm";
 import { deleteOldSheetPhotos } from "@/server/privacy";
+import { sendGameDayNotices } from "@/server/push";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -19,11 +20,15 @@ export const GET = handle(async (req) => {
   await refreshDisplays(sql, true);
   const merges = await runDueMerges();
   const feeds = await syncAllFeeds();
-  // Injured reserve and Away end on their return date.
-  await q(sql, "UPDATE users SET status='active', status_until=NULL WHERE status IN ('ir','away') AND status_until IS NOT NULL AND status_until < to_char(now() AT TIME ZONE 'America/New_York', 'YYYY-MM-DD')");
+  // Injured reserve and Away end on their return date, on the player's home rink clock.
+  // No home rink: Eastern time, which is what every rink used before time zones existed.
+  await q(sql, `UPDATE users u SET status='active', status_until=NULL
+    WHERE u.status IN ('ir','away') AND u.status_until IS NOT NULL
+      AND u.status_until < to_char(now() AT TIME ZONE COALESCE((SELECT r.timezone FROM rinks r WHERE r.id=u.home_rink_id), 'America/New_York'), 'YYYY-MM-DD')`);
   const escalated = await escalateWaitingSheets(sql);
   const photos = await deleteOldSheetPhotos();
+  const gameDay = await sendGameDayNotices(sql);
   // Backup last, so a failure here never blocks the rest; it still shows in the logs.
   const backup = await runBackup().catch((e) => ({ error: String(e?.message ?? e) }));
-  return { ...r, merges, feeds, escalated, photos, backup };
+  return { ...r, merges, feeds, escalated, photos, gameDay, backup };
 });

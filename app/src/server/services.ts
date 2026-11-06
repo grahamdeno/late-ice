@@ -272,31 +272,171 @@ export async function teamRating(db: Tx, teamId: number) {
   return r?.r ?? null;
 }
 
-export async function standings(db: Tx, leagueId: number, seasonId: number | null = null) {
-  const teams = await q<any>(db, "SELECT * FROM teams WHERE league_id=$1", [leagueId]);
-  const rows = [];
-  for (const t of teams) rows.push({ ...t, ...(await teamRecord(db, t.id, seasonId)), rating: await teamRating(db, t.id) });
-  return rows.sort((a, b) => b.pts - a.pts || (b.diff ?? 0) - (a.diff ?? 0) || (b.gf ?? 0) - (a.gf ?? 0) || a.name.localeCompare(b.name));
+function sortStandings(rows: any[]) {
+  return rows.sort((a, b) => b.pts - a.pts || (b.diff ?? 0) - (a.diff ?? 0) || (b.gf ?? 0) - (a.gf ?? 0) || String(a.name).localeCompare(String(b.name)));
 }
 
-export async function leaders(db: Tx, leagueId: number | null, limit = 10, seasonId: number | null = null, rinkId: number | null = null) {
+/**
+ * Every team in the scope, with the same record teamRecord() builds, in one query.
+ * scope "league" takes a league id; "rink" takes a rink id and skips demo and tournament leagues.
+ */
+async function groupedStandings(db: Tx, scope: "league" | "rink", id: number, seasonId: number | null) {
+  const where = scope === "league" ? "id = $1" : "rink_id = $1 AND level NOT IN ('DEMO','TOURN')";
+  const rows = await q<any>(db, `
+    WITH leagues_in AS (
+      SELECT * FROM leagues WHERE ${where}
+    ),
+    team_in AS (
+      SELECT t.id, t.league_id FROM teams t WHERE t.league_id IN (SELECT id FROM leagues_in)
+    ),
+    game_side AS (
+      SELECT g.home_team_id AS team_id, g.home_score AS gf, g.away_score AS ga
+      FROM games g
+      WHERE g.source = 'sheet' AND g.event_id IS NULL
+        AND ($2::int IS NULL OR g.season_id = $2)
+        AND g.home_team_id IN (SELECT id FROM team_in)
+      UNION ALL
+      SELECT g.away_team_id, g.away_score, g.home_score
+      FROM games g
+      WHERE g.source = 'sheet' AND g.event_id IS NULL
+        AND ($2::int IS NULL OR g.season_id = $2)
+        AND g.away_team_id IN (SELECT id FROM team_in)
+    ),
+    game_agg AS (
+      SELECT team_id,
+        COUNT(*)::int AS scanned,
+        COUNT(*) FILTER (WHERE gf > ga)::int AS w,
+        COUNT(*) FILTER (WHERE gf < ga)::int AS l,
+        COUNT(*) FILTER (WHERE gf = ga)::int AS t,
+        COALESCE(SUM(gf), 0)::int AS gf,
+        COALESCE(SUM(ga), 0)::int AS ga
+      FROM game_side GROUP BY team_id
+    ),
+    imp_agg AS (
+      SELECT team_id,
+        COALESCE(SUM(gp), 0)::int AS gp,
+        COALESCE(SUM(w), 0)::int AS w,
+        COALESCE(SUM(l), 0)::int AS l,
+        COALESCE(SUM(t), 0)::int AS t,
+        COALESCE(SUM(gf), 0)::int AS gf,
+        COALESCE(SUM(ga), 0)::int AS ga,
+        COUNT(*)::int AS n,
+        COUNT(gf)::int AS ngf
+      FROM team_imports
+      WHERE team_id IN (SELECT id FROM team_in)
+        AND ($2::int IS NULL OR season_id = $2)
+      GROUP BY team_id
+    ),
+    rate AS (
+      SELECT re.team_id, AVG(p.rating) AS rating
+      FROM roster_entries re
+      JOIN players p ON p.id = re.player_id
+      WHERE re.team_id IN (SELECT id FROM team_in)
+      GROUP BY re.team_id
+    )
+    SELECT
+      li.id AS l_id, li.rink_id AS l_rink_id, li.level AS l_level, li.name AS l_name, li.blurb AS l_blurb,
+      li.season AS l_season, li.sort AS l_sort, li.created_at AS l_created_at, li.tag AS l_tag,
+      li.roster_max AS l_roster_max, li.goalie_max AS l_goalie_max,
+      t.id, t.league_id, t.name, t.color, t.is_sample, t.created_from_sheet, t.logo, t.created_at,
+      (COALESCE(g.scanned, 0) + COALESCE(i.gp, 0))::int AS gp,
+      COALESCE(g.scanned, 0)::int AS scanned,
+      COALESCE(i.gp, 0)::int AS imported,
+      (COALESCE(i.w, 0) + COALESCE(g.w, 0))::int AS w,
+      (COALESCE(i.l, 0) + COALESCE(g.l, 0))::int AS l,
+      (COALESCE(i.t, 0) + COALESCE(g.t, 0))::int AS t,
+      ((COALESCE(i.w, 0) + COALESCE(g.w, 0)) * 2 + (COALESCE(i.t, 0) + COALESCE(g.t, 0)))::int AS pts,
+      (COALESCE(i.n, 0) = 0 OR COALESCE(i.ngf, 0) = COALESCE(i.n, 0)) AS "goalsKnown",
+      CASE WHEN COALESCE(i.n, 0) = 0 OR COALESCE(i.ngf, 0) = COALESCE(i.n, 0)
+        THEN (COALESCE(i.gf, 0) + COALESCE(g.gf, 0))::int ELSE NULL END AS gf,
+      CASE WHEN COALESCE(i.n, 0) = 0 OR COALESCE(i.ngf, 0) = COALESCE(i.n, 0)
+        THEN (COALESCE(i.ga, 0) + COALESCE(g.ga, 0))::int ELSE NULL END AS ga,
+      CASE WHEN COALESCE(i.n, 0) = 0 OR COALESCE(i.ngf, 0) = COALESCE(i.n, 0)
+        THEN (COALESCE(i.gf, 0) + COALESCE(g.gf, 0) - COALESCE(i.ga, 0) - COALESCE(g.ga, 0))::int ELSE NULL END AS diff,
+      r.rating AS rating
+    FROM leagues_in li
+    LEFT JOIN teams t ON t.league_id = li.id
+    LEFT JOIN game_agg g ON g.team_id = t.id
+    LEFT JOIN imp_agg i ON i.team_id = t.id
+    LEFT JOIN rate r ON r.team_id = t.id
+    ORDER BY li.sort, li.id, t.name
+  `, [id, seasonId]);
+  const out: { league: any; standings: any[] }[] = [];
+  const by = new Map<number, { league: any; standings: any[] }>();
+  for (const row of rows) {
+    let g = by.get(row.l_id);
+    if (!g) {
+      g = {
+        league: {
+          id: row.l_id, rink_id: row.l_rink_id, level: row.l_level, name: row.l_name, blurb: row.l_blurb,
+          season: row.l_season, sort: row.l_sort, created_at: row.l_created_at, tag: row.l_tag,
+          roster_max: row.l_roster_max, goalie_max: row.l_goalie_max,
+        },
+        standings: [],
+      };
+      by.set(row.l_id, g);
+      out.push(g);
+    }
+    if (row.id != null) {
+      g.standings.push({
+        id: row.id, league_id: row.league_id, name: row.name, color: row.color, is_sample: row.is_sample,
+        created_from_sheet: row.created_from_sheet, logo: row.logo, created_at: row.created_at,
+        gp: row.gp, scanned: row.scanned, imported: row.imported, w: row.w, l: row.l, t: row.t, pts: row.pts,
+        goalsKnown: row.goalsKnown, gf: row.gf, ga: row.ga, diff: row.diff, rating: row.rating,
+      });
+    }
+  }
+  for (const g of out) g.standings = sortStandings(g.standings);
+  return out;
+}
+
+export async function standings(db: Tx, leagueId: number, seasonId: number | null = null) {
+  const groups = await groupedStandings(db, "league", leagueId, seasonId);
+  return groups[0]?.standings ?? [];
+}
+
+/** Every non-demo, non-tournament league at a rink, each with its standings rows. One query. */
+export async function standingsForRink(db: Tx, rinkId: number, seasonId: number | null) {
+  const groups = await groupedStandings(db, "rink", rinkId, seasonId);
+  return groups.map((g) => ({ ...g.league, standings: g.standings }));
+}
+
+/** Rink page leagues list: team count, game count and the first-place team. One query. */
+export async function leagueBoard(db: Tx, rinkId: number, seasonId: number | null) {
+  const groups = await groupedStandings(db, "rink", rinkId, seasonId);
+  return groups.map((g) => ({
+    ...g.league,
+    teams: g.standings.length,
+    games: g.standings.reduce((a, t) => a + t.gp, 0) / 2,
+    leader: g.standings[0] ?? null,
+  }));
+}
+
+export async function leaders(db: Tx, leagueId: number | null, limit = 10, seasonId: number | null = null, rinkId: number | null = null, viewerId: number | null = null) {
+  const { applyLoadedNames, sameRinkSql } = await import("./accounts");
   const params: any[] = [];
   const p = (v: any) => { params.push(v); return `$${params.length}`; };
   const scope = () => (leagueId ? `l.id=${p(leagueId)}` : "l.level NOT IN ('DEMO','TOURN')" + (rinkId ? ` AND l.rink_id=${p(rinkId)}` : "")) + (seasonId ? ` AND season_id=${p(seasonId)}` : "");
   const s1 = scope(), s2 = scope();
-  return q<any>(
+  const viewer = viewerId ? p(viewerId) : "NULL";
+  const rows = await q<any>(
     db,
     `WITH lines AS (
        SELECT s.player_id, s.team_id, s.goals g, s.assists a, gm.season_id season_id FROM player_game_stats s JOIN games gm ON gm.id=s.game_id JOIN leagues l ON l.id=gm.league_id WHERE gm.event_id IS NULL AND ${s1}
        UNION ALL
        SELECT pi.player_id, pi.team_id, pi.g, pi.a, pi.season_id FROM player_imports pi JOIN teams t ON t.id=pi.team_id JOIN leagues l ON l.id=t.league_id WHERE ${s2}
      )
-     SELECT p.id, p.display_name AS name, p.rating, p.position, SUM(x.g)::int g, SUM(x.a)::int a, SUM(x.g+x.a)::int pts,
+     SELECT p.id, p.display_name AS name, p.name AS real_name, p.user_id, p.hidden,
+       (SELECT u.hidden FROM users u WHERE u.id = p.user_id) AS user_hidden,
+       (SELECT re.number FROM roster_entries re WHERE re.player_id = p.id AND re.number IS NOT NULL AND re.number <> '' ORDER BY re.id LIMIT 1) AS number,
+       ${sameRinkSql("p.id", viewer)} AS same_rink,
+       p.rating, p.position, SUM(x.g)::int g, SUM(x.a)::int a, SUM(x.g+x.a)::int pts,
        (SELECT t.name FROM teams t WHERE t.id=x.team_id) team, x.team_id
      FROM lines x JOIN players p ON p.id=x.player_id
-     GROUP BY p.id, x.team_id HAVING SUM(x.g+x.a) > 0 ORDER BY pts DESC, g DESC, p.display_name LIMIT ${Number(limit)}`,
+     GROUP BY p.id, p.display_name, p.name, p.user_id, p.hidden, x.team_id HAVING SUM(x.g+x.a) > 0 ORDER BY pts DESC, g DESC, p.display_name LIMIT ${Number(limit)}`,
     params,
   );
+  return rows.map((row) => applyLoadedNames(row));
 }
 
 export async function gameCard(db: Tx, g: any) {
@@ -308,7 +448,37 @@ export async function gameCard(db: Tx, g: any) {
   return { event: ev, id: g.id, season: s, playedOn: g.played_on, startTime: g.start_time, home: h, away: a, homeScore: g.home_score, awayScore: g.away_score, league: l, sheetId: g.sheet_id, source: g.source ?? "sheet" };
 }
 export async function gameCards(db: Tx, games: any[]) {
-  const out = [];
-  for (const g of games) out.push(await gameCard(db, g));
-  return out;
+  if (!games.length) return [];
+  const uniq = (xs: any[]) => [...new Set(xs.filter((x) => x != null))];
+  const teamIds = uniq(games.flatMap((g) => [g.home_team_id, g.away_team_id]));
+  const leagueIds = uniq(games.map((g) => g.league_id));
+  const seasonIds = uniq(games.map((g) => g.season_id));
+  const eventIds = uniq(games.map((g) => g.event_id));
+  // One round trip for every team, league, season and event these games point at.
+  const row = await one<any>(db, `
+    SELECT
+      COALESCE((SELECT json_agg(json_build_object('id', id, 'name', name, 'color', color, 'logo', logo)) FROM teams WHERE id = ANY($1::int[])), '[]'::json) AS teams,
+      COALESCE((SELECT json_agg(json_build_object('id', id, 'level', level, 'name', name)) FROM leagues WHERE id = ANY($2::int[])), '[]'::json) AS leagues,
+      COALESCE((SELECT json_agg(json_build_object('id', id, 'name', name)) FROM seasons WHERE id = ANY($3::int[])), '[]'::json) AS seasons,
+      COALESCE((SELECT json_agg(json_build_object('id', id, 'name', name)) FROM events WHERE id = ANY($4::int[])), '[]'::json) AS events
+  `, [teamIds, leagueIds, seasonIds, eventIds]);
+  const by = (list: any[]) => new Map((list ?? []).map((x) => [x.id, x]));
+  const teams = by(row?.teams);
+  const leagues = by(row?.leagues);
+  const seasons = by(row?.seasons);
+  const events = by(row?.events);
+  return games.map((g) => ({
+    event: g.event_id ? events.get(g.event_id) : null,
+    id: g.id,
+    season: g.season_id ? seasons.get(g.season_id) : null,
+    playedOn: g.played_on,
+    startTime: g.start_time,
+    home: teams.get(g.home_team_id),
+    away: teams.get(g.away_team_id),
+    homeScore: g.home_score,
+    awayScore: g.away_score,
+    league: leagues.get(g.league_id),
+    sheetId: g.sheet_id,
+    source: g.source ?? "sheet",
+  }));
 }

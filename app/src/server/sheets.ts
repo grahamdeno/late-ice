@@ -1,10 +1,11 @@
 import "server-only";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { one, q, sql } from "./db";
-import { readScoresheet, checkSheet, type OcrResult } from "./ocr";
-import { suggest } from "./services";
+import { one, q, sql, type Tx } from "./db";
+import { readScoresheet, checkSheet, type OcrResult, type OcrTeam } from "./ocr";
+import { HttpError, suggest } from "./services";
 import { supabaseAdmin, SHEETS_BUCKET } from "./supabase";
+import { logEvent } from "./appevents";
 
 export const SAMPLES = [
   { id: "demo-flyers-owls", title: "Demo · Flyers vs Owls", file: "demo-flyers-owls.jpg" },
@@ -29,6 +30,7 @@ export async function createSheet(bytes: Buffer, mime: string, source: string, s
   const { error } = await supabaseAdmin().storage.from(SHEETS_BUCKET).upload(key, bytes, { contentType: mime, upsert: false });
   if (error) throw new Error(`Photo upload failed: ${error.message}`);
   const row = await one<{ id: number }>(sql, "INSERT INTO sheets (image_path,mime,status,source,scanned_by) VALUES ($1,$2,'processing',$3,$4) RETURNING id", [key, mime, source, scannedBy]);
+  if (scannedBy) await logEvent(sql, { userId: scannedBy, kind: "scan" });
   return row!.id;
 }
 
@@ -45,12 +47,81 @@ export async function runOcr(sheetId: number) {
   try {
     const bytes = await sheetPhoto(s.image_path);
     if (!bytes) throw new Error("The photo could not be loaded.");
-    const { result, model } = await readScoresheet(bytes.toString("base64"), s.mime);
-    await q(sql, "UPDATE sheets SET status='review', extracted_json=$1, warnings_json=$2, model=$3, ms=$4, error=NULL WHERE id=$5",
-      [JSON.stringify(result), JSON.stringify(checkSheet(result)), model, Date.now() - t0, sheetId]);
+    const { result, model, inputTokens, outputTokens } = await readScoresheet(bytes.toString("base64"), s.mime);
+    await q(sql, "UPDATE sheets SET status='review', extracted_json=$1, warnings_json=$2, model=$3, ms=$4, error=NULL, input_tokens=$5, output_tokens=$6 WHERE id=$7",
+      [JSON.stringify(result), JSON.stringify(checkSheet(result)), model, Date.now() - t0, inputTokens, outputTokens, sheetId]);
   } catch (e: any) {
-    await q(sql, "UPDATE sheets SET status='failed', error=$1, ms=$2 WHERE id=$3", [String(e?.message || e).slice(0, 400), Date.now() - t0, sheetId]);
+    const usage = e?.usage as { input?: number; output?: number } | undefined;
+    await q(sql, "UPDATE sheets SET status='failed', error=$1, ms=$2, input_tokens=$3, output_tokens=$4 WHERE id=$5",
+      [String(e?.message || e).slice(0, 400), Date.now() - t0, usage ? usage.input ?? null : null, usage ? usage.output ?? null : null, sheetId]);
   }
+}
+
+function cleanHandName(v: unknown) {
+  const s = String(v ?? "").trim().replace(/\s+/g, " ").slice(0, 60);
+  if (!s) throw new HttpError(400, "Enter both team names.");
+  return s;
+}
+function cleanHandScore(v: unknown) {
+  const n = typeof v === "string" && v.trim() === "" ? NaN : Number(v);
+  if (!Number.isInteger(n) || n < 0 || n > 99) throw new HttpError(400, "Enter the final score as a number from 0 to 99.");
+  return n;
+}
+function cleanHandNumbers(v: unknown) {
+  const raw = Array.isArray(v) ? v.map((x) => String(x)).join(" ") : String(v ?? "");
+  const parts = raw.split(/[^0-9]+/).filter(Boolean);
+  if (!parts.length) throw new HttpError(400, "List who dressed, by number.");
+  const out: string[] = [];
+  for (const p of parts) {
+    if (p.length > 2) throw new HttpError(400, "Jersey numbers are 1 or 2 digits.");
+    if (out.includes(p)) throw new HttpError(400, "A jersey number is listed twice.");
+    out.push(p);
+  }
+  return out;
+}
+function handTeam(name: string, score: number, numbers: string[]): OcrTeam {
+  return {
+    name,
+    roster: numbers.map((n) => ({ number: n, name: null, position: null })),
+    goals: [],
+    penalties: [],
+    shots_by_period: [],
+    score_by_period: [],
+    total: score,
+  };
+}
+
+/** Build review data from a hand entry. Does not confirm the game. */
+export function sheetFromHand(raw: any): OcrResult {
+  return {
+    is_scoresheet: true,
+    date: null,
+    time: null,
+    league_text: null,
+    rink_text: null,
+    home: handTeam(cleanHandName(raw?.homeName), cleanHandScore(raw?.homeScore), cleanHandNumbers(raw?.homeNumbers)),
+    away: handTeam(cleanHandName(raw?.awayName), cleanHandScore(raw?.awayScore), cleanHandNumbers(raw?.awayNumbers)),
+    confidence: 1,
+    notes: ["Entered by hand."],
+  };
+}
+
+/** A failed read, or one that is not a scoresheet, becomes review data for the normal confirm path. */
+export async function saveHandEntry(db: Tx, sheetId: number, raw: any) {
+  const s = await one<any>(db, "SELECT * FROM sheets WHERE id=$1 FOR UPDATE", [sheetId]);
+  if (!s) throw new HttpError(404, "Sheet not found");
+  if (s.game_id || s.status === "confirmed") throw new HttpError(409, "This sheet is already in the books.", { gameId: s.game_id });
+  if (s.status === "discarded") throw new HttpError(400, "This scan was discarded.");
+  let extracted: any = null;
+  if (s.extracted_json) {
+    try { extracted = JSON.parse(s.extracted_json); } catch { extracted = null; }
+  }
+  const stuck = s.status === "failed" || extracted?.is_scoresheet === false;
+  if (!stuck) throw new HttpError(400, "This sheet is already ready to check.");
+  const data = sheetFromHand(raw);
+  await q(db, "UPDATE sheets SET status='review', extracted_json=$1, warnings_json=$2, error=NULL WHERE id=$3",
+    [JSON.stringify(data), JSON.stringify(checkSheet(data)), s.id]);
+  return data;
 }
 
 export async function sheetView(s: any) {

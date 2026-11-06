@@ -15,6 +15,9 @@ export interface MeSlot {
   captain: { id: number; name: string } | null; isCaptain: boolean; teamRole: "captain" | "assistant_captain" | null;
   assistants: { id: number; name: string }[];
   next: any | null;
+  last: { id: number; played_on: string | null; home_team_id: number; away_team_id: number; home_score: number; away_score: number;
+    home_name: string; home_color: string; home_logo: string | null; away_name: string; away_color: string; away_logo: string | null;
+    goals: number | null; assists: number | null; pim: number | null; is_goalie: number | null; before: number | null; after: number | null; trend5: number | null } | null;
   archetype: { archetype: string; votes: number } | null;
 }
 export interface MyRole { id: number; role: string; scopeType: string; scopeId: number | null; where: string | null }

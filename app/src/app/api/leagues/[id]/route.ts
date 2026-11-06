@@ -2,25 +2,55 @@ import { handle, body, num } from "@/server/http";
 import { sql, q, one } from "@/server/db";
 import { currentSeason, gameCards, leaders, seasonsWithData, standings, HttpError } from "@/server/services";
 import * as A from "@/server/accounts";
-import { applyViewerNames } from "@/server/accounts";
 import * as P from "@/server/permissions";
 import { clean, LEVELS, TAGS } from "@/server/manage";
 
 export const dynamic = "force-dynamic";
+/** seasonsWithData adds a count column; the response season is the plain seasons row. */
+function seasonRow(s: any) {
+  if (!s) return null;
+  const { n: _n, ...rest } = s;
+  return rest;
+}
+
 export const GET = handle<{ id: string }>(async (req, { id }) => {
   const l = await one<any>(sql, "SELECT * FROM leagues WHERE id=$1", [num(id)]);
   if (!l) throw new HttpError(404, "League not found");
-  const seasons = await seasonsWithData(sql, l.id);
-  const cur = await currentSeason(sql, l.rink_id);
+  const [seasons, u] = await Promise.all([
+    seasonsWithData(sql, l.id),
+    A.userFromRequest(req).catch(() => null),
+  ]);
   const qs = new URL(req.url).searchParams.get("season");
-  const sid: number | null = qs ? num(qs) : (seasons[0]?.id ?? cur?.id ?? null);
-  const season = (sid ? await one(sql, "SELECT * FROM seasons WHERE id=$1", [sid]) : null) ?? cur;
-  const games = await gameCards(sql, await q(sql, "SELECT * FROM games WHERE league_id=$1 AND ($2::int IS NULL OR season_id=$2) ORDER BY played_on DESC NULLS LAST, id DESC", [l.id, sid]));
-  const imports = await one<any>(sql, "SELECT MAX(as_of) as_of, MAX(source) source, SUM(gp) gp FROM team_imports ti JOIN teams t ON t.id=ti.team_id WHERE t.league_id=$1 AND ti.season_id=$2", [l.id, sid]);
-  const u = await A.userFromRequest(req).catch(() => null);
+  const gamesAll = new URL(req.url).searchParams.get("games") === "all";
+  // The newest season that has games or imports, unless the caller picks one.
+  // currentSeason is only needed when this league has nothing on the board yet.
+  let sid: number | null;
+  let season: any;
+  if (qs) {
+    sid = num(qs);
+    season = seasonRow(seasons.find((s) => s.id === sid)) ?? (await one(sql, "SELECT * FROM seasons WHERE id=$1", [sid])) ?? (await currentSeason(sql, l.rink_id));
+  } else if (seasons[0]) {
+    sid = seasons[0].id;
+    season = seasonRow(seasons[0]);
+  } else {
+    season = await currentSeason(sql, l.rink_id);
+    sid = season?.id ?? null;
+  }
   const scope = { leagueId: l.id, rinkId: l.rink_id };
-  const can = { addTeam: await P.can(sql, u, "team.create", scope), edit: await P.can(sql, u, "league.edit", scope), remove: await P.can(sql, u, "league.create", scope) };
-  return { league: l, season, seasons, standings: await standings(sql, l.id, sid), leaders: await applyViewerNames(sql, u, await leaders(sql, l.id, 10, sid)), games, imported: imports?.gp ? imports : null, can, signedIn: !!u };
+  const canP = (async () => ({
+    addTeam: await P.can(sql, u, "team.create", scope),
+    edit: await P.can(sql, u, "league.edit", scope),
+    remove: await P.can(sql, u, "league.create", scope),
+  }))();
+  const [gameRows, imports, stand, lead, can] = await Promise.all([
+    q(sql, `SELECT * FROM games WHERE league_id=$1 AND ($2::int IS NULL OR season_id=$2) ORDER BY played_on DESC NULLS LAST, id DESC${gamesAll ? "" : " LIMIT 10"}`, [l.id, sid]),
+    one<any>(sql, "SELECT MAX(as_of) as_of, MAX(source) source, SUM(gp) gp FROM team_imports ti JOIN teams t ON t.id=ti.team_id WHERE t.league_id=$1 AND ti.season_id=$2", [l.id, sid]),
+    standings(sql, l.id, sid),
+    leaders(sql, l.id, 10, sid, null, u?.id ?? null),
+    canP,
+  ]);
+  const games = await gameCards(sql, gameRows);
+  return { league: l, season, seasons, standings: stand, leaders: lead, games, imported: imports?.gp ? imports : null, can, signedIn: !!u };
 });
 
 /** Rename a league or change its one-line description. */
