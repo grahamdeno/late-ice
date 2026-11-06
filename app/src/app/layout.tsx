@@ -1,6 +1,27 @@
 import type { Metadata, Viewport } from "next";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "./providers";
+
+const satoshi = localFont({
+  src: [
+    { path: "../fonts/Satoshi-Medium.woff2", weight: "500", style: "normal" },
+    { path: "../fonts/Satoshi-Bold.woff2", weight: "700", style: "normal" },
+    { path: "../fonts/Satoshi-Black.woff2", weight: "900", style: "normal" },
+  ],
+  variable: "--font-satoshi",
+  display: "swap",
+});
+
+// This Next version's next/font/google catalog exports Big Shoulders, a different family.
+// The file below is the Latin Big Shoulders Display face from Google Fonts.
+const bigShoulders = localFont({
+  src: "../fonts/BigShouldersDisplay-latin.woff2",
+  weight: "700 900",
+  style: "normal",
+  variable: "--font-display-face",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://late-ice.tangomike.app"),
@@ -37,16 +58,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={`${satoshi.variable} ${bigShoulders.variable}`} suppressHydrationWarning>
       <head>
         {/* Apply the saved look before first paint so the page never flashes the wrong colors. */}
         <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem("lateice.theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}` }} />
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-        <link href="https://api.fontshare.com/v2/css?f[]=satoshi@500,700,900&display=swap" rel="stylesheet" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-        <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&display=swap" rel="stylesheet" />
       </head>
       <body>
         <Providers>{children}</Providers>

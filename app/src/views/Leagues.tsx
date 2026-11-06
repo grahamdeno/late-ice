@@ -11,7 +11,7 @@ import { act, useMe } from "@/lib/auth";
 import { useLocation } from "@/lib/router";
 import { Link } from "@/lib/router";
 import { useState } from "react";
-import { BackBar, Empty, GameRow, LevelPill, Loading, More, Section, TeamBadge, fmtDate, fmtRating, useFilter } from "@/lib/ui";
+import { BackBar, Empty, GameRow, LevelPill, Loading, More, Section, StandingsSkeleton, TeamBadge, fmtDate, fmtRating, useFilter } from "@/lib/ui";
 
 function StandingsTable({ rows, compact = false, mine = [] }: { rows: any[]; compact?: boolean; mine?: number[] }) {
   return (
@@ -98,7 +98,7 @@ export function Leagues() {
   const seasonId = boot?.season?.id ?? null;
   const key = rinkId ? `/api/standings?rink=${rinkId}${seasonId ? `&season=${seasonId}` : ""}` : "/api/standings";
   const { data } = useQuery<any>({ queryKey: [key], enabled: !!rinkId });
-  if (!boot || (rinkId && !data)) return <Loading />;
+  if (!boot || (rinkId && !data)) return <StandingsSkeleton />;
   const all = (data?.leagues ?? []).filter((l: any) => l.level !== "DEMO" && l.level !== "TOURN");
   const myTeams = (me?.slots ?? []).map((s) => s.team_id);
   const myLeagues = new Set((me?.slots ?? []).map((s) => s.league_id));
@@ -251,7 +251,7 @@ export function TeamPage({ id }: { id: string }) {
       <More title="Tournaments" testid="button-more-tournaments"><div className="px-3 pb-3"><TeamTournaments teamId={team.id} canManage={!!data.can?.manageRoster} /></div></More>
       {data.can?.remove && (
         <div className="mt-8 text-center">
-          <button className="text-xs text-[var(--mute)] underline" onClick={async () => { if (!confirm(`Remove ${team.name}? It has no games or players, so nothing else changes.`)) return; const e = await act("DELETE", `/api/teams/${team.id}`); setRemoveErr(e); if (!e) nav(`/league/${league.id}`); }} data-testid="button-remove-team">Remove this team</button>
+          <button className="text-xs text-[var(--mute)] underline" onClick={async () => { if (!confirm(`Remove ${team.name}? It has no games or players, so nothing else changes.`)) return; const e = await act("DELETE", `/api/teams/${team.id}`, undefined, ["/api/teams", "/api/leagues", "/api/standings", "/api/bootstrap", "/api/feed", "/api/players"]); setRemoveErr(e); if (!e) nav(`/league/${league.id}`); }} data-testid="button-remove-team">Remove this team</button>
           {removeErr && <p className="text-xs down mt-1">{removeErr}</p>}
         </div>
       )}

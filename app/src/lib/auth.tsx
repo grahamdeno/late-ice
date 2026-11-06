@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { apiRequest, getQueryFn, queryClient, setToken } from "./queryClient";
+import { apiRequest, getQueryFn, invalidatePrefixes, ME_REFETCH_MS, queryClient, runMutation, setToken } from "./queryClient";
 import { supabase } from "./supabase";
 
 export interface MeUser {
@@ -48,10 +48,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
       const t = session?.access_token ?? "";
       setToken(t);
-      setState((prev) => {
-        if (prev.token !== t) queryClient.invalidateQueries();
-        return { ready: true, token: t };
-      });
+      // Account and rink changes drop the cache in Providers (syncQueryScope). A token
+      // refresh keeps the same subject, so it must not wipe or refetch every query.
+      setState(() => ({ ready: true, token: t }));
     });
     return () => { alive = false; sub.subscription.unsubscribe(); };
   }, []);
@@ -62,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try { invite = localStorage.getItem(INVITE_KEY); } catch { /* storage off */ }
     if (!invite) return;
     apiRequest("POST", "/api/invites/accept", { token: invite })
-      .then(() => queryClient.invalidateQueries())
+      .then(() => invalidatePrefixes(["/api/me", "/api/teams", "/api/players", "/api/bootstrap", "/api/feed", "/api/standings"]))
       .catch(() => {})
       .finally(() => { try { localStorage.removeItem(INVITE_KEY); } catch { /* storage off */ } });
   }, [state.token]);
@@ -77,11 +76,10 @@ export function useMe() {
     queryKey: ["/api/me"],
     queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: ready && !!token,
-    // Drafts, claims and notices arrive from other people; keep this fresh.
-    staleTime: 15_000,
+    // Drafts, claims and notices arrive from other people. Refresh on the same 5 minute window as the other tabs.
     refetchOnWindowFocus: true,
     refetchOnMount: true,
-    refetchInterval: 60_000,
+    refetchInterval: ME_REFETCH_MS,
   });
   const me = token ? q.data ?? null : null;
   return { me, ready, loading: !ready || (!!token && q.isLoading), refetch: q.refetch };
@@ -99,15 +97,9 @@ export function normEmail(raw: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) ? e : null;
 }
 
-/** Run a write, then refresh everything that may show it. Returns an error message or null. */
-export async function act(method: string, url: string, body?: unknown): Promise<string | null> {
-  try {
-    await apiRequest(method, url, body);
-    await queryClient.invalidateQueries();
-    return null;
-  } catch (e: any) {
-    return e?.message || "Something went wrong.";
-  }
+/** Run a write, then refresh the given query-key prefixes. With no keys, refresh /api/me and the current tab. Returns an error message or null. */
+export async function act(method: string, url: string, body?: unknown, keys?: string[]): Promise<string | null> {
+  return runMutation(method, url, body, keys);
 }
 
 export const POSITION_LABEL: Record<string, string> = { C: "Center", W: "Wing", F: "Forward", D: "Defense", G: "Goalie" };

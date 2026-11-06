@@ -135,7 +135,7 @@ function RinkAccess({ rinkId, rinkName }: { rinkId: number; rinkName: string }) 
       ) : !open ? (
         <button className="btn btn-ghost h-10 mt-3" onClick={() => setOpen(true)} data-testid="button-rink-access">Request access</button>
       ) : (
-        <form className="mt-3 space-y-2" onSubmit={async (e) => { e.preventDefault(); const r = await act("POST", "/api/rink-access", { rinkId, message: msg, role }); setErr(r); if (!r) setDone(true); }}>
+        <form className="mt-3 space-y-2" onSubmit={async (e) => { e.preventDefault(); const r = await act("POST", "/api/rink-access", { rinkId, message: msg, role }, ["/api/rink", "/api/me", "/api/staff"]); setErr(r); if (!r) setDone(true); }}>
           <select className="input w-full" value={role} onChange={(e) => setRole(e.target.value)} data-testid="select-rink-role">
             {Object.entries(RINK_ROLE_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
           </select>

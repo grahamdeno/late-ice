@@ -14,7 +14,7 @@ export function CaptainPanel({ team, captain, assistants = [] }: { team: any; ca
   const isCap = myRole === "captain";
   const runsTeam = !!myRole;
   const onRoster = !!me?.slots.some((s) => s.team_id === team.id);
-  const run = async (method: string, url: string, body?: unknown) => setErr(await act(method, url, body));
+  const run = async (method: string, url: string, body?: unknown) => setErr(await act(method, url, body, ["/api/teams", "/api/me"]));
 
   return (
     <>

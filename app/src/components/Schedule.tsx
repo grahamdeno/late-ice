@@ -3,7 +3,7 @@ import { Link } from "@/lib/router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { act } from "@/lib/auth";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, invalidatePrefixes } from "@/lib/queryClient";
 import { Section, TeamBadge, fmtDate } from "@/lib/ui";
 
 const KIND_LABEL: Record<string, string> = { league: "League", playoff: "Playoff", tournament: "Tournament", exhibition: "Exhibition" };
@@ -48,12 +48,12 @@ export function Rsvp({ g }: { g: any }) {
   const mine = g.rsvp?.mine ?? null;
   const pick = async (a: string) => {
     setBusy(true);
-    setErr(await act("PUT", `/api/schedule/${g.id}/rsvp`, { answer: mine === a && !g.rsvp?.mineAuto ? null : a }));
+    setErr(await act("PUT", `/api/schedule/${g.id}/rsvp`, { answer: mine === a && !g.rsvp?.mineAuto ? null : a }, ["/api/me", "/api/teams", "/api/schedule", "/api/feed"]));
     setBusy(false);
   };
   return (
     <div>
-      <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Are you playing?">
+      <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Are you playing?">
         {ANSWERS.map(([k, label]) => (
           <button key={k} role="radio" aria-checked={mine === k} disabled={busy} onClick={() => pick(k)} data-testid={`button-rsvp-${k}-${g.id}`}
             className={`h-9 rounded-xl text-sm font-bold border ${mine === k ? (k === "out" ? "border-[var(--line-2)] bg-[var(--ice-3)] text-[var(--white)]" : k === "late" ? "border-[var(--amber)] text-[var(--amber)] bg-[var(--ice-3)]" : "border-[var(--up)] text-[var(--up)] bg-[var(--ice-3)]") : "border-[var(--line)] text-[var(--mute)]"}`}>
@@ -108,7 +108,7 @@ function SubFinder({ gameId }: { gameId: number }) {
               <div key={c.id} className="flex items-center gap-2 py-2 text-sm">
                 <span className="flex-1 min-w-0"><span className="block font-bold truncate">{c.name}{c.number ? ` #${c.number}` : ""}</span><span className="block text-xs text-[var(--mute)] truncate">{[c.position, c.rating ? Number(c.rating).toFixed(2) : null, c.teams].filter(Boolean).join(" · ")}</span></span>
                 {a ? <span className={`text-xs font-bold ${a.status === "accepted" ? "up" : a.status === "declined" ? "down" : "text-[var(--mute)]"}`}>{a.status === "accepted" ? "Yes" : a.status === "declined" ? "No" : "Asked"}</span>
-                  : <button className="btn btn-ghost h-8 text-xs" onClick={async () => setErr(await act("POST", `/api/schedule/${gameId}/subs`, { userId: c.id }))} data-testid={`button-ask-sub-${c.id}`}>Ask</button>}
+                  : <button className="btn btn-ghost h-8 text-xs" onClick={async () => setErr(await act("POST", `/api/schedule/${gameId}/subs`, { userId: c.id }, ["/api/schedule", "/api/me"]))} data-testid={`button-ask-sub-${c.id}`}>Ask</button>}
               </div>
             );
           })}
@@ -126,7 +126,7 @@ export function Schedule({ teamId }: { teamId: number }) {
   if (!data) return null;
   const { games, can, feed } = data;
   if (!games.length && !can.manual && !can.feed) return null;
-  const run = async (m: string, u: string, b?: unknown) => { const e = await act(m, u, b); setErr(e); return !e; };
+  const run = async (m: string, u: string, b?: unknown) => { const e = await act(m, u, b, ["/api/teams", "/api/me", "/api/feed"]); setErr(e); return !e; };
 
   return (
     <Section title="Schedule" action={can.manual && !adding ? <button className="text-sm text-[var(--blue)] font-bold" onClick={() => setAdding(true)} data-testid="button-add-game">Add a game</button> : undefined}>
@@ -169,7 +169,7 @@ function Feed({ teamId, feed, onError }: { teamId: number; feed: any; onError: (
       if (method === "DELETE") setMsg(`Disconnected. ${r.removed} upcoming games removed.`);
       else setMsg(`Read ${r.events} games: ${r.added} new, ${r.updated} already here${r.removed ? `, ${r.removed} dropped` : ""}.`);
       setUrl(""); setReplace(false);
-      await queryClient.invalidateQueries();
+      await invalidatePrefixes(["/api/teams", "/api/me", "/api/feed"]);
     } catch (e: any) { onError(e.message); }
     setBusy(false);
   };
@@ -219,7 +219,7 @@ function AddGame({ teamId, opponents, onDone }: { teamId: number; opponents: any
         date, time: time || null, kind, location, isHome: side === "home" ? true : side === "away" ? false : null,
         ...(other ? { opponentName: oppName } : { opponentTeamId: Number(opp) || null }),
       });
-      await queryClient.invalidateQueries();
+      await invalidatePrefixes(["/api/teams", "/api/me", "/api/feed"]);
       onDone();
     } catch (e: any) { setErr(e.message); }
     setBusy(false);

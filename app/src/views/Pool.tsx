@@ -51,8 +51,8 @@ export default function Pool({ teamId, slotId }: { teamId?: string; slotId?: str
     if (!pick || !team) return;
     setBusy(true);
     const e = matchMode
-      ? await act("POST", `/api/teams/${team}/match`, { playerId: Number(slotId), userId: pick.id })
-      : await act("POST", `/api/teams/${team}/draft`, { userId: pick.id, number: number || pick.number });
+      ? await act("POST", `/api/teams/${team}/match`, { playerId: Number(slotId), userId: pick.id }, ["/api/pool", "/api/teams", "/api/me", "/api/players"])
+      : await act("POST", `/api/teams/${team}/draft`, { userId: pick.id, number: number || pick.number }, ["/api/pool", "/api/teams", "/api/me", "/api/players"]);
     setBusy(false);
     if (e) return setErr(e);
     nav(`/team/${team}`);
