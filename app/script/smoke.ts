@@ -726,6 +726,13 @@ async function main() {
   ok(matched.status === 200 && matched.json.matched.some((m: any) => m.playerId === grahamSpot) && matched.json.unmatched.includes("Nobody Here"), "pasted names match the roster by full name");
   ok((await call("PUT", `/api/desk/lineups/${hh}/${ig.id}`, { playerIds: [] }, graham)).json.saved === 0, "clearing the lineup saves nobody");
   ok((await db`SELECT count(*)::int n FROM imported_game_attendance WHERE game_id=${ig.id}`)[0].n === 0, "clearing leaves the game unrated");
+  const deskRoster = await call("GET", `/api/desk/roster?rink=${rinkId}`, undefined, mt);
+  ok(deskRoster.status === 200 && deskRoster.json.rows.some((r: any) => r.teamId === hh && r.id === adamId) && deskRoster.json.teams.find((t: any) => t.id === hh)?.canEdit, "rink manager sees the rink-wide roster and can edit it");
+  ok((await call("GET", `/api/desk/roster?rink=${rinkId}`, undefined, graham)).status === 403, "a captain can't open the rink-wide roster");
+  const deskRatings = await call("GET", `/api/desk/ratings?rink=${rinkId}`, undefined, mt);
+  ok(deskRatings.status === 200 && deskRatings.json.leagues.some((l: any) => l.id === lg && l.games >= 2) && deskRatings.json.canRecompute === false, "ratings overview per league; only admins recalculate");
+  const deskImports = await call("GET", `/api/desk/imports?rink=${rinkId}`, undefined, mt);
+  ok(deskImports.status === 200 && deskImports.json.length >= 1 && deskImports.json[0].games >= 2, "past imports are listed");
 
   console.log("import: a whole league with standings and season totals");
   const leagueReport = [

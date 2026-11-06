@@ -289,6 +289,9 @@ try {
     await gap.click(); await page.waitForURL(/\/desk\/lineups\/\d+/); await page.waitForTimeout(1500);
     await shoot(page, "desk-team-lineup");
   } else errors.push("Rink Desk shows no team with imported games");
+  for (const [path, name] of [["/desk/roster", "desk-roster"], ["/desk/ratings", "desk-ratings"], ["/desk/imports", "desk-imports"]]) {
+    await page.goto(BASE + path); await page.waitForTimeout(1800); await shoot(page, name);
+  }
   await page.setViewportSize({ width: 375, height: 760 });
   const pubW = await browser.newContext({ viewport: { width: 320, height: 700 } });
   const pw = await pubW.newPage();

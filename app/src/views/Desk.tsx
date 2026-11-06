@@ -12,9 +12,9 @@ import { GoalieDisputes, Requests, RinkLeads, Signups } from "@/views/Staff";
  * and lineups for imported games. Everything else still opens the phone screens under /staff.
  */
 
-const STAFF_KEYS = ["/api/staff", "/api/me", "/api/players", "/api/teams", "/api/rinks", "/api/rink", "/api/leagues", "/api/standings", "/api/bootstrap", "/api/desk"];
+export const STAFF_KEYS = ["/api/staff", "/api/me", "/api/players", "/api/teams", "/api/rinks", "/api/rink", "/api/leagues", "/api/standings", "/api/bootstrap", "/api/desk"];
 
-const day = (s: string | null) => {
+export const day = (s: string | null) => {
   if (!s) return "No date";
   const d = new Date(String(s).length === 10 ? `${s}T12:00:00` : s);
   return Number.isNaN(d.getTime()) ? String(s) : d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -23,7 +23,7 @@ const day = (s: string | null) => {
 type Gap = { team_id: number; name: string; color: string | null; league_id: number; league: string; level: string; games: number; with_lineup: number };
 
 /** Which rink the desk is showing: the one picked in the app if staff can see it, else the first. */
-function useDeskRink(overview: any) {
+export function useDeskRink(overview: any) {
   const { rinkId, setRinkId } = useFilter();
   const live = (overview?.rinks ?? []).filter((r: any) => !r.archived_at);
   const rink = live.find((r: any) => r.id === rinkId) ?? live[0] ?? null;
@@ -41,11 +41,12 @@ function NavItem({ href, label, active, badge }: { href: string; label: string; 
   );
 }
 
-function DeskFrame({ children, waiting }: { children: React.ReactNode; waiting?: number }) {
+export function DeskFrame({ children, waiting }: { children: React.ReactNode; waiting?: number }) {
   const [path] = useLocation();
   const { me } = useMe();
   const { data: overview } = useQuery<any>({ queryKey: ["/api/staff/overview"], enabled: !!me });
   const top = (overview?.roles ?? []).find((r: any) => ["admin", "support", "rink_manager", "commissioner"].includes(r.role));
+  const canImport = (overview?.rinks ?? []).some((r: any) => r.can?.edit);
   return (
     <div className="min-h-[100dvh] bg-[var(--ice)] text-[var(--white)] flex flex-wrap" data-testid="desk">
       <nav aria-label="Rink Desk" className="flex-[1_1_240px] lg:max-w-[260px] bg-[var(--ice-2)] px-3 py-5 flex flex-col gap-1 lg:min-h-[100dvh] lg:sticky lg:top-0 lg:self-start">
@@ -54,7 +55,10 @@ function DeskFrame({ children, waiting }: { children: React.ReactNode; waiting?:
           <span className="font-black text-lg">Rink Desk</span>
         </Link>
         <NavItem href="/desk" label="Home" active={path === "/desk"} badge={waiting} />
+        <NavItem href="/desk/roster" label="Players and rosters" active={path.startsWith("/desk/roster")} />
         <NavItem href="/desk/lineups" label="Games and lineups" active={path.startsWith("/desk/lineups")} />
+        <NavItem href="/desk/ratings" label="Ratings" active={path.startsWith("/desk/ratings")} />
+        {canImport && <NavItem href="/desk/imports" label="Imports" active={path.startsWith("/desk/imports")} />}
         <div className="label px-3 pt-5 pb-1">Phone screens</div>
         <NavItem href="/staff" label="Leagues, teams and staff" active={false} />
         <NavItem href="/" label="Open the app" active={false} />
@@ -66,7 +70,7 @@ function DeskFrame({ children, waiting }: { children: React.ReactNode; waiting?:
 }
 
 /** Signed in, staff, and the overview loaded; otherwise the right message. */
-function Gate({ children }: { children: (overview: any) => React.ReactNode }) {
+export function Gate({ children }: { children: (overview: any) => React.ReactNode }) {
   const { me, loading } = useMe();
   const { data, error } = useQuery<any>({ queryKey: ["/api/staff/overview"], enabled: !!me });
   if (loading) return <DeskFrame><p className="text-[var(--mute)]">Loading…</p></DeskFrame>;
@@ -80,6 +84,16 @@ function Gate({ children }: { children: (overview: any) => React.ReactNode }) {
   if (error) return <DeskFrame><h1 className="font-black text-2xl">Rink Desk</h1><p className="text-[var(--mute)] mt-2">{(error as any).message}</p></DeskFrame>;
   if (!data) return <DeskFrame><p className="text-[var(--mute)]">Loading…</p></DeskFrame>;
   return <>{children(data)}</>;
+}
+
+/** Rink picker for pages that read a whole rink; hidden when there's only one. */
+export function RinkSwitch({ rink, rinks, pick }: { rink: any; rinks: any[]; pick: (id: number) => void }) {
+  if (rinks.length < 2) return null;
+  return (
+    <select className="input h-11 w-auto font-bold" value={rink?.id ?? ""} onChange={(e) => pick(Number(e.target.value))} aria-label="Rink" data-testid="select-desk-rink">
+      {rinks.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
+    </select>
+  );
 }
 
 /* ---------- home ---------- */
