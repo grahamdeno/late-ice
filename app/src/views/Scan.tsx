@@ -8,16 +8,25 @@ import { useMe } from "@/lib/auth";
 
 /** Shrink big phone photos before upload. Keeps handwriting legible, cuts upload time. */
 async function toDataUrl(file: File, max = 2200): Promise<string> {
-  const url = URL.createObjectURL(file);
+  let bitmap: ImageBitmap | null = null;
   try {
-    const im = new Image();
-    await new Promise((res, rej) => { im.onload = res; im.onerror = rej; im.src = url; });
-    const scale = Math.min(1, max / Math.max(im.width, im.height));
+    bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+    const longSide = Math.max(bitmap.width, bitmap.height);
+    if (longSide < 800) throw new Error("That photo is too small. Move closer so the sheet fills the frame.");
+    const scale = Math.min(1, max / longSide);
     const c = document.createElement("canvas");
-    c.width = Math.round(im.width * scale); c.height = Math.round(im.height * scale);
-    c.getContext("2d")!.drawImage(im, 0, 0, c.width, c.height);
+    c.width = Math.round(bitmap.width * scale);
+    c.height = Math.round(bitmap.height * scale);
+    const ctx = c.getContext("2d");
+    if (!ctx) throw new Error("Could not read that photo. Try another one.");
+    ctx.drawImage(bitmap, 0, 0, c.width, c.height);
     return c.toDataURL("image/jpeg", 0.86);
-  } finally { URL.revokeObjectURL(url); }
+  } catch (e) {
+    if (e instanceof Error && /too small|Could not read/.test(e.message)) throw e;
+    throw new Error("Could not read that photo. Try another one.");
+  } finally {
+    bitmap?.close();
+  }
 }
 
 export default function Scan() {
@@ -28,6 +37,7 @@ export default function Scan() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const { data: samples } = useQuery<{ id: string; title: string; image: string }[]>({ queryKey: ["/api/samples"] });
+  const { data: allowance } = useQuery<{ show: boolean; left: number | null }>({ queryKey: ["/api/sheets/allowance"], enabled: !!me });
 
   const upload = async (f?: File) => {
     if (!f) return;
@@ -38,7 +48,9 @@ export default function Scan() {
       const { id } = await r.json();
       nav(`/sheet/${id}`);
     } catch (e: any) {
-      setErr([401, 413, 429].includes(e?.status) ? e.message : "Upload failed. Check your signal and try again.");
+      const msg = String(e?.message || "");
+      if (/too small|Could not read/.test(msg)) setErr(msg);
+      else setErr([401, 413, 429].includes(e?.status) ? e.message : "Upload failed. Check your signal and try again.");
       setBusy(false);
     }
   };
@@ -72,6 +84,9 @@ export default function Scan() {
       <div className="label">Post-game · 30 seconds</div>
       <h1 className="font-display text-[40px] leading-none font-black uppercase mt-1">Snap the sheet</h1>
       <p className="text-[var(--mute)] mt-2">Grab the scoresheet off the scorer's table. One photo puts the game, the goals and everyone's rating on the books.</p>
+      {allowance?.show && allowance.left != null && (
+        <p className="text-sm mt-2" data-testid="text-scans-left">You have {allowance.left} {allowance.left === 1 ? "scan" : "scans"} left today.</p>
+      )}
 
       <div className="card-hi mt-5 p-4">
         <div className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-[var(--line)] flex items-center justify-center" style={{ background: "repeating-linear-gradient(0deg,var(--ice-2) 0 22px,var(--ice-3) 22px 23px)" }}>

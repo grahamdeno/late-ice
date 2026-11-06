@@ -2,6 +2,7 @@ import { handle, body, num } from "@/server/http";
 import { sql, q, one } from "@/server/db";
 import { HttpError } from "@/server/services";
 import { requireApproved } from "@/server/accounts";
+import { logEvent } from "@/server/appevents";
 
 export const dynamic = "force-dynamic";
 
@@ -20,5 +21,6 @@ export const PUT = handle<{ gid: string }>(async (req, { gid }) => {
   else await q(sql,
     `INSERT INTO rsvps (scheduled_game_id, user_id, answer) VALUES ($1,$2,$3)
      ON CONFLICT (scheduled_game_id, user_id) DO UPDATE SET answer=EXCLUDED.answer, updated_at=now()`, [g.id, u.id, answer]);
+  await logEvent(sql, { userId: u.id, kind: "rsvp", teamId: g.team_id, gameId: g.id });
   return { ok: true, answer };
 });
