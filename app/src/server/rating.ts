@@ -62,7 +62,22 @@ export function ratePlayer(input: {
 export async function rateGame(db: Tx, gameId: number) {
   const g = await one<any>(db, "SELECT * FROM games WHERE id=$1", [gameId]);
   if (!g) return;
-  const lines = await q<Line>(db, "SELECT * FROM player_game_stats WHERE game_id=$1 ORDER BY id", [gameId]);
+  // Sheets carry a stat line per player. An imported game has no lineup of its own, so it is rated
+  // only for a team whose poll attendance was recorded: those players, with any goals and assists
+  // the rink credited to them. The other team has no lineup and is treated as an average opponent.
+  const lines = g.source === "sheet"
+    ? await q<Line>(db, "SELECT * FROM player_game_stats WHERE game_id=$1 ORDER BY id", [gameId])
+    : await q<Line>(db, `
+        SELECT a.player_id, a.team_id, COALESCE(il.goals,0)::int goals, COALESCE(il.assists,0)::int assists,
+               0 pim, 0 is_goalie, NULL::int shots_against, NULL::int goals_against
+        FROM (
+          SELECT player_id, team_id FROM imported_game_attendance WHERE game_id=$1
+          UNION
+          SELECT player_id, team_id FROM imported_game_lines
+          WHERE game_id=$1 AND team_id IN (SELECT team_id FROM imported_game_attendance WHERE game_id=$1)
+        ) a
+        LEFT JOIN imported_game_lines il ON il.game_id=$1 AND il.player_id=a.player_id
+        ORDER BY a.player_id`, [gameId]);
   const ids = Array.from(new Set(lines.map((l) => l.player_id)));
   const rows = ids.length ? await q<any>(db, "SELECT id, rating, games_rated FROM players WHERE id = ANY($1::int[])", [ids]) : [];
   const players = new Map<number, any>(rows.map((p) => [p.id, p]));
@@ -108,8 +123,8 @@ export async function recomputeAll() {
     await q(tx, "LOCK TABLE rating_history IN EXCLUSIVE MODE");
     await q(tx, "DELETE FROM rating_history");
     await q(tx, "UPDATE players SET rating=COALESCE(start_rating, rating), games_rated=0");
-    // Imported results have no lineup, so they're never rated.
-    const games = await q<{ id: number }>(tx, "SELECT id FROM games WHERE source='sheet' ORDER BY played_on NULLS LAST, id");
+    // Sheets always; imported games only once a lineup (poll attendance) has been recorded.
+    const games = await q<{ id: number }>(tx, "SELECT id FROM games WHERE source='sheet' OR EXISTS (SELECT 1 FROM imported_game_attendance a WHERE a.game_id=games.id) ORDER BY played_on NULLS LAST, id");
     for (const g of games) { await rateGame(tx, g.id); n++; }
     await q(tx, "INSERT INTO rating_runs (kind,algo_version,games,ms) VALUES ('recompute',$1,$2,$3)", [ALGO_VERSION, n, Date.now() - t0]);
   });
