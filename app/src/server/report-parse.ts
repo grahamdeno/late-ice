@@ -52,6 +52,8 @@ export function parseReport(text: string): Parsed {
       totals.push({ team: tt[1].trim(), name: cleanName(tt[2]), gp: field(rest, "GP") ?? 0, g: field(rest, "G") ?? 0, a: field(rest, "A") ?? 0, pim: field(rest, "PIM") ?? 0 });
       continue;
     }
+    // A new report section (PLAYERROW, NOTES, GAME, a dated line...) ends the roster list.
+    if (inRosters && /^\S/.test(l) && !looksLikeTeamName(l.trim())) { inRosters = false; rosterTeam = null; }
     if (inRosters) {
       if (!l.trim()) continue;
       if (/^\S/.test(l)) { rosterTeam = l.trim(); rosters[rosterTeam] = []; }
@@ -75,6 +77,21 @@ export function parseReport(text: string): Parsed {
       cur.rows.push({ team: r[1].trim(), name: cleanName(r[2]), g: stat("G"), a: stat("A") });
     }
   }
+  // A roster heading with no players under it is not a team.
+  for (const k of Object.keys(rosters)) if (!rosters[k].length) delete rosters[k];
   return { level, leagueName, games, rosters, teamName, teamRows, totals, goalies };
 }
 
+
+/** True when a line could be a team name, not a report keyword, note or dated row. */
+export function looksLikeTeamName(s: string): boolean {
+  const t = s.trim();
+  if (!t || t.length > 50) return false;
+  if (/^(PLAYERROW|TEAMROW|ZEROROWS|TOTAL|GAME|NOTES?|SOURCE|ROSTERS|TEAM STATS|LEAGUE|RAW REPORT|SEASON|LEVEL)\b/i.test(t)) return false;
+  if (/^\d{1,4}[-/]\d{1,2}([-/]\d{1,4})?\b/.test(t)) return false; // 2026-08-17 ..., 10/4 ...
+  if (/\b\d{1,2}:\d{2}\s*[AP]M\b/i.test(t)) return false;
+  if (/\b(daysmart|conflict|imported|not shown|opponent)\b/i.test(t)) return false;
+  if (/[|:]/.test(t)) return false;
+  if (t.split(/\s+/).length > 5) return false; // sentences, not names
+  return /[a-z]/i.test(t);
+}

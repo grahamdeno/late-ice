@@ -73,7 +73,11 @@ export default function Sheet({ id }: { id: string }) {
     return (
       <StuckSheet
         id={id}
-        title={s.status === "failed" ? "Couldn't read that one" : "That doesn't look like a scoresheet"}
+        title={s.status === "failed"
+          ? (/authentication|x-api-key|credit balance|overloaded|rate.?limit|\b(401|403|429|5\d\d)\b/i.test(String((s as any).error ?? ""))
+            ? "Scanning is down on our end. Your photo is saved, so try again later."
+            : "Couldn't read that one")
+          : "That doesn't look like a scoresheet"}
         leagues={boot?.leagues ?? []}
         onDone={() => refetch()}
       />
