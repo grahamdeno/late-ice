@@ -248,6 +248,11 @@ body {
 .btn-red:hover { background: var(--red-btn-hover); }
 .btn-ghost { background: var(--ice-3); border: 1px solid transparent; color: var(--white); }
 .btn-ghost:hover { background: var(--ghost-hover); }
+/* Answers to "are you playing?": one tint strength for all three, so they read as a set.
+   Out is a soft red, not the alarm red the scan button and badges use. */
+.rsvp-in { background: color-mix(in srgb, var(--up) 15%, transparent); color: var(--up); }
+.rsvp-late { background: color-mix(in srgb, var(--amber) 15%, transparent); color: var(--amber); }
+.rsvp-out { background: color-mix(in srgb, var(--down) 15%, transparent); color: var(--down); }
 .btn:disabled { opacity: .5; pointer-events: none; }
 
 .up { color: var(--up); }

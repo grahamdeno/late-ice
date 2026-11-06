@@ -56,12 +56,12 @@ export function Rsvp({ g }: { g: any }) {
       <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Are you playing?">
         {ANSWERS.map(([k, label]) => (
           <button key={k} role="radio" aria-checked={mine === k} disabled={busy} onClick={() => pick(k)} data-testid={`button-rsvp-${k}-${g.id}`}
-            className={`h-9 rounded-xl text-sm font-bold border ${mine === k ? (k === "out" ? "border-[var(--line-2)] bg-[var(--ice-3)] text-[var(--white)]" : k === "late" ? "border-[var(--amber)] text-[var(--amber)] bg-[var(--ice-3)]" : "border-[var(--up)] text-[var(--up)] bg-[var(--ice-3)]") : "border-[var(--line)] text-[var(--mute)]"}`}>
+            className={`h-11 rounded-xl text-sm font-bold ${mine === k ? `rsvp-${k}` : "bg-[var(--ice-3)] text-[var(--mute)]"}`}>
             {label}
           </button>
         ))}
       </div>
-      {g.rsvp?.mineAuto && <p className="text-[11px] text-[var(--mute)] mt-1">Marked out because of your availability. Tap In if you're playing anyway.</p>}
+      {g.rsvp?.mineAuto && <p className="text-xs text-[var(--mute)] mt-1.5"><span className="down font-bold">Out</span> because of your availability. Tap In if you're playing anyway.</p>}
       {err && <p className="text-xs down mt-1">{err}</p>}
     </div>
   );
@@ -77,7 +77,7 @@ function Counts({ g }: { g: any }) {
   return (
     <div className="mt-2">
       <button className="text-xs text-[var(--mute)] tnum" onClick={() => names && setOpen((o) => !o)} data-testid={`button-rsvp-counts-${g.id}`}>
-        {parts.map(([n, l]) => `${n} ${l}`).join(" · ")}{names ? (open ? " ▴" : " ▾") : ""}
+        {parts.map(([n, l], i) => <span key={l as string}>{i ? " · " : ""}<span className={l === "in" ? "up font-bold" : l === "late" ? "text-[var(--amber)] font-bold" : l === "out" ? "down font-bold" : ""}>{n} {l}</span></span>)}{names ? (open ? " ▴" : " ▾") : ""}
       </button>
       {open && names && (
         <div className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
