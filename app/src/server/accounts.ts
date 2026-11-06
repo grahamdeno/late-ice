@@ -140,9 +140,33 @@ export async function signupsPaused() {
 
 /* ---------- helpers ---------- */
 
-export async function notify(db: Tx, userId: number, n: { kind: string; title: string; body?: string; link?: string; teamId?: number; playerId?: number }) {
+export async function notify(db: Tx, userId: number, n: { kind: string; title: string; body?: string; link?: string; teamId?: number; playerId?: number; push?: boolean }) {
   await q(db, "INSERT INTO notifications (user_id,kind,title,body,link,team_id,player_id) VALUES ($1,$2,$3,$4,$5,$6,$7)",
     [userId, n.kind, n.title, n.body ?? null, n.link ?? null, n.teamId ?? null, n.playerId ?? null]);
+  if (n.push === false) return;
+  const { deliverNotice } = await import("./push");
+  await deliverNotice(db, userId, n).catch((e: any) => {
+    const code = e?.statusCode ?? e?.code;
+    console.error(code ? `push failed (${code})` : "push failed");
+  });
+}
+
+/** In-app notice plus push for each registered player in a confirmed game. */
+export async function notifyConfirmedResult(db: Tx, gameId: number) {
+  const g = await one<any>(db,
+    `SELECT g.home_score, g.away_score, ht.name AS home, at.name AS away
+     FROM games g JOIN teams ht ON ht.id=g.home_team_id JOIN teams at ON at.id=g.away_team_id WHERE g.id=$1`, [gameId]);
+  if (!g) return;
+  const users = await q<{ user_id: number }>(db,
+    "SELECT DISTINCT p.user_id FROM player_game_stats s JOIN players p ON p.id=s.player_id WHERE s.game_id=$1 AND p.user_id IS NOT NULL", [gameId]);
+  for (const row of users) {
+    await notify(db, row.user_id, {
+      kind: "result",
+      link: `/game/${gameId}`,
+      title: `Final: ${g.home} ${g.home_score}-${g.away_score} ${g.away}`,
+      body: "Your rating moved.",
+    });
+  }
 }
 export async function logAction(db: Tx, teamId: number, actor: number | null, action: string, playerId: number | null, targetUser: number | null, detail?: object) {
   await q(db, "INSERT INTO roster_actions (team_id,actor_user_id,action,player_id,target_user_id,detail) VALUES ($1,$2,$3,$4,$5,$6)",

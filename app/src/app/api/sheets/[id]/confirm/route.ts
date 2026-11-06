@@ -1,7 +1,7 @@
 import { handle, body, num } from "@/server/http";
 import { sql, q, one } from "@/server/db";
 import { confirmSheet, HttpError } from "@/server/services";
-import { refreshDisplays, requireApproved } from "@/server/accounts";
+import { notifyConfirmedResult, refreshDisplays, requireApproved } from "@/server/accounts";
 import { requireConfirm } from "@/server/sheetconfirm";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +14,7 @@ export const POST = handle<{ id: string }>(async (req, { id }) => {
     await requireConfirm(tx, u, s, input);
     const g = await confirmSheet(tx, num(id), input);
     await refreshDisplays(tx);
+    await notifyConfirmedResult(tx, g);
     return g;
   });
   return { gameId };
