@@ -1397,7 +1397,8 @@ async function main() {
   ok((await call("POST", `/api/teams/${hh}/merge`, { fromId: spotA.id, intoId: spotB.id }, sam)).status === 403, "an assistant cannot merge two spots");
   const preview = await call("GET", `/api/teams/${hh}/merge?from=${spotA.id}&into=${spotB.id}`, undefined, graham);
   ok(preview.status === 200 && preview.json.games === 1 && preview.json.points === 3 && preview.json.moving?.name && preview.json.kept?.name && preview.json.moving.name !== preview.json.kept.name, "merge preview names both players and the games and points that move");
-  ok((await call("POST", `/api/teams/${hh}/merge`, { fromId: spotA.id, intoId: spotB.id }, graham)).status === 200, "the captain merges after the counts");
+  const mergeRes = await call("POST", `/api/teams/${hh}/merge`, { fromId: spotA.id, intoId: spotB.id }, graham);
+  ok(mergeRes.status === 200, `the captain merges after the counts (${mergeRes.status} ${JSON.stringify(mergeRes.json).slice(0, 200)})`);
   const auditRow = (await db`SELECT before_json, after_json FROM audit_log WHERE action = 'roster.merge' ORDER BY id DESC LIMIT 1`)[0];
   const auditAfter = JSON.parse(auditRow.after_json);
   const auditBefore = JSON.parse(auditRow.before_json);
