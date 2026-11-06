@@ -7,6 +7,7 @@ import { ARCHETYPE_LABEL } from "@/components/Archetypes";
 import { BackBar, Loading, Section } from "@/lib/ui";
 import { ProfileForm } from "./Join";
 import { useTheme, type Theme } from "@/lib/theme";
+import { NotificationSettings } from "@/components/NotificationSettings";
 
 /** Every setting in one place, in the order people look for them. Reached from the gear on Me. */
 export default function Settings() {
@@ -65,7 +66,7 @@ export default function Settings() {
       </Section>
 
       <Section title="Notifications">
-        <div className="card p-4 text-sm text-[var(--mute)]" data-testid="card-notification-settings">Game-night alerts are on the way. You'll turn them on here.</div>
+        <NotificationSettings />
       </Section>
 
       <Section title="Privacy">
