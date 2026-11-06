@@ -2,6 +2,7 @@ import { handle, body, num } from "@/server/http";
 import { sql, q, one } from "@/server/db";
 import { HttpError } from "@/server/services";
 import * as A from "@/server/accounts";
+import { applyViewerNames } from "@/server/accounts";
 import { rosterCounts } from "@/server/roster";
 
 export const dynamic = "force-dynamic";
@@ -28,5 +29,5 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
   const joined = await q(sql,
     `SELECT u.id, u.name, u.number, u.position FROM users u WHERE u.invited_team_id=$1 AND u.name IS NOT NULL
        AND NOT EXISTS (SELECT 1 FROM roster_entries re JOIN players p ON p.id=re.player_id WHERE re.team_id=$1 AND p.user_id=u.id) ORDER BY u.id DESC LIMIT 20`, [teamId]);
-  return { team: { id: t.id, name: t.name, color: t.color, logo: t.logo, level: t.level, rinkId: t.rink_id }, slots, actions, counts: await rosterCounts(sql, teamId), invites, joined };
+  return { team: { id: t.id, name: t.name, color: t.color, logo: t.logo, level: t.level, rinkId: t.rink_id }, slots: await applyViewerNames(sql, u, slots), actions, counts: await rosterCounts(sql, teamId), invites, joined };
 });

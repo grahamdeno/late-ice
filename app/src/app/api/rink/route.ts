@@ -2,6 +2,7 @@ import { handle, body, num } from "@/server/http";
 import { sql, q, one } from "@/server/db";
 import { currentSeason, standings } from "@/server/services";
 import * as A from "@/server/accounts";
+import { applyViewerNames } from "@/server/accounts";
 import * as P from "@/server/permissions";
 
 export const dynamic = "force-dynamic";
@@ -20,5 +21,5 @@ export const GET = handle(async (req) => {
   const u = await A.userFromRequest(req).catch(() => null);
   const scope = { rinkId: rink.id };
   const can = { edit: await P.can(sql, u, "rink.manage", scope), addLeague: await P.can(sql, u, "league.create", scope), seasons: await P.can(sql, u, "season.manage", scope), addRink: await P.can(sql, u, "rink.create") };
-  return { rink, region, season, seasons, leagues, top, can, signedIn: !!u };
+  return { rink, region, season, seasons, leagues, top: await applyViewerNames(sql, u, top), can, signedIn: !!u };
 });

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@/lib/router";
 import { useMe, act, STATUS_LABEL, POSITION_LABEL } from "@/lib/auth";
+import { apiRequest } from "@/lib/queryClient";
 import { Loading, Section, TeamBadge, fmtRating } from "@/lib/ui";
 
 const COLORS = ["#EF4444", "#F97316", "#F5B301", "#22C55E", "#14B8A6", "#3B82F6", "#8B5CF6", "#EC4899", "#A3A3A3", "#F8FAFC"];
@@ -27,6 +28,7 @@ export default function ManageTeam({ id }: { id: string }) {
   if (!data) return <Loading />;
   const myRole = me.captainTeams.find((t) => t.id === teamId)?.role ?? null;
   const isCaptain = myRole === "captain" || (!myRole && me.staff);
+  const canMerge = myRole === "captain" || (me.roles ?? []).some((r: any) => ["commissioner", "rink_manager", "admin"].includes(r.role));
   const assistants: { id: number; name: string }[] = team.data?.assistants ?? [];
   const run = async (method: string, url: string, body?: unknown) => { const r = await act(method, url, body); setErr(r); return !r; };
   const c = data.counts;
@@ -51,10 +53,10 @@ export default function ManageTeam({ id }: { id: string }) {
       {err && <p className="text-sm down mt-2 px-1" data-testid="text-error">{err}</p>}
 
       <Section title="Roster">
-        <Group title="Skaters" rows={skaters} teamId={teamId} me={me} isCaptain={isCaptain} run={run} />
-        <Group title="Goalies" rows={goalies} teamId={teamId} me={me} isCaptain={isCaptain} run={run} />
-        {out.length > 0 && <Group title="Injured reserve and away" rows={out} teamId={teamId} me={me} isCaptain={isCaptain} run={run} />}
-        {subs.length > 0 && <Group title="Subs" rows={subs} teamId={teamId} me={me} isCaptain={isCaptain} run={run} />}
+        <Group title="Skaters" rows={skaters} teamId={teamId} me={me} isCaptain={isCaptain} canMerge={canMerge} run={run} />
+        <Group title="Goalies" rows={goalies} teamId={teamId} me={me} isCaptain={isCaptain} canMerge={canMerge} run={run} />
+        {out.length > 0 && <Group title="Injured reserve and away" rows={out} teamId={teamId} me={me} isCaptain={isCaptain} canMerge={canMerge} run={run} />}
+        {subs.length > 0 && <Group title="Subs" rows={subs} teamId={teamId} me={me} isCaptain={isCaptain} canMerge={canMerge} run={run} />}
         {data.slots.length === 0 && <div className="card p-4 text-sm text-[var(--mute)]">Nobody on the roster yet. Add players below, or draft from the pool.</div>}
       </Section>
 
@@ -143,15 +145,36 @@ function Count({ n, max, label }: { n: number; max: number; label: string }) {
   );
 }
 
-function Group({ title, rows, teamId, me, isCaptain, run }: { title: string; rows: any[]; teamId: number; me: any; isCaptain: boolean; run: (m: string, u: string, b?: unknown) => Promise<boolean> }) {
+function Group({ title, rows, teamId, me, isCaptain, canMerge, run }: { title: string; rows: any[]; teamId: number; me: any; isCaptain: boolean; canMerge: boolean; run: (m: string, u: string, b?: unknown) => Promise<boolean> }) {
   const [openId, setOpenId] = useState<number | null>(null);
   const [mergeFrom, setMergeFrom] = useState<number | null>(null);
+  const [preview, setPreview] = useState<null | { moving: { id: number; name: string; number: string | null }; kept: { id: number; name: string; number: string | null }; games: number; points: number }>(null);
+  const [mergeErr, setMergeErr] = useState<string | null>(null);
   const [edit, setEdit] = useState<{ id: number; number: string; position: string } | null>(null);
+  const askMerge = async (intoId: number) => {
+    if (!mergeFrom) return;
+    setMergeErr(null);
+    try {
+      const res = await apiRequest("GET", `/api/teams/${teamId}/merge?from=${mergeFrom}&into=${intoId}`);
+      setPreview(await res.json());
+    } catch (e: any) { setPreview(null); setMergeErr(e?.message || "Couldn't load that merge."); }
+  };
+  const who = (p: { name: string; number: string | null }) => `${p.name}${p.number ? ` #${p.number}` : ""}`;
   if (!rows.length) return null;
   return (
     <div className="mb-3">
       <div className="label px-1 mb-1">{title} · {rows.length}</div>
-      {mergeFrom && <div className="text-xs text-[var(--white)] font-bold px-1 mb-1">Pick the spot that's the same person, or <button className="text-[var(--blue)]" onClick={() => setMergeFrom(null)}>cancel</button>.</div>}
+      {mergeFrom && <div className="text-xs text-[var(--white)] font-bold px-1 mb-1">Pick the spot that's the same person, or <button className="text-[var(--blue)]" onClick={() => { setMergeFrom(null); setPreview(null); setMergeErr(null); }}>cancel</button>.</div>}
+      {mergeErr && <p className="text-sm down px-1 mb-1" data-testid="text-merge-error">{mergeErr}</p>}
+      {preview && (
+        <div className="card mb-2 p-3 text-sm" data-testid="card-merge-confirm">
+          <p>Merge {who(preview.moving)} into {who(preview.kept)}. This moves {preview.games} games and {preview.points} points. It can&apos;t be undone.</p>
+          <div className="flex gap-2 mt-2">
+            <button className="btn btn-red h-9 text-xs" data-testid="button-merge-confirm" onClick={async () => { if (await run("POST", `/api/teams/${teamId}/merge`, { fromId: preview.moving.id, intoId: preview.kept.id })) { setPreview(null); setMergeFrom(null); } }}>Merge these players</button>
+            <button type="button" className="btn btn-ghost h-9 text-xs" onClick={() => setPreview(null)} data-testid="button-merge-cancel">Cancel</button>
+          </div>
+        </div>
+      )}
       <div className="card divide-y divide-[var(--line)]">
         {rows.map((s: any) => (
           <div key={s.id} className={`p-3 ${mergeFrom === s.id ? "bg-[var(--red-dim)]" : ""}`} data-testid={`row-slot-${s.id}`}>
@@ -170,7 +193,7 @@ function Group({ title, rows, teamId, me, isCaptain, run }: { title: string; row
             {(openId === s.id || (mergeFrom && mergeFrom !== s.id)) && (
               <div className="mt-2 pl-11">
                 {mergeFrom && mergeFrom !== s.id ? (
-                  <button className="btn btn-red h-8 text-xs" onClick={async () => { await run("POST", `/api/teams/${teamId}/merge`, { fromId: mergeFrom, intoId: s.id }); setMergeFrom(null); }} data-testid={`button-merge-into-${s.id}`}>Same person</button>
+                  <button className="btn btn-red h-8 text-xs" onClick={() => askMerge(s.id)} data-testid={`button-merge-into-${s.id}`}>Same person</button>
                 ) : edit && edit.id === s.id ? (
                   <form className="flex flex-wrap gap-1.5 items-center" onSubmit={async (e) => { e.preventDefault(); const cur = edit; if (!cur) return; if (await run("PATCH", `/api/teams/${teamId}/slots/${s.id}`, { number: cur.number, ...(s.registered ? {} : { position: cur.position }) })) setEdit(null); }}>
                     <input className="input h-9 w-16 text-center tnum" inputMode="numeric" maxLength={2} value={edit.number} onChange={(e) => setEdit({ ...edit, number: e.target.value.replace(/\D/g, "").slice(0, 2) })} aria-label="Number" data-testid={`input-edit-number-${s.id}`} />
@@ -187,7 +210,7 @@ function Group({ title, rows, teamId, me, isCaptain, run }: { title: string; row
                     <button className="btn btn-ghost h-8 text-xs" onClick={() => setEdit({ id: s.id, number: s.number ?? "", position: ["C", "W", "D", "G"].includes(s.position) ? s.position : "W" })} data-testid={`button-edit-${s.id}`}>Edit</button>
                     {!s.registered && <Link href={`/pool/${teamId}/match/${s.id}`} className="btn btn-ghost h-8 text-xs" data-testid={`button-match-${s.id}`}>Match to a player</Link>}
                     {s.registered && s.user_id !== me.user.id && <button className="btn btn-ghost h-8 text-xs" onClick={() => confirm(`Release ${s.name}'s claim on this spot?`) && run("POST", `/api/teams/${teamId}/slots/${s.id}/release`)} data-testid={`button-release-${s.id}`}>Release</button>}
-                    <button className="btn btn-ghost h-8 text-xs" onClick={() => { setMergeFrom(s.id); setOpenId(null); }} data-testid={`button-merge-${s.id}`}>Same person as…</button>
+                    {canMerge && <button className="btn btn-ghost h-8 text-xs" onClick={() => { setMergeFrom(s.id); setPreview(null); setOpenId(null); }} data-testid={`button-merge-${s.id}`}>Same person as…</button>}
                     {s.user_id !== me.user.id && !s.badge && <button className="btn btn-ghost h-8 text-xs" onClick={() => run("PATCH", `/api/teams/${teamId}/slots/${s.id}/sub`, { sub: !s.is_sub })} data-testid={`button-sub-${s.id}`}>{s.is_sub ? "Full roster" : "Make a sub"}</button>}
                     {s.user_id !== me.user.id && (isCaptain || !s.badge) && <button className="btn btn-ghost h-8 text-xs down" onClick={() => confirm(`Take ${s.name} off the roster? Games already played keep their lines.`) && run("POST", `/api/teams/${teamId}/slots/${s.id}/remove`)} data-testid={`button-remove-${s.id}`}>Remove</button>}
                   </div>

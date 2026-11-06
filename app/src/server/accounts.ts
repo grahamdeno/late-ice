@@ -49,9 +49,93 @@ export async function refreshDisplays(db: Tx, all = false) {
   }
 }
 
+/**
+ * Signed-out (and signed-in at another rink) form of an unclaimed name.
+ * "Mike Tolliver" and number 12 become "M. T. #12". The stored display_name stays
+ * the same-rink form from displayFor ("Mike T.").
+ */
+export function publicInitials(name: string, number: string | null) {
+  const t = String(name || "").trim().split(/\s+/).filter(Boolean);
+  const jersey = number && String(number).trim() ? String(number).trim() : null;
+  const withNumber = (label: string) => (jersey && !label.includes(`#${jersey}`) ? `${label} #${jersey}` : label);
+  if (!t.length) return jersey ? `Player #${jersey}` : "Player";
+  if (t.length === 1 && /^[#\d]/.test(t[0])) return withNumber(t[0]);
+  const initial = (w: string) => {
+    const letters = w.replace(/[^A-Za-z]/g, "");
+    const ch = letters[0] || w[0] || "";
+    return ch ? `${ch.toUpperCase()}.` : "";
+  };
+  if (t.length === 1) return withNumber(initial(t[0]) || "Player");
+  return withNumber(`${initial(t[0])} ${initial(t[t.length - 1])}`.trim());
+}
+
+/** Home rink, a roster spot, or a team, league or rink role. Support and admin see the same-rink form everywhere. */
+async function viewerScope(db: Tx, viewer: any): Promise<{ wide: boolean; rinks: number[] }> {
+  if (!viewer?.id) return { wide: false, rinks: [] };
+  const wide = !!(await one(db, "SELECT 1 FROM role_grants WHERE user_id=$1 AND role IN ('support','admin') AND revoked_at IS NULL LIMIT 1", [viewer.id]));
+  const rows = await q<{ rink_id: number }>(db, `
+    SELECT DISTINCT rink_id FROM (
+      SELECT home_rink_id AS rink_id FROM users WHERE id=$1 AND home_rink_id IS NOT NULL
+      UNION
+      SELECT l.rink_id FROM roster_entries re JOIN players p ON p.id=re.player_id JOIN teams t ON t.id=re.team_id JOIN leagues l ON l.id=t.league_id WHERE p.user_id=$1
+      UNION
+      SELECT g.scope_id FROM role_grants g WHERE g.user_id=$1 AND g.revoked_at IS NULL AND g.scope_type='rink' AND g.scope_id IS NOT NULL
+      UNION
+      SELECT l.rink_id FROM role_grants g JOIN leagues l ON l.id=g.scope_id WHERE g.user_id=$1 AND g.revoked_at IS NULL AND g.scope_type='league'
+      UNION
+      SELECT l.rink_id FROM role_grants g JOIN teams t ON t.id=g.scope_id JOIN leagues l ON l.id=t.league_id WHERE g.user_id=$1 AND g.revoked_at IS NULL AND g.scope_type='team'
+    ) s WHERE rink_id IS NOT NULL`, [viewer.id]);
+  return { wide, rinks: rows.map((r) => r.rink_id) };
+}
+
+/**
+ * Replace each row's name for this viewer. Claimed players keep the existing display.
+ * Unclaimed players at the viewer's rink keep display_name (first name and last initial).
+ * Everyone else gets initials and a number. idKey is the player id on the row.
+ */
+export async function applyViewerNames<T extends Record<string, any>>(db: Tx, viewer: any, rows: T[], idKey = "id"): Promise<T[]> {
+  if (!rows?.length) return rows;
+  const ids = [...new Set(rows.map((r) => Number(r?.[idKey])).filter((n) => Number.isFinite(n) && n > 0))];
+  if (!ids.length) return rows;
+  const idJson = JSON.stringify(ids);
+  const meta = await q<any>(db, `
+    SELECT p.id, p.name, p.display_name, p.user_id, p.hidden, u.hidden AS user_hidden,
+      (SELECT re.number FROM roster_entries re WHERE re.player_id=p.id AND re.number IS NOT NULL AND re.number <> '' ORDER BY re.id LIMIT 1) AS number
+    FROM players p LEFT JOIN users u ON u.id=p.user_id
+    WHERE p.id IN (SELECT jsonb_array_elements_text($1::text::jsonb)::int)`, [idJson]);
+  const byId = new Map(meta.map((p) => [p.id as number, p]));
+  const scope = await viewerScope(db, viewer);
+  let same = new Set<number>();
+  if (!scope.wide && scope.rinks.length) {
+    const hit = await q<{ player_id: number }>(db, `
+      SELECT DISTINCT re.player_id FROM roster_entries re
+      JOIN teams t ON t.id=re.team_id JOIN leagues l ON l.id=t.league_id
+      WHERE re.player_id IN (SELECT jsonb_array_elements_text($1::text::jsonb)::int)
+        AND l.rink_id IN (SELECT jsonb_array_elements_text($2::text::jsonb)::int)`, [idJson, JSON.stringify(scope.rinks)]);
+    same = new Set(hit.map((h) => h.player_id));
+  }
+  return rows.map((row) => {
+    const p = byId.get(Number(row[idKey]));
+    if (!p) return row;
+    const jersey = row.number != null && String(row.number).trim() !== "" ? String(row.number).trim() : (p.number || null);
+    const hidden = !!p.hidden || !!p.user_hidden;
+    let name: string;
+    if (hidden) name = jersey ? `Player #${jersey}` : "Hidden player";
+    else if (p.user_id) name = p.display_name || row.name || obfuscate(p.name);
+    else if (scope.wide || same.has(p.id)) name = p.display_name || obfuscate(p.name);
+    else name = publicInitials(p.name, jersey);
+    return { ...row, name };
+  });
+}
+
 /* ---------- sign-in ---------- */
 
 const tokenCache = new Map<string, { authId: string; email: string | null; exp: number }>();
+
+/** Drop a cached sign-in check, for example after the account is deleted. */
+export function forgetToken(token: string) {
+  if (token) tokenCache.delete(token.trim());
+}
 
 /** Emails are stored and matched lowercase. */
 export function normEmail(email: string | null | undefined) {
@@ -77,6 +161,12 @@ async function authUser(req: Request) {
 export async function userFromRequest(req: Request) {
   const a = await authUser(req);
   if (!a) return null;
+  // A deleted account must not be recreated while an old access token still verifies.
+  if (await one(sql, "SELECT 1 FROM deleted_accounts WHERE auth_id=$1", [a.authId])) {
+    const m = (req.headers.get("authorization") || "").match(/^Bearer\s+(.+)$/i);
+    if (m) forgetToken(m[1]);
+    throw err(401, "This account was deleted.");
+  }
   let u = await one<any>(sql, "SELECT * FROM users WHERE auth_id=$1", [a.authId]);
   if (!u) {
     if (!a.email) return null;
@@ -254,7 +344,7 @@ export async function publicUser(db: Tx, u: any) {
   const rink = u.home_rink_id ? await one<any>(db, "SELECT id,name FROM rinks WHERE id=$1", [u.home_rink_id]) : null;
   return {
     id: u.id, email: u.email, phone: u.phone, name: u.name, number: u.number, position: u.position, homeRink: rink,
-    access: (await isApproved(db, u)) ? "approved" : u.access, status: effectiveStatus(u), statusUntil: effectiveStatus(u) === "active" ? null : u.status_until, lookingForTeam: !!u.looking_for_team, willSub: !!u.will_sub, avatar: u.avatar ?? null, archetypeSelf: u.archetype_self ?? null, hidden: !!u.hidden, profileComplete: !!(u.name && u.position && u.home_rink_id),
+    access: (await isApproved(db, u)) ? "approved" : u.access, status: effectiveStatus(u), statusUntil: effectiveStatus(u) === "active" ? null : u.status_until, lookingForTeam: !!u.looking_for_team, willSub: !!u.will_sub, avatar: u.avatar ?? null, archetypeSelf: u.archetype_self ?? null, hidden: !!u.hidden, ageConfirmed: !!u.age_confirmed_at, profileComplete: !!(u.name && u.position && u.home_rink_id),
   };
 }
 
@@ -283,6 +373,29 @@ export async function mergePlayers(db: Tx, fromId: number, intoId: number) {
   await q(db, "UPDATE notifications SET player_id=$1 WHERE player_id=$2", [intoId, fromId]);
   await q(db, "DELETE FROM players WHERE id=$1", [fromId]);
   await refreshDisplay(db, intoId);
+}
+
+/**
+ * Games and points the current merge moves off this player. Scanned lines plus imported
+ * season totals. imported_game_lines are not in that list today, and this does not add them.
+ */
+export async function moveCounts(db: Tx, playerId: number) {
+  const s = await one<any>(db, "SELECT COUNT(*)::int games, COALESCE(SUM(goals + assists),0)::int points FROM player_game_stats WHERE player_id=$1", [playerId]);
+  const i = await one<any>(db, "SELECT COALESCE(SUM(gp),0)::int games, COALESCE(SUM(g + a),0)::int points FROM player_imports WHERE player_id=$1", [playerId]);
+  const scannedGames = s?.games ?? 0;
+  const importedGames = i?.games ?? 0;
+  const scannedPoints = s?.points ?? 0;
+  const importedPoints = i?.points ?? 0;
+  return { games: scannedGames + importedGames, points: scannedPoints + importedPoints, scannedGames, importedGames, scannedPoints, importedPoints };
+}
+
+/** Keep the registered slot when only one of the two is registered. Same rule the merge route already used. */
+export function mergeDirection(from: { id: number; user_id: number | null }, into: { id: number; user_id: number | null }) {
+  if (from.user_id && into.user_id && from.user_id !== into.user_id) {
+    throw err(409, "Both are linked to different registered players. Release one first.");
+  }
+  if (from.user_id && !into.user_id) return { movingId: into.id, keptId: from.id };
+  return { movingId: from.id, keptId: into.id };
 }
 
 export async function linkSlot(db: Tx, playerId: number, userId: number) {
@@ -335,7 +448,7 @@ export async function suggestionsFor(db: Tx, u: any) {
 export async function findSpots(db: Tx, u: any, text: string) {
   const t = text.trim().toLowerCase().slice(0, 40);
   if (t.length < 2) return [];
-  return (await q<any>(db,
+  return applyViewerNames(db, u, await q<any>(db,
     `SELECT p.id, p.display_name AS name, re.number, t.id team_id, t.name team_name, t.color, t.logo, l.level, r.name rink
      FROM roster_entries re JOIN players p ON p.id=re.player_id JOIN teams t ON t.id=re.team_id JOIN leagues l ON l.id=t.league_id JOIN rinks r ON r.id=l.rink_id
      WHERE p.user_id IS NULL AND l.level NOT IN ('DEMO','TOURN') AND (lower(p.display_name) LIKE $1 OR lower(p.name) LIKE $1 OR lower(t.name) LIKE $1)

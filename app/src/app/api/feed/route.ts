@@ -1,6 +1,7 @@
 import { handle, body, num } from "@/server/http";
 import { sql, q, one } from "@/server/db";
 import { gameCards, leaders } from "@/server/services";
+import { applyViewerNames, userFromRequest } from "@/server/accounts";
 
 export const dynamic = "force-dynamic";
 export const GET = handle(async (req) => {
@@ -18,5 +19,6 @@ export const GET = handle(async (req) => {
      JOIN leagues l ON l.id=g.league_id ${where} ORDER BY rh.id DESC LIMIT 200`, args))
     .sort((a, b) => b.delta - a.delta).slice(0, 5);
   const pending = await q(sql, "SELECT id,status,created_at FROM sheets WHERE status IN ('processing','review','failed') ORDER BY id DESC LIMIT 5");
-  return { games, movers, leaders: await leaders(sql, lid, 5, null, rid), pending };
+  const viewer = await userFromRequest(req).catch(() => null);
+  return { games, movers: await applyViewerNames(sql, viewer, movers), leaders: await applyViewerNames(sql, viewer, await leaders(sql, lid, 5, null, rid)), pending };
 });

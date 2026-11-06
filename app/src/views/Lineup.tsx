@@ -84,6 +84,10 @@ export default function Lineup({ teamId, gameId }: { teamId: string; gameId: str
             {L.d.map((pair, li) => <Row key={`d${li}`} title={`D ${li + 1}`} cells={pair} kind="d" line={li} labels={["L", "R"]} byId={byId} pick={pick} setPick={setPick} />)}
             <Row title="Goalie" cells={L.g} kind="g" line={0} labels={["G"]} byId={byId} pick={pick} setPick={setPick} />
           </div>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {L.f.length < 3 && <button type="button" className="btn btn-ghost h-9 text-xs" onClick={() => { setL({ f: [...L.f.map((l) => [...l]), [null, null, null]], d: L.d.map((l) => [...l]), g: [...L.g], extras: [...L.extras] }); setDirty(true); }} data-testid="button-add-forward-line">Add a forward line</button>}
+            {L.d.length < 3 && <button type="button" className="btn btn-ghost h-9 text-xs" onClick={() => { setL({ f: L.f.map((l) => [...l]), d: [...L.d.map((l) => [...l]), [null, null]], g: [...L.g], extras: [...L.extras] }); setDirty(true); }} data-testid="button-add-defense-pair">Add a defense pair</button>}
+          </div>
           {pick && (
             <div className="card mt-3 p-3" data-testid="card-pick-player">
               <div className="flex items-center justify-between">
@@ -94,7 +98,7 @@ export default function Lineup({ teamId, gameId }: { teamId: string; gameId: str
                 </div>
               </div>
               <div className="mt-2 divide-y divide-[var(--line)]">
-                {[...players].sort((a, b) => ans(a) - ans(b) || b.rating - a.rating).map((p) => (
+                {[...players].sort((a, b) => ans(a) - ans(b) || jersey(a) - jersey(b) || a.name.localeCompare(b.name)).map((p) => (
                   <button key={p.id} className="w-full flex items-center gap-2.5 py-2 text-left text-sm" onClick={() => place(pick, p.id)} data-testid={`button-pick-${p.id}`}>
                     <Bobble avatar={p.avatar} jersey={data.team.color} number={p.number} archetype={p.archetype} goalie={p.position === "G"} size={32} />
                     <span className="flex-1 min-w-0"><span className="block font-bold truncate">{p.name}{p.number ? ` #${p.number}` : ""}</span><span className="block text-[11px] text-[var(--mute)]">{POSITION_LABEL[p.position] ?? p.position}{p.isSub ? " · sub" : ""}{used.has(p.id) ? " · placed" : ""}</span></span>
@@ -110,6 +114,7 @@ export default function Lineup({ teamId, gameId }: { teamId: string; gameId: str
   );
 }
 const ans = (p: P) => (p.answer === "in" ? 0 : p.answer === "late" ? 1 : p.answer === null ? 2 : 3);
+const jersey = (p: P) => { const n = parseInt(String(p.number ?? "").replace(/\D/g, ""), 10); return Number.isFinite(n) ? n : 1000; };
 
 function Row({ title, cells, kind, line, labels, byId, pick, setPick }: { title: string; cells: (number | null)[]; kind: "f" | "d" | "g"; line: number; labels: string[]; byId: Map<number, P>; pick: Slot | null; setPick: (s: Slot) => void }) {
   return (
@@ -154,9 +159,10 @@ function LineupCard({ svgRef, team, game, L, byId }: { svgRef: React.RefObject<S
   let y = 250;
   const rows: React.ReactNode[] = [];
   const label = (t: string, yy: number) => <text key={`l${yy}`} x={pad} y={yy} fontFamily={font} fontWeight={800} fontSize={22} fill={red} letterSpacing={2}>{t.toUpperCase()}</text>;
-  L.f.forEach((line, i) => { if (line.every((v) => v === null) && i > 1) return; rows.push(label(`Line ${i + 1}`, y)); line.forEach((pid, j) => rows.push(cell(pid, pad + j * (w3 + gap), y + 12, w3))); y += 150 + 12 + 44; });
-  L.d.forEach((pair, i) => { if (pair.every((v) => v === null) && i > 1) return; rows.push(label(`Defense ${i + 1}`, y)); pair.forEach((pid, j) => rows.push(cell(pid, pad + j * (w2 + gap), y + 12, w2))); y += 150 + 12 + 44; });
-  rows.push(label("Goalie", y)); rows.push(cell(L.g[0] ?? null, pad, y + 12, w2)); if (L.g[1]) rows.push(cell(L.g[1], pad + w2 + gap, y + 12, w2));
+  const filled = (cells: (number | null)[]) => cells.some((v) => v !== null);
+  L.f.forEach((line, i) => { if (!filled(line)) return; rows.push(label(`Line ${i + 1}`, y)); line.forEach((pid, j) => rows.push(cell(pid, pad + j * (w3 + gap), y + 12, w3))); y += 150 + 12 + 44; });
+  L.d.forEach((pair, i) => { if (!filled(pair)) return; rows.push(label(`Defense ${i + 1}`, y)); pair.forEach((pid, j) => rows.push(cell(pid, pad + j * (w2 + gap), y + 12, w2))); y += 150 + 12 + 44; });
+  if (filled(L.g)) { rows.push(label("Goalie", y)); L.g.forEach((pid, j) => { if (pid !== null) rows.push(cell(pid, pad + j * (w2 + gap), y + 12, w2)); }); }
   const extras = L.extras.map((id) => byId.get(id)).filter(Boolean) as P[];
   return (
     <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label={`${team.name} lineup`} data-testid="svg-lineup">
