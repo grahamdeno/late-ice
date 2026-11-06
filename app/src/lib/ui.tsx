@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext } from "react";
+import { createContext, useContext, useState } from "react";
 import { Link } from "@/lib/router";
 
 export const img = (p: string) => p;
@@ -148,5 +148,50 @@ export function BackBar({ title, href }: { title?: string; href: string }) {
       </Link>
       {title && <span className="label">{title}</span>}
     </div>
+  );
+}
+
+/** Where a Late Ice Rating sits, in league words. The scale runs 1 to 7. */
+export function tierOf(r: number | null | undefined) {
+  if (r === null || r === undefined) return null;
+  if (r >= 5.5) return "A level";
+  if (r >= 4.5) return "B level";
+  if (r >= 3.5) return "C level";
+  if (r >= 2.5) return "D level";
+  return "Learning";
+}
+
+/**
+ * The one "see more" pattern: a row that opens in place. Use it for anything below the first screen
+ * that a player sometimes wants. For a whole page of detail, use a chevron row that links instead.
+ */
+export function More({ title, hint, count, children, defaultOpen = false, testid }: { title: string; hint?: string; count?: number | string; children: React.ReactNode; defaultOpen?: boolean; testid?: string }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="card mt-3 overflow-hidden">
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="w-full min-h-[52px] px-4 py-3 flex items-center gap-3 text-left" data-testid={testid}>
+        <span className="flex-1 min-w-0">
+          <span className="block font-bold text-[15px]">{title}</span>
+          {hint && <span className="block text-xs text-[var(--mute)] truncate">{hint}</span>}
+        </span>
+        {count !== undefined && <span className="text-sm text-[var(--mute)] tnum">{count}</span>}
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true" style={{ transform: open ? "rotate(180deg)" : "", transition: "transform .2s", color: "var(--mute)" }}><path d="M6 9l6 6 6-6" /></svg>
+      </button>
+      {open && <div className="border-t border-[var(--line)]">{children}</div>}
+    </div>
+  );
+}
+
+/** A row that opens another page. */
+export function RowLink({ href, title, hint, right, testid }: { href: string; title: string; hint?: string; right?: React.ReactNode; testid?: string }) {
+  return (
+    <Link href={href} className="card mt-3 min-h-[52px] px-4 py-3 flex items-center gap-3" data-testid={testid}>
+      <span className="flex-1 min-w-0">
+        <span className="block font-bold text-[15px]">{title}</span>
+        {hint && <span className="block text-xs text-[var(--mute)] truncate">{hint}</span>}
+      </span>
+      {right}
+      <span className="text-[var(--mute)]" aria-hidden="true">›</span>
+    </Link>
   );
 }

@@ -17,15 +17,14 @@ function Pill({ on, onClick, children, testid }: { on: boolean; onClick: () => v
 }
 
 /** Build your bobblehead. Jersey and number come from your team; the face and prop from your teammates' vote. */
-export function AvatarBuilder({ saved, jersey, number, archetype, goalie }: { saved: Avatar | null; jersey: string; number: string | null; archetype: { archetype: string; votes: number } | null; goalie: boolean }) {
+export function AvatarBuilder({ saved, jersey, number, archetype, goalie, bare = false }: { saved: Avatar | null; jersey: string; number: string | null; archetype: { archetype: string; votes: number } | null; goalie: boolean; bare?: boolean }) {
   const [a, setA] = useState<Avatar>({ ...DEFAULT_AVATAR, ...(saved ?? {}) });
   const [err, setErr] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const set = (p: Partial<Avatar>) => setA({ ...a, ...p });
   const dirty = JSON.stringify(a) !== JSON.stringify({ ...DEFAULT_AVATAR, ...(saved ?? {}) });
-  return (
-    <Section title="Your bobblehead">
-      <div className="card p-4" data-testid="card-avatar-builder">
+  const inner = (
+      <div className={bare ? "p-4" : "card p-4"} data-testid="card-avatar-builder">
         <div className="flex items-center gap-4">
           <Bobble avatar={a} jersey={jersey} number={number} archetype={archetype?.archetype} goalie={goalie} size={112} label="Your bobblehead" />
           <div className="text-sm min-w-0">
@@ -49,6 +48,6 @@ export function AvatarBuilder({ saved, jersey, number, archetype, goalie }: { sa
         {err && <p className="text-sm down mt-3">{err}</p>}
         <button className="btn btn-red w-full h-11 mt-4" disabled={!dirty && !!saved} onClick={async () => { const e = await act("PATCH", "/api/me", { avatar: a }); setErr(e); if (!e) setSavedAt(Date.now()); }} data-testid="button-save-avatar">{savedAt && !dirty ? "Saved" : "Save my bobblehead"}</button>
       </div>
-    </Section>
   );
+  return bare ? inner : <Section title="Your bobblehead">{inner}</Section>;
 }
