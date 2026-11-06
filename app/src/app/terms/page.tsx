@@ -3,7 +3,7 @@ import { BackBar } from "@/lib/ui";
 
 export const metadata = { title: "Terms · Late Ice" };
 
-const UPDATED = "November 5, 2026";
+const UPDATED = "November 6, 2026";
 
 function Block({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -14,45 +14,49 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
-/** Plain terms. Claude reviews this wording before it ships. */
+/** Plain terms. Keep them true to what the app does today; change this page when the app changes. */
 export default function TermsPage() {
   return (
     <article data-testid="page-terms">
-      <BackBar href="/join" title="Join" />
-      <h1 className="font-display text-[40px] leading-none font-black uppercase">Terms</h1>
+      <BackBar href="/" title="Late Ice" />
+      <h1 className="text-[28px] leading-tight font-black">Terms</h1>
       <p className="text-xs text-[var(--mute)] mt-2">
         Updated {UPDATED}. Questions: <a className="text-[var(--blue)]" href="mailto:support@tangomike.app">support@tangomike.app</a>
         {" · "}
         <Link href="/privacy" className="text-[var(--blue)] underline" data-testid="link-privacy">Privacy</Link>
       </p>
 
-      <Block title="Who can use Late Ice">
-        <p>Late Ice is a free app for adult rec hockey. You need to be 18 or older to join. The join form asks you to confirm that, and the server refuses a profile without it.</p>
-        <p>Late Ice is not your rink and not your league. If a number here and the rink&apos;s official record disagree, the rink&apos;s record wins.</p>
+      <Block title="Who it's for">
+        <p>Late Ice is a free app for adult rec hockey players. You need to be 18 or older to join.</p>
+        <p>Late Ice is not run by your rink or your league. If a score or a stat here disagrees with the rink's official record, the rink's record is the one that counts.</p>
       </Block>
 
       <Block title="Scoresheet photos">
-        <p>A player or a captain can photograph a paper scoresheet. The photo is used to read the score, the goals, the assists and the penalties, and so the people confirming the game can check that read.</p>
-        <p>The photo is stored in a private bucket. The people who can open it are the ones who can confirm that game: captains and assistants of the two teams, and league or rink staff. A model reads the photo to pull out the stats. We do not sell photos, and the app does not show ads.</p>
-        <p>The nightly job deletes the stored photo once the sheet has been confirmed for more than 90 days. The extracted stats and the game result stay. If a delete fails, the photo stays until a later run succeeds, and the app records the delete only after the file is gone.</p>
+        <p>When you photograph a scoresheet, an AI model reads it to pull out the score, goals, assists and penalties. The captains then check that read before the game counts.</p>
+        <p>The photo is kept private. Only the captains and assistant captains of the two teams, and league or rink staff, can open it. We don't sell photos or data, and there are no ads.</p>
+        <p>The photo is deleted 90 days after the game is confirmed. The score and stats stay.</p>
       </Block>
 
       <Block title="Names">
-        <p>A roster spot nobody has claimed is shown to signed-out visitors as initials and a number, in the style J. M. #12. A signed-in player whose home rink, team or staff role is that same rink sees the shorter name the app already uses, usually a first name and a last initial. A signed-in player at a different rink sees the initials form.</p>
-        <p>A player who has claimed the spot shows the name on their profile, unless they have hidden it. A hidden name shows as Player and the number.</p>
+        <p>Rosters can come from the rink's own stats page, so your name may be here before you join. Until you claim your spot, people outside your rink see only initials and your number.</p>
+        <p>Once you claim it, your profile name shows. You can hide it in Settings, and then you show as "Player" and your number.</p>
       </Block>
 
-      <Block title="Disputes">
-        <p>You can dispute a game in the app within 72 hours of it being confirmed. A league commissioner or a rink manager resolves it. Ratings are not edited by hand. Fixing the game fixes the rating on the next nightly replay.</p>
+      <Block title="Ratings and mistakes">
+        <p>The Late Ice Rating is an estimate built from game results. It is for fun and for finding fair teams, not an official ranking.</p>
+        <p>If a game was read or entered wrong, tell your captain, your league commissioner, or email us. When the game is fixed, ratings correct themselves the next night.</p>
       </Block>
 
-      <Block title="Removal">
-        <p>You can ask for your account to be removed by emailing support@tangomike.app, or with the account delete request when it is offered in the app. The roster name becomes Player and your number. Game lines stay, so old scores do not change.</p>
-        <p>The sign-in record is removed when the sign-in service accepts that request. Refresh sessions are revoked when that service accepts the sign-out. An existing access token can keep working until it expires. Removal does not make that token die the same second.</p>
+      <Block title="Using it fairly">
+        <p>Use your real name for yourself and keep team names and anything you type fit for a rink lobby. Don't upload anything that isn't a scoresheet, and don't use the app to bother other players. We can remove content or accounts that break these rules.</p>
       </Block>
 
-      <Block title="Contact">
-        <p>Email support@tangomike.app. The <Link href="/privacy" className="underline">privacy page</Link> says what else the app stores.</p>
+      <Block title="Leaving">
+        <p>You can delete your account in Settings, or email us and we'll do it. Your name comes off and your old game lines stay as "Player" and your number, so past scores don't change. You can also download a copy of your data in Settings.</p>
+      </Block>
+
+      <Block title="The fine print">
+        <p>Late Ice is provided as it is, without promises that it will always be available or error-free. We may change these terms; the date at the top shows the latest version, and continuing to use the app means you accept it.</p>
       </Block>
     </article>
   );
