@@ -17,7 +17,7 @@ where t.is_sample = 0
   and not exists (select 1 from team_imports x where x.team_id = t.id)
   and not exists (select 1 from player_imports x where x.team_id = t.id)
   and not exists (select 1 from player_game_stats x where x.team_id = t.id)
-  and not exists (select 1 from team_roles x where x.team_id = t.id)
+  and not exists (select 1 from role_grants x where x.scope_type = 'team' and x.scope_id = t.id)
   and not exists (select 1 from roster_actions x where x.team_id = t.id)
   and not exists (select 1 from imported_game_lines x where x.team_id = t.id)
   and not exists (select 1 from scheduled_games x where x.opponent_team_id = t.id);
