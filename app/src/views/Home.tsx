@@ -33,7 +33,7 @@ export default function Home() {
         <div className="flex items-center gap-2 mb-3">
           <TeamBadge team={{ id: slot.team_id, name: slot.team_name, color: slot.color, logo: slot.logo }} size={22} />
           <Link href={`/team/${slot.team_id}`} className="font-bold text-sm truncate flex-1">{slot.team_name}</Link>
-          {next?.rsvp?.counts && <span className="text-xs text-[var(--mute)] tnum" data-testid="text-next-counts">{next.rsvp.counts.in} in{next.rsvp.counts.out ? `, ${next.rsvp.counts.out} out` : ""}</span>}
+          {next?.rsvp?.counts && <span className="text-xs text-[var(--mute)] tnum" data-testid="text-next-counts">{next.rsvp.counts.in || next.rsvp.counts.out || next.rsvp.counts.late ? `${next.rsvp.counts.in} in${next.rsvp.counts.late ? `, ${next.rsvp.counts.late} late` : ""}${next.rsvp.counts.out ? `, ${next.rsvp.counts.out} out` : ""}` : "No answers yet"}</span>}
         </div>
         {next ? (
           <>
@@ -99,8 +99,8 @@ function LastResult({ slot }: { slot: MeSlot }) {
       <div className="flex items-center gap-3 mt-2">
         <span className={`h-10 w-10 rounded-xl flex items-center justify-center font-black ${res === "W" ? "bg-[rgba(56,217,150,.15)] up" : res === "L" ? "bg-[rgba(255,107,107,.15)] down" : "bg-[var(--ice-3)]"}`}>{res}</span>
         <span className="flex-1 min-w-0">
-          <span className="block font-bold truncate">{mine}–{theirs} vs {opp.name}</span>
-          <span className="block text-xs text-[var(--mute)]">{dressed ? (g.is_goalie ? "In goal" : `${g.goals} G, ${g.assists} A${g.pim ? `, ${g.pim} PIM` : ""}`) : "You weren't on the sheet"}</span>
+          <span className="block font-bold truncate">{mine}-{theirs} vs {opp.name}</span>
+          <span className="block text-xs text-[var(--mute)]">{dressed ? (g.is_goalie ? "In goal" : `${g.goals} G, ${g.assists} A${g.pim ? `, ${g.pim} PIM` : ""}`) : g.source !== "sheet" ? "Imported from DaySmart, no lines yet" : "You weren't on the sheet"}</span>
         </span>
         {delta !== null && (
           <span className="text-right">
