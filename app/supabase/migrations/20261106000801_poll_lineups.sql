@@ -15,6 +15,7 @@ alter table imported_game_attendance enable row level security;
 revoke all on public.imported_game_attendance from anon, authenticated;
 
 -- Hammer'd Heads, C League, Fall 2026. Players are matched by roster initials.
+-- Graham D. (captain) played every game but does not always vote, so he is listed on all of them.
 -- Every step is a no-op where the team, game or player is missing (for example a fresh database).
 do $$
 declare
@@ -22,14 +23,14 @@ declare
   gid int;
   polls jsonb := '{
     "2026-09-13": ["Graham D.","D. M.","S. M.","J. B.","N. B.","B. M.","J. H.","A. F.","K. S.","S. G.","C. H.","A. Y.","M. M."],
-    "2026-09-20": ["S. G.","K. S.","B. M.","J. A.","D. M.","S. L.","C. H.","S. M.","J. B.","A. Y.","M. M.","A. F."],
+    "2026-09-20": ["Graham D.","S. G.","K. S.","B. M.","J. A.","D. M.","S. L.","C. H.","S. M.","J. B.","A. Y.","M. M.","A. F."],
     "2026-09-27": ["Graham D.","J. H.","C. H.","B. M.","S. L.","A. Y.","D. M.","S. G.","M. M."],
     "2026-10-04": ["Graham D.","D. M.","K. S.","A. F.","J. H.","J. A.","J. B.","N. B.","A. Y.","S. G.","C. H.","B. M.","S. L."],
     "2026-10-11": ["Graham D.","J. A.","S. M.","C. H.","S. G.","B. M.","M. M.","D. M.","J. H.","S. L.","A. Y."],
     "2026-10-18": ["Graham D.","M. M.","B. M.","J. H.","K. S.","N. B.","S. M.","D. M.","J. A.","J. B.","S. G.","A. F.","A. Y.","S. L.","C. H."],
     "2026-11-01": ["Graham D.","S. L.","J. A.","M. M.","D. M.","S. M.","J. H.","C. H.","S. G.","B. M."],
     "2026-10-25": ["Graham D.","S. L.","A. F.","D. M.","K. S.","S. M.","J. B.","S. G."],
-    "2026-08-30": ["N. B.","S. L.","A. F.","K. S.","S. G.","D. M.","A. Y."]
+    "2026-08-30": ["Graham D.","N. B.","S. L.","A. F.","K. S.","S. G.","D. M.","A. Y."]
   }'::jsonb;
   d text;
 begin
