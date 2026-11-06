@@ -54,11 +54,11 @@ export async function rosterTable(db: Tx, user: any, rinkId: number) {
        SELECT COUNT(*) gp, SUM(s.goals) g, SUM(s.assists) a FROM player_game_stats s JOIN games gm ON gm.id=s.game_id
        WHERE s.player_id=p.id AND s.team_id=t.id AND gm.source='sheet' AND ($2::int IS NULL OR gm.season_id=$2)
      ) sh ON true
-     WHERE l.id = ANY($1::int[]) AND t.archived_at IS NULL AND COALESCE(t.is_sample,false)=false
+     WHERE l.id = ANY($1::int[]) AND t.archived_at IS NULL AND COALESCE(t.is_sample,0)=0
      ORDER BY l.sort, t.name, p.display_name`, [ids, season?.id ?? null]);
   const named = await applyViewerNames(db, user, rows, "id");
   const teams = await q<any>(db,
-    `SELECT t.id, t.name, t.color, t.league_id FROM teams t WHERE t.league_id = ANY($1::int[]) AND t.archived_at IS NULL AND COALESCE(t.is_sample,false)=false ORDER BY t.name`, [ids]);
+    `SELECT t.id, t.name, t.color, t.league_id FROM teams t WHERE t.league_id = ANY($1::int[]) AND t.archived_at IS NULL AND COALESCE(t.is_sample,0)=0 ORDER BY t.name`, [ids]);
   const canRoster: number[] = [];
   for (const t of teams) if (await P.can(db, user, "roster.manage", { teamId: t.id, leagueId: t.league_id, rinkId })) canRoster.push(t.id);
   return {
@@ -91,7 +91,7 @@ export async function ratingsOverview(db: Tx, user: any, rinkId: number) {
       `SELECT DISTINCT p.id, p.name, p.position, p.rating, p.games_rated,
          (p.position IS DISTINCT FROM 'G' AND COALESCE((SELECT SUM(gp) FROM player_imports i WHERE i.player_id=p.id),0) > 0) AS season_rated
        FROM roster_entries re JOIN players p ON p.id=re.player_id JOIN teams t ON t.id=re.team_id
-       WHERE t.league_id=$1 AND t.archived_at IS NULL AND COALESCE(t.is_sample,false)=false`, [l.id]);
+       WHERE t.league_id=$1 AND t.archived_at IS NULL AND COALESCE(t.is_sample,0)=0`, [l.id]);
     const rated = players.filter((p) => p.games_rated > 0 || p.season_rated);
     const vals = rated.map((p) => Number(p.rating)).filter(Number.isFinite);
     const buckets: { from: number; n: number }[] = [];

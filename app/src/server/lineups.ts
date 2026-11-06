@@ -17,7 +17,7 @@ export async function gapsForRink(db: Tx, user: any, rinkId: number) {
      FROM teams t
      JOIN leagues l ON l.id=t.league_id
      JOIN games g ON g.source<>'sheet' AND (g.home_team_id=t.id OR g.away_team_id=t.id)
-     WHERE l.rink_id=$1 AND t.archived_at IS NULL AND l.archived_at IS NULL AND COALESCE(t.is_sample,false)=false
+     WHERE l.rink_id=$1 AND t.archived_at IS NULL AND l.archived_at IS NULL AND COALESCE(t.is_sample,0)=0
      GROUP BY t.id, l.id
      ORDER BY l.sort, t.name`, [rinkId]);
   const out = [];
