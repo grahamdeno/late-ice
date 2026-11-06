@@ -346,7 +346,7 @@ function StuckSheet({ id, title, leagues, onDone }: { id: string; title: string;
       if (send) {
         await apiRequest("POST", `/api/sheets/${id}/submit`, { leagueId, homeTeamId: null, awayTeamId: null, data: saved.data, eventId: null });
       }
-      await queryClient.invalidateQueries();
+      await invalidatePrefixes(["/api/sheets", "/api/games", "/api/feed", "/api/standings", "/api/leagues", "/api/players", "/api/me", "/api/teams"]);
       await onDone();
     } catch (e: any) {
       setErr(e?.message || "That didn't save. Check the fields and try again.");
