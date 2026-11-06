@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import { headers } from "next/headers";
 import { Providers } from "./providers";
 
 const satoshi = localFont({
@@ -24,7 +25,7 @@ const bigShoulders = localFont({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://late-ice.tangomike.app"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://late-ice.tangomike.app"),
   title: "Late Ice",
   description: "Every game counts. Even the 11:15. Beer league hockey, counted.",
   manifest: "/manifest.webmanifest",
@@ -56,7 +57,9 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // The website renders bare: no app shell, no tab bar, no install prompt.
+  const site = (await headers()).get("x-li-site") === "1";
   return (
     <html lang="en" className={`${satoshi.variable} ${bigShoulders.variable}`} suppressHydrationWarning>
       <head>
@@ -64,7 +67,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem("lateice.theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}` }} />
       </head>
       <body>
-        <Providers>{children}</Providers>
+        {site ? children : <Providers>{children}</Providers>}
       </body>
     </html>
   );

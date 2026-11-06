@@ -586,6 +586,16 @@ async function main() {
   ok((await call("GET", `/api/teams/${hh}`)).json.captain?.name === "Sam Okafor", "Sam is captain");
   ok((await call("POST", `/api/teams/${hh}/captain/assign`, { userId: ids.graham }, mt)).status === 200, "and back to Graham");
   ok((await call("GET", `/api/staff/audit?rink=${rinkId}`, undefined, mt)).json.length > 0, "rink manager reads his rink's audit log");
+  // Website claim form: saves a lead, ignores bots, and only admins and support read leads.
+  const lead = await call("POST", "/api/leads", { rinkId, rinkName: "Smoke Rink", contactName: "Pat Manager", role: "Rink manager", email: "pat@smokerink.test", leagueCount: "1 to 3", scheduler: "DaySmart" });
+  ok(lead.status === 200 && lead.json.id > 0, "the website saves a rink lead");
+  ok((await call("POST", "/api/leads", { rinkName: "Bot", contactName: "Bot", email: "bot@x.test", website: "spam" })).status === 200, "the hidden field quietly drops bots");
+  ok((await call("POST", "/api/leads", { rinkName: "", contactName: "", email: "nope" })).status === 400, "a lead needs a rink, a name and an email");
+  const leads = await call("GET", "/api/staff/leads", undefined, boss);
+  ok(leads.status === 200 && leads.json.some((l: any) => l.id === lead.json.id) && !leads.json.some((l: any) => l.rink_name === "Bot"), "admins see leads, without the bot");
+  ok((await call("GET", "/api/staff/leads", undefined, graham)).status === 403, "captains can't read leads");
+  ok((await call("PATCH", `/api/staff/leads/${lead.json.id}`, { status: "contacted" }, boss)).status === 200, "admin moves a lead along");
+
   // Archive instead of delete: hidden from lists and standings, history kept, restorable.
   ok((await call("PATCH", `/api/teams/${hh}`, { archived: true }, graham)).status === 403, "a captain can't archive his team");
   ok((await call("DELETE", `/api/rinks/${rinkId}`, undefined, boss)).status === 409, "a rink with leagues can't be deleted");

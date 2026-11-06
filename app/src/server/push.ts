@@ -16,6 +16,7 @@ const PUSH_BY_NOTICE: Record<string, PushKind> = {
   remove: "roster",
   sheet: "confirm",
   goalie: "confirm",
+  lead: "confirm",
 };
 
 const FALLBACK_TZ = "America/New_York";

@@ -54,6 +54,7 @@ export default function Staff({ rinkId, leagueId }: { rinkId?: string; leagueId?
       <Requests run={run} />
       <Signups run={run} />
       <GoalieDisputes run={run} />
+      {(data.isAdmin || data.isSupport) && <RinkLeads run={run} />}
       {data.isSupport || data.isAdmin ? <SupportDesk run={run} isAdmin={data.isAdmin} /> : null}
       <Section title={data.isAdmin ? "Rinks" : live.length === 1 ? "Your rink" : "Your rinks"} action={<span className="label">{live.length}</span>}>
         <div className="card divide-y divide-[var(--line)]">
@@ -365,6 +366,39 @@ function Requests({ run }: { run: Run }) {
 }
 
 /** New accounts waiting to be let in. */
+const LEAD_STATUS = ["new", "contacted", "onboarding", "won", "lost"];
+
+/** Rinks that asked to claim their page or join, from the website. */
+function RinkLeads({ run }: { run: Run }) {
+  const { data } = useQuery<any[]>({ queryKey: ["/api/staff/leads"] });
+  const [showClosed, setShowClosed] = useState(false);
+  if (!data?.length) return null;
+  const open = data.filter((l) => !["won", "lost"].includes(l.status));
+  const rows = showClosed ? data : open;
+  return (
+    <Section title="Rink leads" action={<span className="label">{open.length} open</span>}>
+      <div className="card divide-y divide-[var(--line)]">
+        {rows.map((l) => (
+          <div key={l.id} className="p-4" data-testid={`row-lead-${l.id}`}>
+            <div className="flex items-start gap-3">
+              <span className="flex-1 min-w-0">
+                <span className="block font-bold text-sm">{l.rink_name}{l.rink_id ? " · claim" : " · new rink"}{l.founding ? " · founding" : ""}</span>
+                <span className="block text-xs text-[var(--mute)]">{l.contact_name}{l.role ? `, ${l.role}` : ""} · <a className="text-[var(--blue)]" href={`mailto:${l.email}`}>{l.email}</a>{l.phone ? ` · ${l.phone}` : ""}</span>
+                <span className="block text-xs text-[var(--mute)]">{[l.city, l.league_count && `${l.league_count} leagues`, l.scheduler].filter(Boolean).join(" · ")} · {String(l.created_at).slice(0, 10)}</span>
+                {l.notes && <span className="block text-xs mt-1">{l.notes}</span>}
+              </span>
+              <select className="input h-10 text-sm w-auto" value={l.status} onChange={(e) => run("PATCH", `/api/staff/leads/${l.id}`, { status: e.target.value })} aria-label={`Status for ${l.rink_name}`} data-testid={`select-lead-${l.id}`}>
+                {LEAD_STATUS.map((s) => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}
+              </select>
+            </div>
+          </div>
+        ))}
+      </div>
+      {data.length > open.length && <button className="text-xs text-[var(--mute)] font-bold mt-2 px-1" onClick={() => setShowClosed((v) => !v)}>{showClosed ? "Hide won and lost" : `Show won and lost (${data.length - open.length})`}</button>}
+    </Section>
+  );
+}
+
 /** Goalie shot counts the two teams disagree on. Staff pick one number. */
 function GoalieDisputes({ run }: { run: Run }) {
   const { data } = useQuery<any[]>({ queryKey: ["/api/staff/goalie-disputes"] });
