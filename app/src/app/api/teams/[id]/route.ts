@@ -3,7 +3,7 @@ import { sql, q, one } from "@/server/db";
 import { currentSeason, gameCards, teamRating, teamRecord, HttpError } from "@/server/services";
 import { captainOf, assistantsOf, requireUser, requireTeam, logAction, userFromRequest, userCan, applyViewerNames } from "@/server/accounts";
 import { teamIsEmpty, removeTeam } from "@/server/manage";
-import { teamArchetypes } from "@/server/archetypes";
+import { teamArchetypes, canSetCaptainArchetype } from "@/server/archetypes";
 import { audit } from "@/server/permissions";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +37,7 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
     can: await (async () => {
       const u = await userFromRequest(req).catch(() => null);
       const removable = (await userCan(sql, u, "team.remove", { teamId: t.id, leagueId: t.league_id, rinkId: league.rink_id })) && (await teamIsEmpty(sql, t.id));
-      return { remove: removable, rename: await userCan(sql, u, "team.edit", { teamId: t.id, leagueId: t.league_id, rinkId: league.rink_id }), manageRoster: await userCan(sql, u, "roster.manage", { teamId: t.id, leagueId: t.league_id, rinkId: league.rink_id }) };
+      return { remove: removable, rename: await userCan(sql, u, "team.edit", { teamId: t.id, leagueId: t.league_id, rinkId: league.rink_id }), manageRoster: await userCan(sql, u, "roster.manage", { teamId: t.id, leagueId: t.league_id, rinkId: league.rink_id }), overrideArchetype: await canSetCaptainArchetype(sql, u?.id, t.id) };
     })(),
   };
 });

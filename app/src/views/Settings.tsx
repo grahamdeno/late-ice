@@ -72,6 +72,7 @@ export default function Settings() {
       <Section title="Privacy">
         <div className="card p-4">
           <Toggle label="Hide my name" hint={`Show "Player #${u.number ?? "?"}" everywhere. Your games still count for your team.`} on={u.hidden} onClick={() => run("PATCH", "/api/me", { hidden: !u.hidden })} testid="switch-hidden" />
+          <Toggle label="Hide my archetype" hint="No label from your team's vote, your captain or anyone else shows on your profile or your team page." on={!!u.archetypeOptOut} onClick={() => run("PATCH", "/api/me", { archetypeOptOut: !u.archetypeOptOut })} testid="switch-archetype-opt-out" />
         </div>
       </Section>
 
