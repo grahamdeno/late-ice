@@ -113,7 +113,16 @@ function serveApi(request) {
       }).catch(() => null);
 
       if (cached) {
-        network.then((res) => tellOffline(!res)).finally(settle);
+        const previous = await cached.clone().text();
+        network.then(async (res) => {
+          if (!res) { await tellOffline(true); return; }
+          await tellOffline(false);
+          // The page already received the stale body. If the network copy differs, ask it to refetch.
+          if (res.status === 200) {
+            const fresh = await res.clone().text();
+            if (fresh !== previous) await tellUpdated(request);
+          }
+        }).finally(settle);
         const headers = new Headers(cached.headers);
         headers.set("X-Late-Ice-Cache", "hit");
         return new Response(await cached.blob(), { status: cached.status, statusText: cached.statusText, headers });
@@ -139,4 +148,11 @@ function serveApi(request) {
 async function tellOffline(offline) {
   const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
   for (const c of all) c.postMessage({ type: "offline", offline: !!offline });
+}
+
+async function tellUpdated(request) {
+  const url = new URL(request.url);
+  const path = url.pathname + url.search;
+  const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+  for (const c of all) c.postMessage({ type: "api-updated", url: path });
 }

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
+import { queryClient } from "@/lib/queryClient";
 
 /** "Update ready" once a waiting worker exists, or once a new worker takes control. Reload is the only navigation. */
 export function UpdateBanner() {
@@ -21,6 +22,11 @@ export function UpdateBanner() {
     };
     const onMessage = (e: MessageEvent) => {
       if (e.data && e.data.type === "offline") setOffline(!!e.data.offline);
+      // Stale-while-revalidate already answered this fetch. Refetch once the stored copy changes.
+      if (e.data && e.data.type === "api-updated" && typeof e.data.url === "string") {
+        const url = e.data.url;
+        queryClient.invalidateQueries({ predicate: (q) => String(q.queryKey?.[0] ?? "") === url });
+      }
     };
     navigator.serviceWorker.addEventListener("controllerchange", onControl);
     navigator.serviceWorker.addEventListener("message", onMessage);
