@@ -52,7 +52,12 @@ export function RinkPicker({ value, onPick, onAdd }: { value: number | null; onP
           );
         })}
       </div>
-      {onAdd && <button type="button" onClick={onAdd} className="text-sm font-bold text-[var(--blue)] px-1" data-testid="button-rink-missing">Rink not here? Add it</button>}
+      {/* Its own full-width target, set apart from the list, so a thumb reaching for it doesn't pick the rink above. */}
+      {onAdd && (
+        <div className="pt-4 mt-2 border-t border-[var(--line)]">
+          <button type="button" onClick={onAdd} className="btn btn-ghost w-full h-12 text-sm font-bold" data-testid="button-rink-missing">+ Add a rink that isn't listed</button>
+        </div>
+      )}
     </div>
   );
 }
