@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@/lib/router";
-import { apiRequest, authHeaders, queryClient } from "@/lib/queryClient";
+import { apiRequest, authHeaders, invalidatePrefixes } from "@/lib/queryClient";
 import { BackBar, FaceoffDot, Loading, TeamBadge, img, useFilter } from "@/lib/ui";
 
 type Side = "home" | "away";
@@ -150,7 +150,7 @@ export default function Sheet({ id }: { id: string }) {
     });
     const j = await res.json();
     if (!res.ok) { setErr(j); setSaving(false); return; }
-    await queryClient.invalidateQueries();
+    await invalidatePrefixes(["/api/sheets", "/api/games", "/api/feed", "/api/standings", "/api/leagues", "/api/players", "/api/me", "/api/teams"]);
     nav(`/game/${j.gameId}/new`);
   };
 
@@ -159,7 +159,7 @@ export default function Sheet({ id }: { id: string }) {
     setSaving(true); setErr(null);
     try {
       await apiRequest("POST", `/api/sheets/${id}/submit`, { leagueId, homeTeamId: teamIds.home, awayTeamId: teamIds.away, data: d, eventId });
-      await queryClient.invalidateQueries();
+      await invalidatePrefixes(["/api/sheets", "/api/games", "/api/feed", "/api/standings", "/api/leagues", "/api/players", "/api/me", "/api/teams"]);
       setSent(true);
     } catch (e: any) { setErr({ message: e.message }); }
     setSaving(false);
@@ -167,7 +167,7 @@ export default function Sheet({ id }: { id: string }) {
 
   const discard = async () => {
     await apiRequest("POST", `/api/sheets/${id}/discard`);
-    await queryClient.invalidateQueries();
+    await invalidatePrefixes(["/api/sheets", "/api/games", "/api/feed", "/api/standings", "/api/leagues", "/api/players", "/api/me", "/api/teams"]);
     nav("/");
   };
 

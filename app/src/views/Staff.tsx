@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@/lib/router";
 import { useMe, act, ROLE_LABEL } from "@/lib/auth";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, invalidatePrefixes } from "@/lib/queryClient";
 import { BackBar, Empty, LevelPill, Loading, Section, TeamBadge } from "@/lib/ui";
 import { AddButton, AddLeagueForm, AddSeasonForm, AddTeamForm, EditRinkForm, RinkRequestForm, RINK_ROLE_LABEL } from "@/components/ManageForms";
 
@@ -20,7 +20,7 @@ export default function Staff() {
   if (loading || !me) return <Loading />;
   if (error) return <div><BackBar href="/me" title="Profile" /><Empty title="Staff only" body={(error as any).message} /></div>;
   if (!data) return <Loading />;
-  const run = async (method: string, url: string, body?: unknown) => { const e = await act(method, url, body); setErr(e); return !e; };
+  const run = async (method: string, url: string, body?: unknown) => { const e = await act(method, url, body, ["/api/staff", "/api/me", "/api/players", "/api/teams", "/api/rinks", "/api/rink", "/api/leagues", "/api/standings"]); setErr(e); return !e; };
 
   return (
     <div>
@@ -399,7 +399,7 @@ function ImportSection({ rinks }: { rinks: any[] }) {
       const out = await r.json();
       if (apply) {
         if (!out.applied) throw new Error("Nothing was saved. Check the preview and try again.");
-        await queryClient.invalidateQueries();
+        await invalidatePrefixes(["/api/staff", "/api/standings", "/api/players", "/api/teams", "/api/leagues", "/api/feed", "/api/bootstrap", "/api/rink"]);
         setDone((d) => [out.summary, ...d]);
         reset();
       } else setRes(out);

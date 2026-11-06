@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@/lib/router";
 import { apiRequest } from "@/lib/queryClient";
-import { FaceoffDot, img } from "@/lib/ui";
+import { FaceoffDot, ScanSkeleton, img } from "@/lib/ui";
 import { useMe } from "@/lib/auth";
 
 /** Shrink big phone photos before upload. Keeps handwriting legible, cuts upload time. */
@@ -49,6 +49,8 @@ export default function Scan() {
       nav(`/sheet/${(await r.json()).id}`);
     } catch (e: any) { setErr(e.message); setBusy(false); }
   };
+
+  if (loading) return <ScanSkeleton />;
 
   if (!loading && !me) {
     return (

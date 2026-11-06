@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@/lib/router";
 import { useMe, type MeSlot } from "@/lib/auth";
 import { GameLine, Rsvp } from "@/components/Schedule";
-import { Delta, Empty, FaceoffDot, GameRow, Loading, More, Section, TeamBadge, fmtDate, fmtRating, useFilter, type GameCard } from "@/lib/ui";
+import { Delta, Empty, FaceoffDot, GameRow, HomeFeedSkeleton, More, Section, TeamBadge, fmtDate, fmtRating, useFilter, type GameCard } from "@/lib/ui";
 
 type Feed = { games: GameCard[]; movers: any[]; leaders: any[]; pending: any[] };
 
@@ -65,7 +65,7 @@ export default function Home() {
         <span className="text-[var(--mute)]" aria-hidden="true">›</span>
       </Link>
 
-      {isLoading ? <Loading /> : data && (
+      {isLoading ? <HomeFeedSkeleton /> : data && (
         <>
           <Section title="Latest finals" action={<Link href={`/league/${slot.league_id}`} className="text-sm text-[var(--mute)] min-h-[32px] inline-flex items-center" data-testid="link-all-results">All results</Link>}>
             {data.games.length ? <div className="space-y-3">{data.games.slice(0, 3).map((g) => <GameRow key={g.id} g={g} />)}</div>
@@ -157,7 +157,7 @@ function Welcome({ place, data, isLoading, pending, signedIn }: { place: string;
           <span className="text-sm font-bold text-[var(--amber)]">Review</span>
         </Link>
       ))}
-      {isLoading ? <Loading /> : data && (
+      {isLoading ? <HomeFeedSkeleton /> : data && (
         <>
           <Section title="Latest finals" action={<Link href="/leagues" className="text-sm text-[var(--mute)]" data-testid="link-all-standings">Standings</Link>}>
             {data.games.length ? (

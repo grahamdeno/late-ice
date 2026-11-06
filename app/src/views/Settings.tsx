@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "@/lib/router";
 import { useMe, act, signOut, STATUS_LABEL } from "@/lib/auth";
-import { queryClient } from "@/lib/queryClient";
 import { ARCHETYPE_LABEL } from "@/components/Archetypes";
 import { BackBar, Loading, Section } from "@/lib/ui";
 import { ProfileForm } from "./Join";
@@ -19,7 +18,7 @@ export default function Settings() {
   useEffect(() => { setUntil(me?.user.statusUntil ?? ""); }, [me?.user.statusUntil]);
   if (loading || !me) return <Loading />;
   const u = me.user;
-  const run = async (method: string, url: string, body?: unknown) => setErr(await act(method, url, body));
+  const run = async (method: string, url: string, body?: unknown) => setErr(await act(method, url, body, ["/api/me", "/api/players", "/api/feed", "/api/teams"]));
 
   return (
     <div>
@@ -78,7 +77,7 @@ export default function Settings() {
         <Section title="Your archetype">
           <div className="card p-4" data-testid="card-own-archetype">
             <p className="text-xs text-[var(--mute)]">As system admin you can pick your own. Your team's vote is kept and still shows next to it.</p>
-            <select className="input w-full mt-2" value={u.archetypeSelf ?? ""} onChange={async (e) => { await act("PATCH", "/api/me", { archetypeSelf: e.target.value || null }); await queryClient.invalidateQueries(); }} data-testid="select-own-archetype">
+            <select className="input w-full mt-2" value={u.archetypeSelf ?? ""} onChange={async (e) => setErr(await act("PATCH", "/api/me", { archetypeSelf: e.target.value || null }, ["/api/me", "/api/players"]))} data-testid="select-own-archetype">
               <option value="">Let my team decide</option>
               {Object.entries(ARCHETYPE_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
             </select>
