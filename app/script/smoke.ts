@@ -2,7 +2,7 @@
 // Covers sign-in, the draft pool, captain tools, name privacy, the scoresheet confirm
 // path, photo storage, and the nightly rating replay. CI runs it after `next build`.
 import { spawn, type ChildProcess } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, unlinkSync } from "node:fs";
 import { createServer } from "node:http";
 import postgres from "postgres";
 import { createClient } from "@supabase/supabase-js";
@@ -23,18 +23,23 @@ function ok(cond: unknown, msg: string): asserts cond {
 }
 
 async function start() {
-  srv = spawn("npx", ["next", "start", "-p", String(PORT)], { env: { ...env, NODE_ENV: "production", BOOTSTRAP_ADMIN_EMAIL: "boss@example.com", ALLOW_LOCAL_FEEDS: "1", LATEICE_MAP_LOOKUP: "off", LATEICE_FAKE_OCR: "1", LATEICE_COUNT_QUERIES: "1" }, stdio: ["ignore", "ignore", "inherit"] });
+  srv = spawn("npx", ["next", "start", "-p", String(PORT)], { env: { ...env, NODE_ENV: "production", BOOTSTRAP_ADMIN_EMAIL: "boss@example.com", ALLOW_LOCAL_FEEDS: "1", LATEICE_MAP_LOOKUP: "off", LATEICE_FAKE_OCR: "1", LATEICE_COUNT_QUERIES: "1" }, stdio: ["ignore", "ignore", "inherit"], detached: true });
+  let exited = false;
+  srv.once("exit", () => { exited = true; });
   for (let i = 0; i < 200; i++) {
+    if (exited) throw new Error("server exited before it was ready");
     try { const r = await fetch(`${BASE}/api/bootstrap`); if (r.ok) return; } catch {}
     await new Promise((r) => setTimeout(r, 200));
   }
   throw new Error("server did not start");
 }
 async function stop() {
-  if (!srv) return;
+  if (!srv?.pid) { srv = null; return; }
   const p = new Promise((r) => srv!.once("exit", r));
-  srv.kill("SIGTERM");
-  await p;
+  // npx does not forward the signal, so stop the whole group or the old server keeps the port.
+  try { process.kill(-srv.pid, "SIGTERM"); } catch { srv.kill("SIGTERM"); }
+  await Promise.race([p, new Promise((r) => setTimeout(r, 4000))]);
+  try { process.kill(-srv.pid, "SIGKILL"); } catch { /* already gone */ }
   srv = null;
 }
 
@@ -110,6 +115,191 @@ function sheetFromTruth(i: number, overrides: Record<string, string> = {}) {
     away: team(overrides.away ?? t.away, t.away_roster, t.away_goals, t.away_pen, t.away_shots),
     confidence: 0.95, notes: [],
   };
+}
+
+const PUSH_LOG = "/tmp/lateice-g5-push.jsonl";
+const PUSH_KINDS = ["game_day", "result", "sub_request", "roster", "confirm"];
+type PushLine = { userId?: number; kind?: string; skipped?: string; sent?: boolean; title?: string; devices?: number };
+
+function pushLines(): PushLine[] {
+  try { return readFileSync(PUSH_LOG, "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)); } catch { return []; }
+}
+function clearPushLog() { try { unlinkSync(PUSH_LOG); } catch { /* none yet */ } }
+
+async function startConfigured(extra: Record<string, string> = {}) {
+  await stop();
+  const child: NodeJS.ProcessEnv = {
+    ...env, NODE_ENV: "production", BOOTSTRAP_ADMIN_EMAIL: "boss@example.com", ALLOW_LOCAL_FEEDS: "1", LATEICE_MAP_LOOKUP: "off", LATEICE_FAKE_OCR: "1", LATEICE_COUNT_QUERIES: "1",
+    LATEICE_PUSH_LOG: PUSH_LOG, ...extra,
+  };
+  if (!("VAPID_PUBLIC_KEY" in extra)) delete child.VAPID_PUBLIC_KEY;
+  if (!("VAPID_PRIVATE_KEY" in extra)) delete child.VAPID_PRIVATE_KEY;
+  if (!("VAPID_SUBJECT" in extra)) delete child.VAPID_SUBJECT;
+  if (!("LATEICE_STUB_PUSH" in extra)) delete child.LATEICE_STUB_PUSH;
+  if (!("LATEICE_PUSH_NOW" in extra)) delete child.LATEICE_PUSH_NOW;
+  srv = spawn("npx", ["next", "start", "-p", String(PORT)], { env: child, stdio: ["ignore", "ignore", "inherit"], detached: true });
+  let exited = false;
+  srv.once("exit", () => { exited = true; });
+  for (let i = 0; i < 200; i++) {
+    if (exited) throw new Error("server exited before it was ready");
+    try { const r = await fetch(`${BASE}/api/bootstrap`); if (r.ok) return; } catch {}
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  throw new Error("server did not start");
+}
+
+const vapidStub = {
+  LATEICE_STUB_PUSH: "1",
+  VAPID_PUBLIC_KEY: "smoke-public",
+  VAPID_PRIVATE_KEY: "smoke-private",
+  VAPID_SUBJECT: "mailto:support@tangomike.app",
+};
+
+async function cronCall() {
+  const res = await fetch(`${BASE}/api/cron/recompute`, { headers: { Authorization: `Bearer ${env.CRON_SECRET}` } });
+  const json = await res.json().catch(() => null);
+  return { status: res.status, json };
+}
+
+async function pushChecks(ctx: { graham: string; sam: string; outsider: string; fan: string; hh: number; ids: Record<string, number> }) {
+  console.log("push");
+  const blId = (await db`SELECT id FROM teams WHERE name=${"Blue Liners"}`)[0].id as number;
+  const sub = (endpoint: string) => ({ endpoint, keys: { p256dh: "abc123def456", auth: "authkey1234" } });
+
+  clearPushLog();
+  await startConfigured();
+  ok((await call("GET", "/api/push/prefs")).status === 401, "notification prefs need sign-in");
+  ok((await call("POST", "/api/push/subscribe", sub("https://push.example/nope"))).status === 401, "subscribe needs sign-in");
+  ok((await call("POST", "/api/push/subscribe", sub("https://push.example/graham"), ctx.graham)).status === 200, "subscribe stores this user's device");
+  const prefs = await call("GET", "/api/push/prefs", undefined, ctx.graham);
+  ok(prefs.status === 200 && prefs.json.game_day === true && prefs.json.result === true && prefs.json.sub_request === true && prefs.json.roster === true && prefs.json.confirm === true, "the five switches default to on");
+  ok(prefs.json.publicKey === null && prefs.json.privateKey === undefined && !JSON.stringify(prefs.json).includes("PRIVATE"), "with no VAPID keys the public key is absent and the private key is never returned");
+  ok((await call("PUT", "/api/push/prefs", { game_day: false }, ctx.graham)).json.game_day === false, "a switch saves");
+  ok((await call("GET", "/api/push/prefs", undefined, ctx.graham)).json.game_day === false && (await call("GET", "/api/push/prefs", undefined, ctx.graham)).json.result === true, "the saved switch stays off and the others stay on");
+  ok((await call("PUT", "/api/push/prefs", { game_day: true }, ctx.graham)).json.game_day === true, "the switch turns back on");
+  ok((await call("PUT", "/api/push/prefs", { roster: "yes" }, ctx.graham)).status === 400, "a switch has to be on or off");
+  ok((await call("POST", "/api/push/subscribe", { endpoint: "http://push.example/x", keys: { p256dh: "abc123def456", auth: "authkey1234" } }, ctx.graham)).status === 400, "a push address has to be https");
+  ok((await call("POST", "/api/push/subscribe", sub("https://push.example/graham"), ctx.sam)).status === 200, "the same device moves to the person who is signed in");
+  const owners = await db`SELECT user_id FROM push_subscriptions WHERE endpoint=${"https://push.example/graham"}`;
+  ok(owners.length === 1 && owners[0].user_id === ctx.ids.sam, "one row, and it belongs to Sam");
+  ok((await call("DELETE", "/api/push/subscribe", { endpoint: "https://push.example/graham" }, ctx.graham)).status === 404, "Graham can't remove Sam's device");
+  ok((await call("DELETE", "/api/push/subscribe", { endpoint: "https://push.example/graham" }, ctx.sam)).status === 200, "Sam can remove his own device");
+  ok((await db`SELECT count(*)::int AS c FROM push_subscriptions WHERE endpoint=${"https://push.example/graham"}`)[0].c === 0, "the device is gone");
+
+  const push0 = await signUp("push0@example.com", { name: "Ned NoKey", number: "41", position: "F" });
+  const push0id = (await call("GET", "/api/me", undefined, push0)).json.user.id;
+  ok((await call("POST", `/api/teams/${ctx.hh}/draft`, { userId: push0id, number: "41" }, ctx.graham)).status === 200, "a roster notice is saved while push keys are missing");
+  ok((await call("GET", "/api/me", undefined, push0)).json.notifications.some((n: any) => n.kind === "draft"), "the in-app notice is still there");
+  ok(pushLines().length === 0, "missing VAPID keys send nothing");
+
+  clearPushLog();
+  await startConfigured({ ...vapidStub, LATEICE_PUSH_NOW: "2026-01-15T15:00:00.000Z" });
+  const pub = await call("GET", "/api/push/prefs", undefined, ctx.graham);
+  ok(pub.status === 200 && pub.json.publicKey === "smoke-public" && !JSON.stringify(pub.json).includes("smoke-private"), `the browser gets the public key only (status ${pub.status})`);
+  ok((await call("POST", "/api/push/subscribe", sub("https://push.example/graham-morning"), ctx.graham)).status === 200, "Graham's browser is subscribed for the stubbed sends");
+  ok((await call("POST", `/api/teams/${ctx.hh}/schedule`, { date: "2026-01-15", time: "9:15 PM", opponentTeamId: blId, kind: "league" }, ctx.graham)).status === 200, "a game on the morning clock's date");
+  const morning = await cronCall();
+  ok(morning.status === 200 && morning.json.gameDay >= 1, "the nightly job writes one game-day notice per player");
+  const grahamDay = () => pushLines().filter((l) => l.userId === ctx.ids.graham && l.kind === "game_day");
+  ok(grahamDay().length === 1 && grahamDay()[0].sent === true && (grahamDay()[0].devices ?? 0) >= 1, "Graham gets one game-day push, and nothing is sent to a push service");
+  const again = await cronCall();
+  ok(again.status === 200 && again.json.gameDay === 0 && grahamDay().length === 1, "running the job again does not send a second game-day push");
+
+  const pat = await signUp("push1@example.com", { name: "Pat Push", number: "42", position: "F" });
+  const patId = (await call("GET", "/api/me", undefined, pat)).json.user.id;
+  ok((await call("POST", `/api/teams/${ctx.hh}/draft`, { userId: patId, number: "42" }, ctx.graham)).status === 200, "captain adds Pat");
+  ok(pushLines().some((l) => l.userId === patId && l.kind === "roster" && l.sent === true), "adding a player sends a roster push");
+  const beforeDecline = pushLines().length;
+  ok((await call("POST", `/api/me/decline/${ctx.hh}`, undefined, pat)).status === 200, "Pat declines the team");
+  ok(pushLines().length === beforeDecline, "declining is not one of the five pushes");
+
+  const pam = await signUp("push2@example.com", { name: "Pam Quiet", number: "43", position: "D" });
+  const pamId = (await call("GET", "/api/me", undefined, pam)).json.user.id;
+  ok((await call("PUT", "/api/push/prefs", { roster: false }, pam)).json.roster === false, "Pam turns roster pushes off");
+  const added = await call("POST", `/api/teams/${ctx.hh}/draft`, { userId: pamId, number: "43" }, ctx.graham);
+  ok(added.status === 200, "captain adds Pam");
+  ok(pushLines().some((l) => l.userId === pamId && l.kind === "roster" && l.skipped === "pref") && !pushLines().some((l) => l.userId === pamId && l.kind === "roster" && l.sent), "the roster switch holds that push");
+  ok((await call("PUT", "/api/push/prefs", { roster: true }, pam)).json.roster === true, "Pam turns roster pushes back on");
+  ok((await call("POST", `/api/teams/${ctx.hh}/slots/${added.json.playerId}/remove`, undefined, ctx.graham)).status === 200, "captain takes Pam off");
+  ok(pushLines().some((l) => l.userId === pamId && l.kind === "roster" && l.sent === true), "taking a player off sends a roster push when the switch is on");
+
+  ok((await call("PATCH", "/api/me", { willSub: true }, pam)).status === 200, "Pam will sub");
+  const subGame = await call("POST", `/api/teams/${ctx.hh}/schedule`, { date: "2027-06-02", time: "9:15 PM", opponentTeamId: blId, kind: "league" }, ctx.graham);
+  ok(subGame.status === 200, "a game to ask a sub for");
+  const asked = await call("POST", `/api/schedule/${subGame.json.id}/subs`, { userId: pamId }, ctx.graham);
+  ok(asked.status === 200, `captain asks Pam to sub${asked.status === 200 ? "" : " (" + asked.status + " " + (asked.json?.message || "") + ")"}`);
+  ok(pushLines().some((l) => l.userId === pamId && l.kind === "sub_request" && l.sent === true), "a sub request sends a push");
+  const beforeAnswer = pushLines().length;
+  const ask = (await call("GET", "/api/me", undefined, pam)).json.subRequests.find((r: any) => r.game_id === subGame.json.id);
+  ok(ask && (await call("PUT", `/api/sub-requests/${ask.id}`, { answer: "yes" }, pam)).status === 200, "Pam says yes");
+  ok(pushLines().length === beforeAnswer, "answering a sub request does not send another push");
+
+  const lg = (await db`SELECT league_id FROM teams WHERE id=${ctx.hh}`)[0].league_id as number;
+  const [sheetId] = await db`INSERT INTO sheets (image_path,mime,status,source) VALUES ('test/none.jpg','image/jpeg','review','upload') RETURNING id`;
+  const sent = await call("POST", `/api/sheets/${sheetId.id}/submit`, { leagueId: lg, homeTeamId: ctx.hh, awayTeamId: blId, data: { is_scoresheet: true } }, ctx.outsider);
+  ok(sent.status === 200, "a player sends a sheet to the captains");
+  ok(pushLines().some((l) => l.userId === ctx.ids.graham && l.kind === "confirm" && l.sent === true), "a sheet waiting on the captain sends a confirm push");
+
+  await startConfigured({ ...vapidStub, LATEICE_PUSH_NOW: "2026-01-15T12:30:00.000Z" });
+  await db`DELETE FROM notifications WHERE kind='game_day' AND link=${"/me?gameDay=2026-01-15"}`;
+  let mark = pushLines().length;
+  ok((await cronCall()).status === 200, "the job runs at 7:30am New York");
+  ok(pushLines().slice(mark).some((l) => l.userId === ctx.ids.graham && l.kind === "game_day" && l.skipped === "quiet"), "before 8am in New York holds the game-day push");
+  await db`ALTER TABLE rinks ADD COLUMN IF NOT EXISTS timezone text`;
+  await db`UPDATE rinks SET timezone='Europe/London' WHERE name=${"Polar Ice Wilmington"}`;
+  await db`DELETE FROM notifications WHERE kind='game_day' AND link=${"/me?gameDay=2026-01-15"}`;
+  mark = pushLines().length;
+  await cronCall();
+  ok(pushLines().slice(mark).some((l) => l.userId === ctx.ids.graham && l.kind === "game_day" && l.sent === true), "noon in the home rink's zone still sends");
+
+  await startConfigured({ ...vapidStub, LATEICE_PUSH_NOW: "2026-01-15T04:00:00.000Z" });
+  await db`UPDATE rinks SET timezone='America/New_York' WHERE name=${"Polar Ice Wilmington"}`;
+  ok((await call("POST", `/api/teams/${ctx.hh}/schedule`, { date: "2026-01-14", time: "9:15 PM", opponentTeamId: blId, kind: "league" }, ctx.graham)).status === 200, "a game on the evening clock's date");
+  mark = pushLines().length;
+  await cronCall();
+  ok(pushLines().slice(mark).some((l) => l.userId === ctx.ids.graham && l.kind === "game_day" && l.skipped === "quiet"), "after 10pm in New York holds the game-day push");
+  await db`UPDATE rinks SET timezone='Not/AZone' WHERE name=${"Polar Ice Wilmington"}`;
+  await db`DELETE FROM notifications WHERE kind='game_day' AND link=${"/me?gameDay=2026-01-14"}`;
+  mark = pushLines().length;
+  await cronCall();
+  ok(pushLines().slice(mark).some((l) => l.userId === ctx.ids.graham && l.kind === "game_day" && l.skipped === "quiet"), "a bad zone name falls back to New York");
+  await db`UPDATE rinks SET timezone='America/Chicago' WHERE name=${"Polar Ice Wilmington"}`;
+  await db`DELETE FROM notifications WHERE kind='game_day' AND link=${"/me?gameDay=2026-01-14"}`;
+  mark = pushLines().length;
+  await cronCall();
+  ok(pushLines().slice(mark).some((l) => l.userId === ctx.ids.graham && l.kind === "game_day" && l.skipped === "quiet"), "10pm in the home rink zone is quiet");
+  await db`UPDATE rinks SET timezone='America/Denver' WHERE name=${"Polar Ice Wilmington"}`;
+  await db`DELETE FROM notifications WHERE kind='game_day' AND link=${"/me?gameDay=2026-01-14"}`;
+  mark = pushLines().length;
+  await cronCall();
+  ok(pushLines().slice(mark).some((l) => l.userId === ctx.ids.graham && l.kind === "game_day" && l.sent === true), "9pm in the home rink zone still sends");
+
+  const slot = (await db`SELECT p.name, re.number FROM players p JOIN roster_entries re ON re.player_id=p.id WHERE p.user_id=${ctx.ids.graham} AND re.team_id=${ctx.hh} LIMIT 1`)[0];
+  const resultSheet = {
+    is_scoresheet: true, date: "2026-03-21", time: "9:00 PM", league_text: "C", rink_text: null, confidence: 0.9, notes: [],
+    home: { name: "Hammer'd Heads", roster: [{ number: slot.number || "88", name: slot.number ? slot.name : "Graham D.", position: null }], goals: [], penalties: [], shots_by_period: [1, 1, 1], score_by_period: [0, 0, 0], total: 0 },
+    away: { name: "Blue Liners", roster: [{ number: "5", name: "Zed Quill", position: null }], goals: [], penalties: [], shots_by_period: [1, 1, 1], score_by_period: [0, 0, 0], total: 0 },
+  };
+  const [resultRow] = await db`INSERT INTO sheets (image_path,mime,status,source,extracted_json) VALUES ('test/none.jpg','image/jpeg','review','upload',${JSON.stringify(resultSheet)}) RETURNING id`;
+  mark = pushLines().length;
+  const confirmed = await call("POST", `/api/sheets/${resultRow.id}/confirm`, { leagueId: lg, homeTeamId: ctx.hh, awayTeamId: blId, data: resultSheet }, ctx.graham);
+  ok(confirmed.status === 200, `a final that includes Graham is confirmed during quiet hours${confirmed.status === 200 ? "" : " (" + confirmed.status + " " + (confirmed.json?.message || confirmed.text) + ")"}`);
+  ok(pushLines().slice(mark).some((l) => l.userId === ctx.ids.graham && l.kind === "result" && l.sent === true), "a result still sends during quiet hours");
+
+  await startConfigured({ ...vapidStub, LATEICE_PUSH_NOW: "2026-01-15T13:00:00.000Z" });
+  await db`UPDATE rinks SET timezone='America/New_York' WHERE name=${"Polar Ice Wilmington"}`;
+  await db`DELETE FROM notifications WHERE kind='game_day' AND link=${"/me?gameDay=2026-01-15"}`;
+  mark = pushLines().length;
+  await cronCall();
+  ok(pushLines().slice(mark).some((l) => l.userId === ctx.ids.graham && l.kind === "game_day" && l.sent === true), "8am in New York is outside quiet hours");
+
+  const seen = new Set(pushLines().map((l) => l.kind));
+  for (const k of PUSH_KINDS) ok(seen.has(k), `push covers ${k}`);
+  ok([...seen].every((k) => PUSH_KINDS.includes(String(k))), "no push outside those five kinds");
+  const raw = readFileSync(PUSH_LOG, "utf8");
+  ok(!raw.includes("smoke-private") && !raw.includes("https://push.example"), "the push log has no private key and no device address");
+  await db`UPDATE rinks SET timezone='America/New_York' WHERE name=${"Polar Ice Wilmington"}`;
+  await stop();
 }
 
 async function main() {
@@ -1149,7 +1339,7 @@ async function main() {
     ok(r.status === 200, `${path} renders`);
   }
 
-  await stop();
+  await pushChecks({ graham, sam, outsider, fan, hh, ids });
   await db.end();
   console.log(`\nsmoke: ${passed} checks passed`);
 }

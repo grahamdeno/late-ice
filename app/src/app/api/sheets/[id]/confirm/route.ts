@@ -1,7 +1,7 @@
 import { handle, body, num } from "@/server/http";
 import { sql, q, one } from "@/server/db";
 import { confirmSheet, HttpError } from "@/server/services";
-import { refreshDisplays, requireApproved } from "@/server/accounts";
+import { notifyConfirmedResult, refreshDisplays, requireApproved } from "@/server/accounts";
 import { requireConfirm } from "@/server/sheetconfirm";
 import { logEvent } from "@/server/appevents";
 
@@ -16,6 +16,7 @@ export const POST = handle<{ id: string }>(async (req, { id }) => {
     const g = await confirmSheet(tx, num(id), input);
     await logEvent(tx, { userId: u.id, kind: "confirm", gameId: g });
     await refreshDisplays(tx);
+    await notifyConfirmedResult(tx, g);
     return g;
   });
   return { gameId };

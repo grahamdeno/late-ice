@@ -6,6 +6,8 @@ import { AuthProvider, useAuth } from "@/lib/auth";
 import { FilterCtx, type Boot } from "@/lib/ui";
 import { Shell } from "@/components/Shell";
 import { useLocation } from "@/lib/router";
+import { InstallCard } from "@/components/InstallCard";
+import { UpdateBanner } from "@/components/UpdateBanner";
 
 const RINK_KEY = "lateice.rink";
 function Filtered({ children }: { children: React.ReactNode }) {
@@ -56,6 +58,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <InstallCard />
+        <UpdateBanner />
         <Filtered>{children}</Filtered>
       </AuthProvider>
     </QueryClientProvider>
