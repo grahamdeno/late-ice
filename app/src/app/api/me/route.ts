@@ -35,7 +35,7 @@ export const GET = handle(async (req) => {
        LEFT JOIN rating_history rh ON rh.game_id=g.id AND rh.player_id=$2
        WHERE g.home_team_id=$1 OR g.away_team_id=$1
        ORDER BY g.played_on DESC NULLS LAST, g.id DESC LIMIT 1`, [s.team_id, s.id]);
-    slots.push({ ...s, archetype: arch, next: ng, last: last ?? null, captain: await A.captainOf(sql, s.team_id), isCaptain: teamRole === "captain", teamRole, assistants: await A.assistantsOf(sql, s.team_id) });
+    slots.push({ ...s, number: s.number || u.number || null, archetype: arch, next: ng, last: last ?? null, captain: await A.captainOf(sql, s.team_id), isCaptain: teamRole === "captain", teamRole, assistants: await A.assistantsOf(sql, s.team_id) });
   }
   // Teams this person runs: captain or assistant captain.
   const captainTeams = await q(sql,

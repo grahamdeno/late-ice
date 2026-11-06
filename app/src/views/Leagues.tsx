@@ -158,7 +158,7 @@ export function LeaguePage({ id }: { id: string }) {
           <Link key={t.id} href={`/team/${t.id}`} className="card p-3" data-testid={`card-team-rating-${t.id}`}>
             <div className="label truncate">{t.name}</div>
             <div className="font-display text-2xl mt-1 tnum">{fmtRating(t.rating)}</div>
-            <div className="text-[11px] text-[var(--mute)]">Team rating (roster avg)</div>
+            <div className="text-[11px] text-[var(--mute)]">Team strength, from results</div>
           </Link>
         ))}
       </div>
@@ -203,7 +203,7 @@ export function TeamPage({ id }: { id: string }) {
           </div>
         </div>
         <div className="grid grid-cols-4 gap-2 mt-5 text-center">
-          {[["Record", `${record.w}-${record.l}-${record.t}`], ["Points", record.pts], ["GF-GA", record.gf != null && record.gp ? `${record.gf}-${record.ga}` : "–"], ["Rating", fmtRating(rating)]].map(([k, v]) => (
+          {[["Record", `${record.w}-${record.l}-${record.t}`], ["Points", record.pts], ["GF-GA", record.gf != null && record.gp ? `${record.gf}-${record.ga}` : "–"], ["Strength", fmtRating(rating)]].map(([k, v]) => (
             <div key={k as string} className="rounded-xl bg-[var(--ice-3)] py-2.5">
               <div className="font-display text-xl tnum">{v}</div>
               <div className="text-[10px] label">{k}</div>

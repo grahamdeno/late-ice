@@ -22,16 +22,19 @@ export function Players() {
   const myIds = new Set((me?.slots ?? []).map((s) => s.id));
   const myIndex = rows.findIndex((p) => myIds.has(p.id));
   const shown = all || qs ? rows : rows.slice(0, 10);
+  // Only players with a rated game are ranked. Everyone else shows "Unrated" instead of the league default.
+  const ratedCount = rows.filter((p) => p.games_rated > 0).length;
   const row = (p: any, i: number, pinned = false) => (
     <Link key={`${pinned ? "me-" : ""}${p.id}`} href={`/player/${p.id}`} className={`flex items-center gap-3 px-4 py-3 min-h-[56px] ${myIds.has(p.id) ? "bg-[var(--red-dim)]" : ""}`} data-testid={pinned ? "row-player-me" : `row-player-${p.id}`}>
-      <span className="w-7 text-center font-display text-lg text-[var(--mute)]">{i + 1}</span>
+      <span className="w-7 text-center font-display text-lg text-[var(--mute)]">{p.games_rated > 0 ? i + 1 : "–"}</span>
       <span className="flex-1 min-w-0">
         <span className="block font-bold truncate">{pinned ? "You" : p.name}{p.position && p.position !== "F" && <span className="text-[var(--mute)] font-medium"> · {p.position}</span>}</span>
         <span className="block text-xs text-[var(--mute)] truncate">{p.teams} · {p.levels}</span>
       </span>
       <span className="text-right">
-        <span className="block font-display text-xl tnum">{fmtRating(p.rating)}</span>
-        <Delta d={p.last_delta} className="text-[11px]" />
+        {p.games_rated > 0
+          ? <><span className="block font-display text-xl tnum">{fmtRating(p.rating)}</span><Delta d={p.last_delta} className="text-[11px]" /></>
+          : <span className="block text-sm font-bold text-[var(--mute)]" data-testid={`text-unrated-${p.id}`}>Unrated</span>}
       </span>
     </Link>
   );
@@ -59,7 +62,7 @@ export function Players() {
           {!all && !qs && rows.length > 10 && (
             <button className="card mt-3 w-full min-h-[52px] text-sm font-bold text-[var(--blue)]" onClick={() => setAll(true)} data-testid="button-show-all-players">Show all {rows.length}</button>
           )}
-          <p className="text-[11px] text-[var(--mute)] mt-3 px-1">Every player on a scanned sheet gets a rating. Win against better teams and it climbs.</p>
+          <p className="text-[11px] text-[var(--mute)] mt-3 px-1">{ratedCount === 0 ? "Ratings start with the first scanned sheet. Until then players are listed by points from the rink's stats page." : "Every player on a scanned sheet gets a rating. Win against better teams and it climbs. Players not yet on a scanned sheet show Unrated."}</p>
         </>
       )}
     </div>

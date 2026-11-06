@@ -168,7 +168,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      <main className="mx-auto max-w-[560px] min-w-0 px-4 pb-32 break-words" style={{ paddingTop: "calc(env(safe-area-inset-top) + 84px)" }}>{children}</main>
+      <main className="mx-auto max-w-[560px] min-w-0 px-4 pb-36 break-words" style={{ paddingTop: "calc(env(safe-area-inset-top) + 84px)" }}>{children}</main>
 
       <BackToTop />
 

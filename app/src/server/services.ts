@@ -267,9 +267,22 @@ export async function teamRecord(db: Tx, teamId: number, seasonId: number | null
   return { gp: gs.length + (imp?.gp ?? 0), scanned: gs.length, imported: imp?.gp ?? 0, w, l, t, pts: w * 2 + t, goalsKnown, gf: goalsKnown ? gf : null, ga: goalsKnown ? ga : null, diff: goalsKnown ? gf - ga : null };
 }
 
+/**
+ * Team strength: the roster's average rating (the league level's baseline until players have
+ * rated games) plus a nudge from goal difference per game, capped at half a point either way.
+ * Imported games carry no lineup, so this is how they count toward a rating at all.
+ */
+export function teamStrength(base: number | null, gp: number, diff: number | null) {
+  if (base == null) return null;
+  if (!gp || gp < 3 || diff == null) return Math.round(base * 100) / 100;
+  const spread = Math.max(-0.5, Math.min(0.5, (diff / gp) * 0.12));
+  return Math.round((base + spread) * 100) / 100;
+}
+
 export async function teamRating(db: Tx, teamId: number) {
   const r = await one<{ r: number | null }>(db, "SELECT AVG(p.rating) r FROM roster_entries re JOIN players p ON p.id=re.player_id WHERE re.team_id=$1", [teamId]);
-  return r?.r ?? null;
+  const rec = await teamRecord(db, teamId);
+  return teamStrength(r?.r ?? null, rec.gp, rec.diff);
 }
 
 function sortStandings(rows: any[]) {
@@ -382,7 +395,7 @@ async function groupedStandings(db: Tx, scope: "league" | "rink", id: number, se
         id: row.id, league_id: row.league_id, name: row.name, color: row.color, is_sample: row.is_sample,
         created_from_sheet: row.created_from_sheet, logo: row.logo, created_at: row.created_at,
         gp: row.gp, scanned: row.scanned, imported: row.imported, w: row.w, l: row.l, t: row.t, pts: row.pts,
-        goalsKnown: row.goalsKnown, gf: row.gf, ga: row.ga, diff: row.diff, rating: row.rating,
+        goalsKnown: row.goalsKnown, gf: row.gf, ga: row.ga, diff: row.diff, rating: teamStrength(row.rating, row.gp, row.diff),
       });
     }
   }
