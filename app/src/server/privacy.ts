@@ -143,6 +143,7 @@ export async function deleteAccountRow(user: any) {
       ? (await one<{ n: number }>(tx, "SELECT COUNT(*)::int n FROM player_game_stats WHERE player_id IN (SELECT jsonb_array_elements_text($1::text::jsonb)::int)", [JSON.stringify(anonymized.map((p) => p.id))]))!.n
       : 0;
     if (user.auth_id) await q(tx, "INSERT INTO deleted_accounts (auth_id) VALUES ($1) ON CONFLICT (auth_id) DO NOTHING", [user.auth_id]);
+    await q(tx, "DELETE FROM app_events WHERE user_id = $1", [user.id]);
     await q(tx, "DELETE FROM users WHERE id = $1", [user.id]);
     return { anonymized, gameLinesKept: kept };
   });
