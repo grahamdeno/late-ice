@@ -44,3 +44,28 @@ export function ArchetypeVotes({ teamId, roster, data }: { teamId: number; roste
     </Section>
   );
 }
+
+/** The team's captain (or an admin) can set what shows for a player, over the vote. */
+export function ArchetypeOverride({ teamId, roster, data }: { teamId: number; roster: any[]; data: any }) {
+  const [err, setErr] = useState<string | null>(null);
+  return (
+    <div className="mt-3" data-testid="card-archetype-override">
+      <p className="text-xs text-[var(--mute)] px-1">Captain's pick. What you set here shows instead of the vote. Players can still hide their own label.</p>
+      <div className="card divide-y divide-[var(--line)] mt-2">
+        {roster.map((p) => {
+          const shown = data?.won?.[p.id];
+          return (
+            <label key={p.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+              <span className="flex-1 min-w-0 truncate font-bold">{p.name}</span>
+              <select className="input h-9 text-sm w-[150px]" value={shown?.override ? shown.archetype : ""} onChange={async (e) => setErr(await act("PUT", `/api/teams/${teamId}/archetypes/override`, { playerId: p.id, archetype: e.target.value || null }, ["/api/teams", "/api/players"]))} data-testid={`select-archetype-override-${p.id}`}>
+                <option value="">Use the vote</option>
+                {Object.entries(ARCHETYPE_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+              </select>
+            </label>
+          );
+        })}
+      </div>
+      {err && <p className="text-xs down mt-1">{err}</p>}
+    </div>
+  );
+}

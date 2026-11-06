@@ -51,12 +51,18 @@ export async function teamArchetypes(db: Tx, teamId: number, viewerId: number | 
   return { won, mine, voter: own.length > 0, own, minVotes: MIN_VOTES };
 }
 
+/** True for this team's captain or a system admin. */
+export async function canSetCaptainArchetype(db: Tx, userId: number | null | undefined, teamId: number) {
+  if (!userId) return false;
+  const admin = await one(db, "SELECT 1 FROM role_grants WHERE user_id=$1 AND role='admin' AND revoked_at IS NULL", [userId]);
+  const captain = await one(db, "SELECT 1 FROM role_grants WHERE user_id=$1 AND role='captain' AND scope_type='team' AND scope_id=$2 AND revoked_at IS NULL", [userId, teamId]);
+  return !!(admin || captain);
+}
+
 /** Captain of this team, or an admin, sets the archetype shown for one roster player. Null clears it. */
 export async function setCaptainArchetype(db: Tx, actorId: number, teamId: number, playerId: number, archetype: string | null) {
   if (archetype !== null && !(ARCHETYPES as readonly string[]).includes(archetype)) throw new HttpError(400, "Pick one of the archetypes.");
-  const admin = await one(db, "SELECT 1 FROM role_grants WHERE user_id=$1 AND role='admin' AND revoked_at IS NULL", [actorId]);
-  const captain = await one(db, "SELECT 1 FROM role_grants WHERE user_id=$1 AND role='captain' AND scope_type='team' AND scope_id=$2 AND revoked_at IS NULL", [actorId, teamId]);
-  if (!admin && !captain) throw new HttpError(403, "Only this team's captain can set that.");
+  if (!(await canSetCaptainArchetype(db, actorId, teamId))) throw new HttpError(403, "Only this team's captain can set that.");
   if (!(await one(db, "SELECT 1 FROM roster_entries WHERE team_id=$1 AND player_id=$2", [teamId, playerId]))) throw new HttpError(404, "That player isn't on this team.");
   await q(db, "UPDATE roster_entries SET archetype_override=$1 WHERE team_id=$2 AND player_id=$3", [archetype, teamId, playerId]);
 }
