@@ -368,7 +368,7 @@ async function groupedStandings(db: Tx, scope: "league" | "rink", id: number, se
         THEN (COALESCE(i.gf, 0) + COALESCE(g.gf, 0) - COALESCE(i.ga, 0) - COALESCE(g.ga, 0))::int ELSE NULL END AS diff,
       r.rating AS rating
     FROM leagues_in li
-    LEFT JOIN teams t ON t.league_id = li.id
+    LEFT JOIN teams t ON t.league_id = li.id AND t.archived_at IS NULL
     LEFT JOIN game_agg g ON g.team_id = t.id
     LEFT JOIN imp_agg i ON i.team_id = t.id
     LEFT JOIN rate r ON r.team_id = t.id
