@@ -68,7 +68,9 @@ export default function Game({ id, fresh }: { id: string; fresh?: boolean }) {
       {imported && (
         <>
           <p className="text-[11px] text-[var(--mute)] mt-3 px-1" data-testid="text-imported-game">
-            From DaySmart. It records the score and who was credited with goals and assists, but no times, penalties, shots or lineups, so this game isn't rated. Scan the sheet to add the rest.
+            {g.lineupTeams?.length
+              ? "From DaySmart, with the lineup from the team's poll, so this game is rated for that team. DaySmart has no times, penalties or shots. Scan the sheet to add the rest."
+              : "From DaySmart. It records the score and who was credited with goals and assists, but no times, penalties, shots or lineups, so this game isn't rated. Scan the sheet to add the rest."}
           </p>
           {sides.map((s) => {
             const rows = g.imported.filter((l: any) => l.team_id === s.team.id);

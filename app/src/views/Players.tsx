@@ -182,7 +182,7 @@ export function PlayerPage({ id }: { id: string }) {
       )}
 
       <h2 id="why" className="font-black text-[17px] mt-7 mb-3 px-1 scroll-mt-24">Why it moved</h2>
-      {history.length === 0 ? <Empty title="No rated games yet" body="Ratings start after the first scanned game." /> : (
+      {history.length === 0 ? <Empty title="No rated games yet" body="Ratings start after the first scanned game or recorded lineup. New lineups count after the nightly update." /> : (
         <div className="space-y-2">
           {[...history].reverse().map((h: any) => {
             const opp = teams.find((t: any) => t.id === h.game.home.id) ? h.game.away : h.game.home;

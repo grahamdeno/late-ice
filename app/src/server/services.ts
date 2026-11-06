@@ -294,13 +294,13 @@ function sortStandings(rows: any[]) {
  * scope "league" takes a league id; "rink" takes a rink id and skips demo and tournament leagues.
  */
 async function groupedStandings(db: Tx, scope: "league" | "rink", id: number, seasonId: number | null) {
-  const where = scope === "league" ? "id = $1" : "rink_id = $1 AND level NOT IN ('DEMO','TOURN')";
+  const where = scope === "league" ? "id = $1" : "rink_id = $1 AND archived_at IS NULL AND level NOT IN ('DEMO','TOURN')";
   const rows = await q<any>(db, `
     WITH leagues_in AS (
       SELECT * FROM leagues WHERE ${where}
     ),
     team_in AS (
-      SELECT t.id, t.league_id FROM teams t WHERE t.league_id IN (SELECT id FROM leagues_in)
+      SELECT t.id, t.league_id FROM teams t WHERE t.league_id IN (SELECT id FROM leagues_in) AND t.archived_at IS NULL
     ),
     game_side AS (
       SELECT g.home_team_id AS team_id, g.home_score AS gf, g.away_score AS ga
@@ -429,7 +429,7 @@ export async function leaders(db: Tx, leagueId: number | null, limit = 10, seaso
   const { applyLoadedNames, sameRinkSql } = await import("./accounts");
   const params: any[] = [];
   const p = (v: any) => { params.push(v); return `$${params.length}`; };
-  const scope = () => (leagueId ? `l.id=${p(leagueId)}` : "l.level NOT IN ('DEMO','TOURN')" + (rinkId ? ` AND l.rink_id=${p(rinkId)}` : "")) + (seasonId ? ` AND season_id=${p(seasonId)}` : "");
+  const scope = () => (leagueId ? `l.id=${p(leagueId)}` : "l.level NOT IN ('DEMO','TOURN') AND l.archived_at IS NULL" + (rinkId ? ` AND l.rink_id=${p(rinkId)}` : "")) + (seasonId ? ` AND season_id=${p(seasonId)}` : "");
   const s1 = scope(), s2 = scope();
   const viewer = viewerId ? p(viewerId) : "NULL";
   const rows = await q<any>(

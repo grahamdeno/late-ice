@@ -9,8 +9,11 @@ import { AddButton, AddLeagueForm, AddSeasonForm, AddTeamForm, EditRinkForm, Rin
 
 const when = (s: string) => new Date(s).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
-/** Staff page: admin, support and rink staff each see their own sections. */
-export default function Staff() {
+/**
+ * Staff tools, one level at a time: home (what's waiting, help desk, every rink, admin),
+ * then a rink (details, seasons, leagues, staff, import), then a league (settings and teams).
+ */
+export default function Staff({ rinkId, leagueId }: { rinkId?: string; leagueId?: string } = {}) {
   const [, nav] = useLocation();
   const { me, loading } = useMe();
   const { data, error } = useQuery<any>({ queryKey: ["/api/staff/overview"], enabled: !!me });
@@ -20,8 +23,23 @@ export default function Staff() {
   if (loading || !me) return <Loading />;
   if (error) return <div><BackBar href="/me" title="Profile" /><Empty title="Staff only" body={(error as any).message} /></div>;
   if (!data) return <Loading />;
-  const run = async (method: string, url: string, body?: unknown) => { const e = await act(method, url, body, ["/api/staff", "/api/me", "/api/players", "/api/teams", "/api/rinks", "/api/rink", "/api/leagues", "/api/standings"]); setErr(e); return !e; };
+  const run = async (method: string, url: string, body?: unknown) => { const e = await act(method, url, body, ["/api/staff", "/api/me", "/api/players", "/api/teams", "/api/rinks", "/api/rink", "/api/leagues", "/api/standings", "/api/bootstrap"]); setErr(e); return !e; };
+  const errLine = err && <p className="text-sm down mt-3" data-testid="text-error">{err}</p>;
 
+  if (leagueId) {
+    const rink = data.rinks.find((r: any) => r.leagues.some((l: any) => String(l.id) === leagueId));
+    const league = rink?.leagues.find((l: any) => String(l.id) === leagueId);
+    if (!rink || !league) return <div><BackBar href="/staff" title="Manage" /><Empty title="League not found" body="It may have been removed, or it's outside what you manage." /></div>;
+    return <div><BackBar href={`/staff/rink/${rink.id}`} title={rink.name} />{errLine}<LeagueLevel rink={rink} league={league} run={run} onGone={() => nav(`/staff/rink/${rink.id}`)} /></div>;
+  }
+  if (rinkId) {
+    const rink = data.rinks.find((r: any) => String(r.id) === rinkId);
+    if (!rink) return <div><BackBar href="/staff" title="Manage" /><Empty title="Rink not found" body="It may have been removed, or it's outside what you manage." /></div>;
+    return <div><BackBar href="/staff" title="Manage" />{errLine}<RinkLevel rink={rink} run={run} onGone={() => nav("/staff")} /></div>;
+  }
+
+  const live = data.rinks.filter((r: any) => !r.archived_at);
+  const archived = data.rinks.filter((r: any) => r.archived_at);
   return (
     <div>
       <BackBar href="/me" title="Profile" />
@@ -31,13 +49,19 @@ export default function Staff() {
           <span key={r.id} className="chip h-7 text-[11px]">{ROLE_LABEL[r.role]}{r.where ? ` · ${r.where}` : ""}</span>
         ))}
       </div>
-      {err && <p className="text-sm down mt-3" data-testid="text-error">{err}</p>}
+      {errLine}
 
       <Requests run={run} />
       <Signups run={run} />
       {data.isSupport || data.isAdmin ? <SupportDesk run={run} isAdmin={data.isAdmin} /> : null}
-      {data.rinks.map((r: any) => <RinkSection key={r.id} rink={r} run={run} />)}
-      {data.rinks.some((r: any) => r.manage) && <ImportSection rinks={data.rinks.filter((r: any) => r.manage)} />}
+      <Section title={data.isAdmin ? "Rinks" : live.length === 1 ? "Your rink" : "Your rinks"} action={<span className="label">{live.length}</span>}>
+        <div className="card divide-y divide-[var(--line)]">
+          {live.length === 0 && <p className="p-4 text-xs text-[var(--mute)]">No rinks yet.</p>}
+          {live.map((r: any) => <DrillRow key={r.id} href={`/staff/rink/${r.id}`} title={r.name} hint={[[r.city, r.state].filter(Boolean).join(", "), `${r.leagues.filter((l: any) => !l.archived_at).length} leagues`].filter(Boolean).join(" · ")} testid={`row-staff-rink-${r.id}`} />)}
+        </div>
+        {data.isAdmin && <AddRink />}
+        {archived.length > 0 && <Archived count={archived.length} what="rink">{archived.map((r: any) => <DrillRow key={r.id} href={`/staff/rink/${r.id}`} title={r.name} hint="Archived" testid={`row-staff-rink-${r.id}`} />)}</Archived>}
+      </Section>
       {data.isAdmin && <AdminSection data={data} run={run} />}
       <Audit rinks={data.rinks} broad={data.isSupport || data.isAdmin} />
     </div>
@@ -45,6 +69,271 @@ export default function Staff() {
 }
 
 type Run = (method: string, url: string, body?: unknown) => Promise<boolean>;
+
+function DrillRow({ href, title, hint, left, testid }: { href: string; title: string; hint?: string; left?: React.ReactNode; testid?: string }) {
+  return (
+    <Link href={href} className="flex items-center gap-3 px-4 py-3 min-h-[56px]" data-testid={testid}>
+      {left}
+      <span className="flex-1 min-w-0"><span className="block font-bold text-sm truncate">{title}</span>{hint && <span className="block text-xs text-[var(--mute)] truncate">{hint}</span>}</span>
+      <span className="text-[var(--mute)]">›</span>
+    </Link>
+  );
+}
+
+function Archived({ count, what, children }: { count: number; what: string; children: React.ReactNode }) {
+  return (
+    <details className="mt-3">
+      <summary className="text-xs text-[var(--mute)] font-bold px-1 cursor-pointer">Archived · {count} {what}{count === 1 ? "" : "s"}</summary>
+      <div className="card mt-2 divide-y divide-[var(--line)] opacity-80">{children}</div>
+    </details>
+  );
+}
+
+function AddRink() {
+  const [open, setOpen] = useState(false);
+  return <div className="mt-3">{open ? <RinkRequestForm admin onDone={() => setOpen(false)} /> : <AddButton label="Rink" onClick={() => setOpen(true)} testid="button-add-rink" />}</div>;
+}
+
+/** Archive, restore and delete, kept together at the bottom of each level and spelled out. */
+function Lifecycle({ what, name, archived, canArchive, canDelete, deleteBlocked, onArchive, onDelete }: {
+  what: string; name: string; archived: boolean; canArchive: boolean; canDelete: boolean; deleteBlocked: string;
+  onArchive: (on: boolean) => void; onDelete: () => void;
+}) {
+  if (!canArchive && !canDelete) return null;
+  return (
+    <Section title={archived ? "Archived" : "Archive or delete"}>
+      <div className="card p-4 space-y-3">
+        {canArchive && (
+          <div className="flex items-center gap-3">
+            <span className="flex-1 text-xs text-[var(--mute)]">{archived
+              ? `Hidden from players. Restoring puts ${name} back in lists and standings.`
+              : `Hides ${name} from pickers, lists and standings. Games, stats and ratings stay, and you can restore it.`}</span>
+            <button className="btn btn-ghost h-10 shrink-0" onClick={() => (archived || confirm(`Archive ${name}?`)) && onArchive(!archived)} data-testid={`button-${archived ? "restore" : "archive"}-${what}`}>{archived ? "Restore" : "Archive"}</button>
+          </div>
+        )}
+        <div className="flex items-center gap-3 border-t border-[var(--line)] pt-3">
+          <span className="flex-1 text-xs text-[var(--mute)]">{canDelete ? `Nothing is attached to this ${what}, so it can be deleted for good.` : deleteBlocked}</span>
+          <button className="btn btn-ghost h-10 shrink-0 down" disabled={!canDelete} onClick={() => prompt(`Type ${name} to delete it for good.`)?.trim() === name && onDelete()} data-testid={`button-delete-${what}`}>Delete</button>
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function RinkLevel({ rink, run, onGone }: { rink: any; run: Run; onGone: () => void }) {
+  const [open, setOpen] = useState<string | null>(null);
+  const close = () => setOpen(null);
+  const live = rink.leagues.filter((l: any) => !l.archived_at);
+  const archived = rink.leagues.filter((l: any) => l.archived_at);
+  return (
+    <div>
+      <div className="label">Rink{rink.archived_at ? " · archived" : ""}</div>
+      <div className="flex items-start gap-2">
+        <h1 className="font-black text-2xl flex-1">{rink.name}</h1>
+        {rink.can?.edit && open !== "rink" && <button className="text-sm text-[var(--blue)] font-bold mt-1.5" onClick={() => setOpen("rink")} data-testid={`button-edit-rink-${rink.id}`}>Edit</button>}
+      </div>
+      {open === "rink" ? <div className="mt-2"><EditRinkForm rink={rink} onDone={close} /></div> : (rink.address || rink.phone) ? <p className="text-xs text-[var(--mute)] mt-1">{[rink.address, rink.phone].filter(Boolean).join(" · ")}</p> : null}
+
+      <Section title="Leagues" action={<span className="label">{live.length}</span>}>
+        <div className="card divide-y divide-[var(--line)]">
+          {live.length === 0 && <p className="p-4 text-xs text-[var(--mute)]">No leagues yet.</p>}
+          {live.map((l: any) => <DrillRow key={l.id} href={`/staff/league/${l.id}`} left={<LevelPill level={l.level === "DEMO" ? "Demo" : l.level} />} title={`${l.name}${l.tag ? ` · ${l.tag}` : ""}`} hint={`${l.teams.filter((t: any) => !t.archived_at).length} teams`} testid={`row-staff-league-${l.id}`} />)}
+        </div>
+        {rink.can?.addLeague && (open === "league" ? <div className="mt-3"><AddLeagueForm rinkId={rink.id} onDone={close} /></div> : <div className="mt-3"><AddButton label="League" onClick={() => setOpen("league")} testid={`button-add-league-${rink.id}`} /></div>)}
+        {archived.length > 0 && <Archived count={archived.length} what="league">{archived.map((l: any) => <DrillRow key={l.id} href={`/staff/league/${l.id}`} left={<LevelPill level={l.level} />} title={l.name} hint="Archived" testid={`row-staff-league-${l.id}`} />)}</Archived>}
+      </Section>
+
+      {rink.can?.seasons && (
+        <Section title="Seasons" action={open !== "season" ? <AddButton label="Season" onClick={() => setOpen("season")} testid={`button-add-season-${rink.id}`} /> : undefined}>
+          {open === "season" && <div className="mb-3"><AddSeasonForm rinkId={rink.id} onDone={close} /></div>}
+          <div className="card divide-y divide-[var(--line)]">
+            {rink.seasons.length ? rink.seasons.map((s: any) => <SeasonRow key={s.id} season={s} run={run} />) : <p className="p-4 text-xs text-[var(--mute)]">No seasons yet.</p>}
+          </div>
+        </Section>
+      )}
+
+      {rink.manage && <RinkStaff rink={rink} run={run} />}
+      {rink.manage && !rink.archived_at && <ImportSection rinks={[rink]} />}
+
+      <Lifecycle what="rink" name={rink.name} archived={!!rink.archived_at} canArchive={!!rink.can?.archive} canDelete={!!rink.can?.remove}
+        deleteBlocked="This rink has leagues or players who call it home. Archive it instead."
+        onArchive={(on) => run("PATCH", `/api/rinks/${rink.id}`, { archived: on })}
+        onDelete={async () => { if (await run("DELETE", `/api/rinks/${rink.id}`)) onGone(); }} />
+    </div>
+  );
+}
+
+function SeasonRow({ season, run }: { season: any; run: Run }) {
+  const [edit, setEdit] = useState(false);
+  const [name, setName] = useState(season.name);
+  const [starts, setStarts] = useState(season.starts_on);
+  const [ends, setEnds] = useState(season.ends_on);
+  if (!edit) return (
+    <div className="flex items-center gap-3 px-4 py-3" data-testid={`row-season-${season.id}`}>
+      <span className="flex-1 min-w-0"><span className="block font-bold text-sm">{season.name}</span><span className="block text-xs text-[var(--mute)] tnum">{season.starts_on} to {season.ends_on}{season.games ? ` · ${season.games} games` : ""}</span></span>
+      <button className="text-sm text-[var(--blue)] font-bold" onClick={() => setEdit(true)} data-testid={`button-edit-season-${season.id}`}>Edit</button>
+    </div>
+  );
+  return (
+    <form className="p-4 space-y-2" onSubmit={async (e) => { e.preventDefault(); if (await run("PATCH", `/api/seasons/${season.id}`, { name, startsOn: starts, endsOn: ends })) setEdit(false); }}>
+      <input className="input w-full" value={name} onChange={(e) => setName(e.target.value)} aria-label="Season name" />
+      <div className="grid grid-cols-2 gap-2">
+        <label className="text-xs text-[var(--mute)]">Starts<input type="date" className="input w-full mt-1" value={starts} onChange={(e) => setStarts(e.target.value)} /></label>
+        <label className="text-xs text-[var(--mute)]">Ends<input type="date" className="input w-full mt-1" value={ends} onChange={(e) => setEnds(e.target.value)} /></label>
+      </div>
+      <div className="flex gap-2">
+        <button type="button" className="btn btn-ghost h-10 down" disabled={season.games > 0}
+          onClick={() => confirm(`Delete ${season.name}?`) && run("DELETE", `/api/seasons/${season.id}`)} data-testid={`button-delete-season-${season.id}`}>Delete</button>
+        <span className="flex-1" />
+        <button type="button" className="btn btn-ghost h-10" onClick={() => setEdit(false)}>Cancel</button>
+        <button className="btn btn-red h-10" data-testid={`button-save-season-${season.id}`}>Save</button>
+      </div>
+      {season.games > 0 && <p className="text-[11px] text-[var(--mute)]">{season.games} games belong to this season, so it can't be deleted. You can still rename it or change its dates.</p>}
+    </form>
+  );
+}
+
+const TAG_OPTIONS = ["40+", "50+", "Women's", "Coed"];
+
+function LeagueLevel({ rink, league: l, run, onGone }: { rink: any; league: any; run: Run; onGone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(l.name);
+  const live = l.teams.filter((t: any) => !t.archived_at);
+  const archived = l.teams.filter((t: any) => t.archived_at);
+  const others = rink.leagues.filter((x: any) => x.id !== l.id && !x.archived_at && x.level !== "DEMO" && x.level !== "TOURN");
+  return (
+    <div>
+      <div className="label">League · {rink.name}{l.archived_at ? " · archived" : ""}</div>
+      <div className="flex items-center gap-2 mt-1"><LevelPill level={l.level === "DEMO" ? "Demo" : l.level} /><h1 className="font-black text-2xl flex-1 min-w-0 truncate">{l.name}</h1></div>
+      <Link href={`/league/${l.id}`} className="text-sm text-[var(--blue)] font-bold">Open the public page ›</Link>
+
+      {l.addTeam && l.level !== "DEMO" && (
+        <Section title="Settings">
+          <div className="card divide-y divide-[var(--line)]">
+            <form className="p-4 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (name.trim() && name !== l.name) run("PATCH", `/api/leagues/${l.id}`, { name }); }}>
+              <input className="input flex-1" value={name} onChange={(e) => setName(e.target.value)} aria-label="League name" data-testid="input-league-name" />
+              <button className="btn btn-ghost h-11" disabled={!name.trim() || name === l.name} data-testid="button-save-league-name">Rename</button>
+            </form>
+            <div className="p-4 grid grid-cols-2 gap-3">
+              <label className="text-xs text-[var(--mute)]">Skill level
+                <select className="input w-full mt-1" value={["A", "B", "C", "D"].includes(l.level) ? l.level : ""} onChange={(e) => run("PATCH", `/api/leagues/${l.id}`, { level: e.target.value })} data-testid={`select-level-${l.id}`}>
+                  {!["A", "B", "C", "D"].includes(l.level) && <option value="">Pick</option>}
+                  {["A", "B", "C", "D"].map((v) => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </label>
+              <label className="text-xs text-[var(--mute)]">Division
+                <select className="input w-full mt-1" value={l.tag ?? ""} onChange={(e) => run("PATCH", `/api/leagues/${l.id}`, { tag: e.target.value || null })} data-testid={`select-tag-${l.id}`}>
+                  <option value="">None</option>
+                  {TAG_OPTIONS.map((v) => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </label>
+              <label className="text-xs text-[var(--mute)]">Skater spots
+                <input className="input w-full mt-1 tnum" inputMode="numeric" defaultValue={l.roster_max ?? 25} onBlur={(e) => Number(e.target.value) !== (l.roster_max ?? 25) && run("PATCH", `/api/leagues/${l.id}`, { rosterMax: Number(e.target.value) })} data-testid={`input-roster-max-${l.id}`} />
+              </label>
+              <label className="text-xs text-[var(--mute)]">Goalie spots
+                <input className="input w-full mt-1 tnum" inputMode="numeric" defaultValue={l.goalie_max ?? 2} onBlur={(e) => Number(e.target.value) !== (l.goalie_max ?? 2) && run("PATCH", `/api/leagues/${l.id}`, { goalieMax: Number(e.target.value) })} data-testid={`input-goalie-max-${l.id}`} />
+              </label>
+            </div>
+          </div>
+        </Section>
+      )}
+
+      <Section title="Teams" action={<span className="label">{live.length}</span>}>
+        <div className="card divide-y divide-[var(--line)]">
+          {live.length === 0 && <p className="p-4 text-xs text-[var(--mute)]">No teams yet.</p>}
+          {live.map((t: any) => <TeamRow key={t.id} team={t} others={others} canEdit={l.addTeam} run={run} />)}
+        </div>
+        {l.addTeam && (open ? <div className="mt-3"><AddTeamForm leagueId={l.id} leagueName={l.name} onDone={() => setOpen(false)} /></div> : <div className="mt-3"><AddButton label="Team" onClick={() => setOpen(true)} testid={`button-add-team-${l.id}`} /></div>)}
+        {archived.length > 0 && <Archived count={archived.length} what="team">{archived.map((t: any) => <TeamRow key={t.id} team={t} others={others} canEdit={l.addTeam} run={run} />)}</Archived>}
+      </Section>
+
+      <Lifecycle what="league" name={l.name} archived={!!l.archived_at} canArchive={!!l.addTeam && !!rink.can?.addLeague} canDelete={!!l.removable}
+        deleteBlocked="This league has teams or games. Archive it instead."
+        onArchive={(on) => run("PATCH", `/api/leagues/${l.id}`, { archived: on })}
+        onDelete={async () => { if (await run("DELETE", `/api/leagues/${l.id}`)) onGone(); }} />
+    </div>
+  );
+}
+
+function TeamRow({ team: t, others, canEdit, run }: { team: any; others: any[]; canEdit: boolean; run: Run }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(t.name);
+  const [color, setColor] = useState(t.color || "#3B82F6");
+  return (
+    <div data-testid={`row-staff-team-${t.id}`}>
+      <button type="button" className="w-full flex items-center gap-3 px-4 py-3 min-h-[56px] text-left" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+        <TeamBadge team={t} size={28} />
+        <span className="flex-1 min-w-0"><span className="block font-bold text-sm truncate">{t.name}</span><span className="block text-xs text-[var(--mute)]">{t.captain ? `C: ${t.captain}` : "no captain"} · {t.registered}/{t.roster} signed up{t.archived_at ? " · archived" : ""}</span></span>
+        <span className="text-[var(--mute)]">{open ? "▴" : "▾"}</span>
+      </button>
+      {open && (
+        <div className="px-4 pb-4 space-y-3">
+          <div className="flex gap-2">
+            <Link href={`/team/${t.id}`} className="btn btn-ghost h-10 flex-1" data-testid={`link-team-page-${t.id}`}>Team page</Link>
+            <Link href={`/team/${t.id}/manage`} className="btn btn-ghost h-10 flex-1" data-testid={`link-team-roster-${t.id}`}>Roster and captain</Link>
+          </div>
+          {canEdit && (
+            <>
+              <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); run("PATCH", `/api/teams/${t.id}`, { name, color }); }}>
+                <input type="color" className="h-11 w-12 rounded-lg border border-[var(--line)] bg-transparent shrink-0" value={color} onChange={(e) => setColor(e.target.value)} aria-label="Team color" />
+                <input className="input flex-1 min-w-0" value={name} onChange={(e) => setName(e.target.value)} aria-label="Team name" />
+                <button className="btn btn-ghost h-11" disabled={!name.trim() || (name === t.name && color === t.color)} data-testid={`button-save-team-${t.id}`}>Save</button>
+              </form>
+              {others.length > 0 && (
+                t.movable ? (
+                  <label className="block text-xs text-[var(--mute)]">Move to another league
+                    <select className="input w-full mt-1" value="" onChange={(e) => e.target.value && confirm(`Move ${t.name}?`) && run("PATCH", `/api/teams/${t.id}`, { leagueId: Number(e.target.value) })} data-testid={`select-move-team-${t.id}`}>
+                      <option value="">Pick a league</option>
+                      {others.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+                    </select>
+                  </label>
+                ) : <p className="text-[11px] text-[var(--mute)]">Teams with games stay in their league. To move one, archive it and add it to the other league.</p>
+              )}
+              <div className="flex gap-2">
+                <button className="btn btn-ghost h-10 flex-1" onClick={() => (t.archived_at || confirm(`Archive ${t.name}? It leaves standings and lists; its history stays.`)) && run("PATCH", `/api/teams/${t.id}`, { archived: !t.archived_at })} data-testid={`button-${t.archived_at ? "restore" : "archive"}-team-${t.id}`}>{t.archived_at ? "Restore" : "Archive"}</button>
+                <button className="btn btn-ghost h-10 flex-1 down" disabled={!t.removable} onClick={() => confirm(`Delete ${t.name} for good?`) && run("DELETE", `/api/teams/${t.id}`)} data-testid={`button-remove-team-${t.id}`}>Delete</button>
+              </div>
+              {!t.removable && <p className="text-[11px] text-[var(--mute)]">Delete is only for empty teams. This one has games or players, so archive it instead.</p>}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RinkStaff({ rink, run }: { rink: any; run: Run }) {
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("scorekeeper");
+  const [league, setLeague] = useState<number | null>(rink.leagues[0]?.id ?? null);
+  return (
+    <Section title="Rink staff">
+      <div className="card p-4">
+        {rink.staff.length ? rink.staff.map((s: any) => (
+          <div key={s.id} className="flex items-center gap-2 text-sm py-1.5">
+            <span className="flex-1 min-w-0 truncate">{s.name ?? s.email} · {ROLE_LABEL[s.role]}{s.league ? ` (${s.league})` : ""}</span>
+            <button className="btn btn-ghost h-8 text-xs" onClick={() => confirm(`Remove ${s.name ?? s.email} as ${ROLE_LABEL[s.role].toLowerCase()}?`) && run("DELETE", `/api/staff/grants?id=${s.id}`)}>Remove</button>
+          </div>
+        )) : <p className="text-xs text-[var(--mute)]">No scorekeepers or commissioners yet.</p>}
+        <div className="grid grid-cols-2 gap-2 mt-3">
+          <select className="input text-sm" value={role} onChange={(e) => setRole(e.target.value)} data-testid="select-staff-role">
+            <option value="scorekeeper">Scorekeeper</option>
+            <option value="commissioner">Commissioner</option>
+          </select>
+          {role === "commissioner" ? (
+            <select className="input text-sm" value={league ?? ""} onChange={(e) => setLeague(Number(e.target.value))}>
+              {rink.leagues.map((l: any) => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </select>
+          ) : <span />}
+        </div>
+        <form className="flex gap-2 mt-2" onSubmit={async (e) => { e.preventDefault(); if (await run("POST", "/api/staff/grants", { email, role, scopeId: role === "commissioner" ? league : rink.id })) setEmail(""); }}>
+          <input className="input flex-1" placeholder="Their Late Ice email" value={email} onChange={(e) => setEmail(e.target.value)} data-testid="input-staff-email" />
+          <button className="btn btn-red h-11" disabled={!email} data-testid="button-grant-staff">Add</button>
+        </form>
+      </div>
+    </Section>
+  );
+}
 
 function Requests({ run }: { run: Run }) {
   const { data } = useQuery<any[]>({ queryKey: ["/api/staff/requests"] });
@@ -225,100 +514,12 @@ function SupportDesk({ run, isAdmin }: { run: Run; isAdmin: boolean }) {
   );
 }
 
-function RinkSection({ rink, run }: { rink: any; run: Run }) {
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState("scorekeeper");
-  const [league, setLeague] = useState<number | null>(rink.leagues[0]?.id ?? null);
-  const [open, setOpen] = useState<string | null>(null);
-  const close = () => setOpen(null);
-  return (
-    <Section title={rink.name} action={rink.can?.edit && open !== "rink" ? <button className="text-sm text-[var(--blue)] font-bold" onClick={() => setOpen("rink")} data-testid={`button-edit-rink-${rink.id}`}>Edit</button> : undefined}>
-      {open === "rink" ? <div className="mb-3"><EditRinkForm rink={rink} onDone={close} /></div> : (rink.address || rink.phone) ? <p className="text-xs text-[var(--mute)] -mt-1 mb-2 px-1">{[rink.address, rink.phone].filter(Boolean).join(" · ")}</p> : null}
-      {rink.leagues.map((l: any) => (
-        <div key={l.id} className="card mt-2" data-testid={`card-manage-league-${l.id}`}>
-          <div className="p-3.5 flex items-center gap-2 border-b border-[var(--line)]">
-            <LevelPill level={l.level === "DEMO" ? "Demo" : l.level} />
-            <Link href={`/league/${l.id}`} className="font-bold text-sm flex-1 min-w-0 truncate">{l.name}{l.tag ? <span className="text-[var(--mute)] font-medium"> · {l.tag}</span> : null}</Link>
-            {l.addTeam && l.level !== "DEMO" && (
-              <select className="input h-8 text-xs w-[64px] px-2" aria-label={`Skill level for ${l.name}`} value={["A", "B", "C", "D"].includes(l.level) ? l.level : ""} onChange={(e) => run("PATCH", `/api/leagues/${l.id}`, { level: e.target.value })} data-testid={`select-level-${l.id}`}>
-                {!["A", "B", "C", "D"].includes(l.level) && <option value="">Pick</option>}
-                {["A", "B", "C", "D"].map((v) => <option key={v} value={v}>{v}</option>)}
-              </select>
-            )}
-            {l.addTeam && open !== `team-${l.id}` && <AddButton label="Team" onClick={() => setOpen(`team-${l.id}`)} testid={`button-add-team-${l.id}`} />}
-          </div>
-          {l.addTeam && l.level !== "DEMO" && (
-            <div className="px-3.5 py-2 flex items-center gap-2 text-xs text-[var(--mute)] border-b border-[var(--line)]" data-testid={`row-roster-size-${l.id}`}>
-              <span className="flex-1">Roster size</span>
-              <label className="flex items-center gap-1">Skaters
-                <input className="input h-8 w-14 text-center tnum text-xs" inputMode="numeric" defaultValue={l.roster_max ?? 25} onBlur={(e) => Number(e.target.value) !== (l.roster_max ?? 25) && run("PATCH", `/api/leagues/${l.id}`, { rosterMax: Number(e.target.value) })} aria-label={`Skater spots for ${l.name}`} data-testid={`input-roster-max-${l.id}`} />
-              </label>
-              <label className="flex items-center gap-1">Goalies
-                <input className="input h-8 w-12 text-center tnum text-xs" inputMode="numeric" defaultValue={l.goalie_max ?? 2} onBlur={(e) => Number(e.target.value) !== (l.goalie_max ?? 2) && run("PATCH", `/api/leagues/${l.id}`, { goalieMax: Number(e.target.value) })} aria-label={`Goalie spots for ${l.name}`} data-testid={`input-goalie-max-${l.id}`} />
-              </label>
-            </div>
-          )}
-          {open === `team-${l.id}` && <div className="p-3 border-b border-[var(--line)]"><AddTeamForm leagueId={l.id} leagueName={l.name} onDone={close} /></div>}
-          <div className="divide-y divide-[var(--line)]">
-            {l.teams.length === 0 && <p className="p-3 text-xs text-[var(--mute)]">No teams yet.</p>}
-            {l.teams.map((t: any) => (
-              <div key={t.id} className="flex items-center gap-3 p-3 text-sm">
-                <Link href={`/team/${t.id}`} className="flex items-center gap-3 flex-1 min-w-0" data-testid={`row-staff-team-${t.id}`}>
-                  <TeamBadge team={t} size={24} />
-                  <span className="flex-1 min-w-0 truncate font-bold">{t.name}</span>
-                  <span className="text-xs text-[var(--mute)] shrink-0">{t.captain ? `C: ${t.captain}` : "no captain"} · {t.registered}/{t.roster}</span>
-                </Link>
-                {t.removable && <button className="text-xs text-[var(--mute)] shrink-0" onClick={() => confirm(`Remove ${t.name}? It has no games or players.`) && run("DELETE", `/api/teams/${t.id}`)} data-testid={`button-remove-team-${t.id}`}>Remove</button>}
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-      {rink.can?.addLeague && (open === "league" ? <div className="mt-3"><AddLeagueForm rinkId={rink.id} onDone={close} /></div> : <div className="mt-3 px-1"><AddButton label="League" onClick={() => setOpen("league")} testid={`button-add-league-${rink.id}`} /></div>)}
-      {rink.can?.seasons && (
-        <div className="card mt-3 p-4">
-          <div className="flex items-center justify-between mb-1"><span className="label">Seasons</span>{open !== "season" && <AddButton label="Season" onClick={() => setOpen("season")} testid={`button-add-season-${rink.id}`} />}</div>
-          {open === "season" && <div className="my-2"><AddSeasonForm rinkId={rink.id} onDone={close} /></div>}
-          {rink.seasons.length ? rink.seasons.map((s: any) => <div key={s.id} className="text-sm py-1 flex justify-between gap-2"><span className="font-bold">{s.name}</span><span className="text-xs text-[var(--mute)] tnum">{s.starts_on} to {s.ends_on}</span></div>) : <p className="text-xs text-[var(--mute)]">No seasons yet.</p>}
-        </div>
-      )}
-      {rink.manage && (
-        <div className="card mt-3 p-4">
-          <div className="label mb-2">Rink staff</div>
-          {rink.staff.length ? rink.staff.map((s: any) => (
-            <div key={s.id} className="flex items-center gap-2 text-sm py-1.5">
-              <span className="flex-1 min-w-0 truncate">{s.name ?? s.email} · {ROLE_LABEL[s.role]}{s.league ? ` (${s.league})` : ""}</span>
-              <button className="btn btn-ghost h-8 text-xs" onClick={() => confirm(`Remove ${s.name ?? s.email} as ${ROLE_LABEL[s.role].toLowerCase()}?`) && run("DELETE", `/api/staff/grants?id=${s.id}`)}>Remove</button>
-            </div>
-          )) : <p className="text-xs text-[var(--mute)]">No scorekeepers or commissioners yet.</p>}
-          <div className="grid grid-cols-2 gap-2 mt-3">
-            <select className="input text-sm" value={role} onChange={(e) => setRole(e.target.value)} data-testid="select-staff-role">
-              <option value="scorekeeper">Scorekeeper</option>
-              <option value="commissioner">Commissioner</option>
-            </select>
-            {role === "commissioner" ? (
-              <select className="input text-sm" value={league ?? ""} onChange={(e) => setLeague(Number(e.target.value))}>
-                {rink.leagues.map((l: any) => <option key={l.id} value={l.id}>{l.name}</option>)}
-              </select>
-            ) : <span />}
-          </div>
-          <form className="flex gap-2 mt-2" onSubmit={async (e) => { e.preventDefault(); if (await run("POST", "/api/staff/grants", { email, role, scopeId: role === "commissioner" ? league : rink.id })) setEmail(""); }}>
-            <input className="input flex-1" placeholder="Their Late Ice email" value={email} onChange={(e) => setEmail(e.target.value)} data-testid="input-staff-email" />
-            <button className="btn btn-red h-11" disabled={!email} data-testid="button-grant-staff">Add</button>
-          </form>
-        </div>
-      )}
-    </Section>
-  );
-}
-
 function AdminSection({ data, run }: { data: any; run: Run }) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("support");
   const [rink, setRink] = useState<number | null>(data.allRinks[0]?.id ?? null);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string | null>(null);
-  const [addRink, setAddRink] = useState(false);
   const { data: settings } = useQuery<{ signupsPaused: boolean }>({ queryKey: ["/api/staff/settings"] });
   return (
     <Section title="Admin">
@@ -328,7 +529,6 @@ function AdminSection({ data, run }: { data: any; run: Run }) {
           <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${settings?.signupsPaused ? "left-[22px]" : "left-0.5"}`} />
         </button>
       </div>
-      <div className="mb-3">{addRink ? <RinkRequestForm admin onDone={() => setAddRink(false)} /> : <AddButton label="Rink" onClick={() => setAddRink(true)} testid="button-add-rink" />}</div>
       <div className="card p-4">
         <div className="label mb-2">System staff</div>
         {data.systemStaff.map((s: any) => (

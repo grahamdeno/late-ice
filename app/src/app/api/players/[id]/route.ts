@@ -20,7 +20,6 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
   }
   const scanned = (await one<any>(sql, "SELECT COUNT(*) gp, COALESCE(SUM(goals),0) g, COALESCE(SUM(assists),0) a, COALESCE(SUM(pim),0) pim FROM player_game_stats WHERE player_id=$1", [raw.id]))!;
   const imp = (await one<any>(sql, "SELECT COALESCE(SUM(gp),0) gp, COALESCE(SUM(g),0) g, COALESCE(SUM(a),0) a, COALESCE(SUM(pim),0) pim, MAX(as_of) as_of, MAX(source) source FROM player_imports WHERE player_id=$1", [raw.id]))!;
-  const totals = { gp: scanned.gp + imp.gp, g: scanned.g + imp.g, a: scanned.a + imp.a, pim: scanned.pim + imp.pim };
   const lines = await q(sql, "SELECT * FROM player_game_stats WHERE player_id=$1", [raw.id]);
   const ranks = [];
   for (const t of teams) {
@@ -28,9 +27,16 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
     ranks.push({ level: t.level, rank: ids.filter((x: any) => x.rating > raw.rating).length + 1, of: ids.length, tied: ids.filter((x: any) => x.rating === raw.rating).length > 1 });
   }
   const importedGames = [];
-  for (const l of await q<any>(sql, "SELECT il.*, g.played_on FROM imported_game_lines il JOIN games g ON g.id=il.game_id WHERE il.player_id=$1 ORDER BY g.played_on DESC", [raw.id])) {
+  // Imported games this player is on: credited with a point by the rink, or in a recorded lineup (team poll).
+  for (const l of await q<any>(sql, `SELECT x.game_id, COALESCE(il.goals,0)::int goals, COALESCE(il.assists,0)::int assists
+      FROM (SELECT game_id FROM imported_game_lines WHERE player_id=$1 UNION SELECT game_id FROM imported_game_attendance WHERE player_id=$1) x
+      JOIN games g ON g.id=x.game_id LEFT JOIN imported_game_lines il ON il.game_id=x.game_id AND il.player_id=$1
+      ORDER BY g.played_on DESC`, [raw.id])) {
     importedGames.push({ goals: l.goals, assists: l.assists, game: await gameCard(sql, await one(sql, "SELECT * FROM games WHERE id=$1", [l.game_id])) });
   }
+  // The rink's games-played count misses games where a player scored nothing; a recorded lineup can only add to it.
+  imp.gp = Math.max(Number(imp.gp), importedGames.length);
+  const totals = { gp: Number(scanned.gp) + imp.gp, g: Number(scanned.g) + Number(imp.g), a: Number(scanned.a) + Number(imp.a), pim: Number(scanned.pim) + Number(imp.pim) };
   const archetypes = [];
   for (const t of teams) {
     const ta = await teamArchetypes(sql, t.id, me?.id ?? null);

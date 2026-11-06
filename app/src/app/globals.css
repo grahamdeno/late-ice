@@ -142,6 +142,14 @@
 }
 
 * { -webkit-tap-highlight-color: transparent; }
+/* Long-pressing a link or button opened iOS's web-page preview and the copy menu. In an app,
+   resting a thumb on a card should do nothing. Text fields and plain text stay selectable. */
+a, button, [role="button"], [role="switch"], summary, label, img, svg {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+input, textarea, select, [contenteditable="true"] { -webkit-user-select: text; user-select: text; }
 html, body { background: var(--ice); color: var(--white); }
 /* The page never pans sideways. Wide content (the scoresheet photo) scrolls inside its own box. */
 html { overflow-x: hidden; touch-action: pan-y pinch-zoom; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
