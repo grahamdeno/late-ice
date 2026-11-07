@@ -3,6 +3,7 @@ import { sql, q, one } from "@/server/db";
 import { HttpError } from "@/server/services";
 import { requireUser, requireTeam, userFromRequest, logAction, userCan } from "@/server/accounts";
 import { KINDS, attendance, rinkInstant, upcoming } from "@/server/schedule";
+import { goalieCheck } from "@/server/gamenight";
 
 export const dynamic = "force-dynamic";
 
@@ -20,8 +21,11 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
     feed = f ? { connected: true, host: new URL(f.url).hostname, lastSyncedAt: f.last_synced_at, lastError: f.last_error, lastCount: f.last_count } : { connected: false };
   }
   const opponents = can.manual ? await q(sql, "SELECT id, name FROM teams WHERE league_id=$1 AND id<>$2 AND archived_at IS NULL ORDER BY name", [t.league_id, teamId]) : [];
-  const games = await attendance(sql, teamId, await upcoming(sql, teamId), u?.id ?? null, can.manual);
-  return { games, can, feed, opponents };
+  const games = await goalieCheck(sql, teamId, await attendance(sql, teamId, await upcoming(sql, teamId), u?.id ?? null, can.manual));
+  const roster = can.manual ? await q(sql,
+    `SELECT DISTINCT ON (u.id) u.id, u.name FROM players p JOIN roster_entries re ON re.player_id=p.id JOIN users u ON u.id=p.user_id
+     WHERE re.team_id=$1 AND NOT re.is_sub AND u.merged_into IS NULL ORDER BY u.id`, [teamId]) : [];
+  return { games, can, feed, opponents, roster };
 });
 
 /** Add a game by hand: tournaments, exhibitions, playoffs, or anything the league calendar is missing. */

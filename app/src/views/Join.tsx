@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@/lib/router";
 import { apiRequest, invalidatePrefixes, queryClient, setToken } from "@/lib/queryClient";
 import { useMe, normEmail, POSITION_LABEL, INVITE_KEY } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
+import { supabase, passkeysSupported, passkeyError } from "@/lib/supabase";
 import { FaceoffDot, Loading, useFilter } from "@/lib/ui";
 import { RinkPicker } from "@/components/RinkPicker";
 
@@ -88,14 +88,26 @@ export default function Join() {
     setBusy(true); setErr(null);
     const { data, error } = await supabase().auth.verifyOtp({ email: addr, token: code, type: "email" });
     if (error || !data.session) { setErr(codeError(error?.message ?? "invalid", sentAt)); setBusy(false); return; }
-    setToken(data.session.access_token);
-    // The account changed. Drop anonymous responses before the profile decides where to go.
+    await finish(data.session.access_token);
+    setBusy(false);
+  };
+
+  // Shared by the email code and the passkey: the account changed, so drop anonymous responses before the profile decides where to go.
+  const finish = async (token: string) => {
+    setToken(token);
     queryClient.removeQueries();
     try {
       const res = await apiRequest("GET", "/api/me");
       const j = await res.json();
       if (j.user.profileComplete) swap("/me"); else setStep("profile");
     } catch (e: any) { setErr(e.message); }
+  };
+
+  const withPasskey = async () => {
+    setBusy(true); setErr(null);
+    const { data, error } = await (supabase().auth as any).signInWithPasskey();
+    if (error || !data?.session) setErr(passkeyError(error?.message));
+    else await finish(data.session.access_token);
     setBusy(false);
   };
 
@@ -129,6 +141,7 @@ export default function Join() {
           </label>
           {err && <p className="text-sm down" data-testid="text-error">{err}</p>}
           <button className="btn btn-red w-full h-12" disabled={busy || !normEmail(email)} data-testid="button-send-code">{busy ? "Sending…" : "Email me a code"}</button>
+          {passkeysSupported() && <button type="button" className="btn btn-ghost w-full h-12" disabled={busy} onClick={withPasskey} data-testid="button-passkey-signin">Sign in with Face ID or a passkey</button>}
           <p className="text-[11px] text-[var(--mute)] text-center">By joining you agree to the <Link href="/terms" className="underline" data-testid="link-terms">terms</Link> and <Link href="/privacy" className="underline" data-testid="link-privacy">privacy</Link>.</p>
         </form>
       )}

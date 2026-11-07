@@ -7,6 +7,8 @@ import { BackBar, Loading, Section } from "@/lib/ui";
 import { ProfileForm } from "./Join";
 import { useTheme, type Theme } from "@/lib/theme";
 import { NotificationSettings } from "@/components/NotificationSettings";
+import { SharpenCard } from "@/components/GameNight";
+import { Passkeys } from "@/components/Passkeys";
 import { apiUrl, authHeaders } from "@/lib/queryClient";
 import { SUPPORT_EMAIL } from "@/lib/contact";
 
@@ -55,6 +57,14 @@ export default function Settings() {
             ))}
           </div>
         </div>
+      </Section>
+
+      <Section title="Sign-in">
+        <Passkeys />
+      </Section>
+
+      <Section title="Skates">
+        <SharpenCard />
       </Section>
 
       <Section title="Appearance">

@@ -106,8 +106,9 @@ export function rinkInstant(date: string, time: string | null) {
 export async function upcoming(db: Tx, teamId: number, limit = 20) {
   return q<any>(db,
     `SELECT sg.id, sg.local_date, sg.local_time, sg.starts_at, sg.location, sg.kind, sg.source, sg.status, sg.is_home, sg.summary,
+       sg.sheet, sg.jersey, sg.locker_room, sg.cooler_user_id, cu.name cooler,
        sg.opponent_team_id, COALESCE(t.name, sg.opponent_name) opponent, t.color opponent_color, t.logo opponent_logo
-     FROM scheduled_games sg LEFT JOIN teams t ON t.id=sg.opponent_team_id
+     FROM scheduled_games sg LEFT JOIN teams t ON t.id=sg.opponent_team_id LEFT JOIN users cu ON cu.id=sg.cooler_user_id
      WHERE sg.team_id=$1 AND sg.starts_at > now() - interval '3 hours'
      ORDER BY sg.starts_at LIMIT $2`, [teamId, limit]);
 }

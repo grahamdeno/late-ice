@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@/lib/router";
 import { useMe, type MeSlot } from "@/lib/auth";
 import { GameLine, Rsvp } from "@/components/Schedule";
+import { GameDetails, GoalieNudge, Scout, SharpenCard } from "@/components/GameNight";
 import { Delta, Empty, FaceoffDot, GameRow, HomeFeedSkeleton, More, Section, TeamBadge, fmtDate, fmtRating, useFilter, type GameCard } from "@/lib/ui";
 
 type Feed = { games: GameCard[]; movers: any[]; leaders: any[]; pending: any[] };
@@ -42,6 +43,9 @@ export default function Home() {
           <>
             <GameLine g={next} />
             {next.rsvp?.member && <div className="mt-3"><Rsvp g={next} /></div>}
+            <GameDetails g={next} />
+            {(slot.teamRole === "captain" || slot.teamRole === "assistant_captain") && <GoalieNudge g={next} teamId={slot.team_id} />}
+            {next.rsvp?.member && <Scout g={next} />}
             <div className="flex gap-4 mt-3 text-sm font-bold">
               <Link href={`/team/${slot.team_id}/lineup/${next.id}`} className="text-[var(--blue)] min-h-[32px] inline-flex items-center" data-testid="link-home-lineup">Lineup</Link>
               <Link href={`/team/${slot.team_id}#schedule`} className="text-[var(--blue)] min-h-[32px] inline-flex items-center">Schedule</Link>
@@ -51,6 +55,8 @@ export default function Home() {
           <p className="text-sm text-[var(--mute)]">No game on the schedule yet. <Link href={`/team/${slot.team_id}#schedule`} className="text-[var(--blue)] font-bold">Connect your team's calendar</Link> to see games here.</p>
         )}
       </div>
+
+      <SharpenCard compact />
 
       <div className="grid grid-cols-2 gap-3 mt-3">
         {slot.last && <LastResult slot={slot} />}
