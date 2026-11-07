@@ -22,7 +22,7 @@ export function GoalieNudge({ g, teamId }: { g: any; teamId: number }) {
   return (
     <div className="mt-3 rounded-xl border border-[var(--amber)]/50 bg-[var(--ice-3)] p-3 text-sm" data-testid={`nudge-goalie-${g.id}`}>
       <b>No goalie yet.</b> {g.goaliesOnRoster ? "Your goalies haven't said In." : "Nobody on the roster is listed as a goalie."}{" "}
-      <Link href={`/team/${teamId}#schedule`} className="text-[var(--blue)] font-bold">Find a goalie sub</Link>
+      <Link href={`/team/${teamId}?sub=${g.id}#game-${g.id}`} className="inline-flex items-center min-h-[40px] text-[var(--blue)] font-bold" data-testid={`link-goalie-sub-${g.id}`}>Find a goalie sub</Link>
     </div>
   );
 }

@@ -290,8 +290,9 @@ async function captain(browser, engine) {
     const link = page.getByRole("link", { name: /goalie sub/i });
     if (!(await link.count())) { await t.step("home-no-goalie-prompt"); return; }
     await t.tap(link); await t.step("after-find-goalie");
-    const body = await page.locator("main").innerText();
-    t.expect(/goalie/i.test(body) && (await page.getByRole("button", { name: /goalie|sub/i }).count()), "serious", "promise not kept",
+    await page.waitForTimeout(800);
+    const panel = page.locator('[data-testid^="panel-subs-"]');
+    t.expect(await panel.count() && await panel.first().isVisible(), "serious", "promise not kept",
       `"Find a goalie sub" lands on ${new URL(page.url()).pathname}${new URL(page.url()).hash} with no goalie or sub action in view`);
   });
   await journey(p, "Captain sets a lineup", "Build lines for Thursday and share them.", async (t) => {

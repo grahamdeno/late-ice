@@ -1,6 +1,6 @@
 "use client";
 import { Link } from "@/lib/router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { act } from "@/lib/auth";
 import { apiRequest, invalidatePrefixes } from "@/lib/queryClient";
@@ -93,15 +93,21 @@ function Counts({ g }: { g: any }) {
 
 /** Short a player? Ask someone who said Will sub. */
 function SubFinder({ gameId }: { gameId: number }) {
+  // Arriving from "Find a goalie sub" opens this game's list straight away and brings it into view.
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("sub") !== String(gameId)) return;
+    setOpen(true);
+    setTimeout(() => document.getElementById(`game-${gameId}`)?.scrollIntoView({ block: "center" }), 300);
+  }, [gameId]);
   const { data } = useQuery<any>({ queryKey: [`/api/schedule/${gameId}/subs`], enabled: open });
   const [err, setErr] = useState<string | null>(null);
-  if (!open) return <button className="text-xs text-[var(--blue)] font-bold mt-2" onClick={() => setOpen(true)} data-testid={`button-find-sub-${gameId}`}>Find a sub</button>;
+  if (!open) return <button className="text-sm text-[var(--blue)] font-bold min-h-[40px]" onClick={() => setOpen(true)} data-testid={`button-find-sub-${gameId}`}>Find a sub</button>;
   const askedOf = (id: number) => data?.asked?.find((a: any) => a.user_id === id && a.status !== "canceled");
   return (
     <div className="mt-2 rounded-xl border border-[var(--line)] p-3" data-testid={`panel-subs-${gameId}`}>
-      <div className="flex items-center justify-between"><span className="label">Players who'll sub</span><button className="text-xs text-[var(--mute)]" onClick={() => setOpen(false)}>Close</button></div>
-      {!data ? <p className="text-xs text-[var(--mute)] mt-1">Loading…</p> : data.candidates.length === 0 ? <p className="text-xs text-[var(--mute)] mt-1">Nobody at this rink has turned on Will sub yet.</p> : (
+      <div className="flex items-center justify-between"><span className="label">Players who'll sub</span><button className="text-xs text-[var(--mute)] min-h-[36px] px-2" onClick={() => setOpen(false)}>Close</button></div>
+      {!data ? <p className="text-xs text-[var(--mute)] mt-1">Loading…</p> : data.candidates.length === 0 ? <p className="text-sm text-[var(--mute)] mt-1">Nobody at this rink has turned on Will sub yet. Players switch it on in Settings; until then, ask in your team chat.</p> : (
         <div className="divide-y divide-[var(--line)] mt-1">
           {[...data.candidates].sort((a: any, b: any) => Number(b.position === "G") - Number(a.position === "G")).map((c: any) => {
             const a = askedOf(c.id);
@@ -109,7 +115,7 @@ function SubFinder({ gameId }: { gameId: number }) {
               <div key={c.id} className="flex items-center gap-2 py-2 text-sm">
                 <span className="flex-1 min-w-0"><span className="block font-bold truncate">{c.name}{c.number ? ` #${c.number}` : ""}</span><span className="block text-xs text-[var(--mute)] truncate">{[c.position, c.rating ? Number(c.rating).toFixed(2) : null, c.teams].filter(Boolean).join(" · ")}</span></span>
                 {a ? <span className={`text-xs font-bold ${a.status === "accepted" ? "up" : a.status === "declined" ? "down" : "text-[var(--mute)]"}`}>{a.status === "accepted" ? "Yes" : a.status === "declined" ? "No" : "Asked"}</span>
-                  : <button className="btn btn-ghost h-8 text-xs" onClick={async () => setErr(await act("POST", `/api/schedule/${gameId}/subs`, { userId: c.id }, ["/api/schedule", "/api/me"]))} data-testid={`button-ask-sub-${c.id}`}>Ask</button>}
+                  : <button className="btn btn-ghost h-10 px-4 text-sm" onClick={async () => setErr(await act("POST", `/api/schedule/${gameId}/subs`, { userId: c.id }, ["/api/schedule", "/api/me"]))} data-testid={`button-ask-sub-${c.id}`}>Ask</button>}
               </div>
             );
           })}
@@ -136,7 +142,7 @@ export function Schedule({ teamId }: { teamId: number }) {
       {games.length ? (
         <div className="card divide-y divide-[var(--line)]" data-testid="list-schedule">
           {games.map((g: any) => (
-            <div key={g.id} className="p-3" data-testid={`row-scheduled-${g.id}`}>
+            <div key={g.id} id={`game-${g.id}`} className="p-3 scroll-mt-24" data-testid={`row-scheduled-${g.id}`}>
               <div className="flex items-center gap-2">
               <GameLine g={g} teamId={teamId} />
               {can.manual && (g.source === "manual"
