@@ -822,8 +822,15 @@ async function main() {
   const aw = (await call("GET", `/api/sheets/${sh2.id}`, undefined, graham)).json;
   ok(aw.status === "awaiting" && aw.submitted?.by === "Otto Side" && aw.suggestion.home.teamId === hh && aw.rights.teams.includes(hh), "the captain sees it waiting, with the sender's picks, and can confirm");
   ok((await call("GET", "/api/me", undefined, graham)).json.notifications.some((n: any) => n.kind === "sheet" && n.link === `/sheet/${sh2.id}`), "and got a notice");
+  const deskQ = await call("GET", `/api/desk/sheets?rink=${rinkId}`, undefined, mt);
+  const deskRow = deskQ.json.open?.find((r: any) => r.id === sh2.id);
+  ok(deskQ.status === 200 && deskRow?.status === "awaiting" && deskRow.leagueId === lg && deskRow.homeScore === 3 && deskRow.submittedBy === "Otto Side", "Rink Desk lists the waiting scan with its league, score and sender");
+  ok(!deskQ.json.open.some((r: any) => r.status === "confirmed") && !deskQ.json.done.some((r: any) => r.id === sh2.id), "open and finished scans are kept apart");
+  ok((await call("GET", `/api/desk/sheets?rink=${rinkId}`, undefined, graham)).status === 403, "a captain can't open the rink's scoresheet queue");
   const c2 = await call("POST", `/api/sheets/${sh2.id}/confirm`, { leagueId: lg, homeTeamId: hh, awayTeamId: blId, data: real }, graham);
   ok(c2.status === 200, "the real sheet goes in");
+  const deskQ2 = (await call("GET", `/api/desk/sheets?rink=${rinkId}`, undefined, mt)).json;
+  ok(!deskQ2.open.some((r: any) => r.id === sh2.id) && deskQ2.done.find((r: any) => r.id === sh2.id)?.status === "confirmed", "once confirmed it moves to the last 30 days");
   after = (await call("GET", `/api/teams/${hh}`)).json;
   ok(!after.games.some((g: any) => g.source === "daysmart" && g.playedOn === "2026-09-06") && after.games.some((g: any) => g.id === c2.json.gameId), "it replaced the imported game");
   ok(after.roster.filter((r: any) => r.name === "A. Y. #19").length === 1 && after.roster.find((r: any) => r.name === "A. Y. #19").number === "19", "\"Adam Young\" #19 on the sheet is the imported \"Adam Y.\" spot, no duplicate");

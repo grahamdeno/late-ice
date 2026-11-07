@@ -289,6 +289,13 @@ try {
     await gap.click(); await page.waitForURL(/\/desk\/lineups\/\d+/); await page.waitForTimeout(1500);
     await shoot(page, "desk-team-lineup");
   } else errors.push("Rink Desk shows no team with imported games");
+  await page.goto(BASE + "/desk/sheets"); await page.waitForTimeout(1500); await shoot(page, "desk-sheets");
+  await page.getByTestId("tab-sheets-done").click(); await page.waitForTimeout(500);
+  const doneRow = page.locator('[data-testid^="row-sheet-"]').first();
+  const doneId = (await doneRow.count()) ? (await doneRow.getAttribute("data-testid")).replace("row-sheet-", "") : null;
+  if (doneId) {
+    await page.goto(BASE + `/desk/sheets/${doneId}`); await page.waitForTimeout(1500); await shoot(page, "desk-sheet-done");
+  }
   for (const [path, name] of [["/desk/roster", "desk-roster"], ["/desk/ratings", "desk-ratings"], ["/desk/imports", "desk-imports"]]) {
     await page.goto(BASE + path); await page.waitForTimeout(1800); await shoot(page, name);
   }

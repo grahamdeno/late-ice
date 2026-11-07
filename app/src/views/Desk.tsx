@@ -47,6 +47,9 @@ export function DeskFrame({ children, waiting }: { children: React.ReactNode; wa
   const { data: overview } = useQuery<any>({ queryKey: ["/api/staff/overview"], enabled: !!me });
   const top = (overview?.roles ?? []).find((r: any) => ["admin", "support", "rink_manager", "commissioner"].includes(r.role));
   const canImport = (overview?.rinks ?? []).some((r: any) => r.can?.edit);
+  const { rink } = useDeskRink(overview);
+  const { data: queue } = useQuery<any>({ queryKey: [`/api/desk/sheets?rink=${rink?.id}`], enabled: !!rink, retry: false });
+  const sheets = queue?.open?.filter((r: any) => r.status !== "processing").length || undefined;
   return (
     <div className="min-h-[100dvh] bg-[var(--ice)] text-[var(--white)] flex flex-wrap" data-testid="desk">
       <nav aria-label="Rink Desk" className="flex-[1_1_240px] lg:max-w-[260px] bg-[var(--ice-2)] px-3 py-5 flex flex-col gap-1 lg:min-h-[100dvh] lg:sticky lg:top-0 lg:self-start">
@@ -55,6 +58,7 @@ export function DeskFrame({ children, waiting }: { children: React.ReactNode; wa
           <span className="font-black text-lg">Rink Desk</span>
         </Link>
         <NavItem href="/desk" label="Home" active={path === "/desk"} badge={waiting} />
+        <NavItem href="/desk/sheets" label="Scoresheets" active={path.startsWith("/desk/sheets")} badge={sheets} />
         <NavItem href="/desk/roster" label="Players and rosters" active={path.startsWith("/desk/roster")} />
         <NavItem href="/desk/lineups" label="Games and lineups" active={path.startsWith("/desk/lineups")} />
         <NavItem href="/desk/ratings" label="Ratings" active={path.startsWith("/desk/ratings")} />
@@ -120,6 +124,7 @@ function HomeBody({ overview }: { overview: any }) {
   const goalies = useQuery<any[]>({ queryKey: ["/api/staff/goalie-disputes"] }).data;
   const leads = useQuery<any[]>({ queryKey: ["/api/staff/leads"], enabled: !!(overview.isAdmin || overview.isSupport) }).data;
   const gaps = useQuery<Gap[]>({ queryKey: [`/api/desk/gaps?rink=${rink?.id}`], enabled: !!rink }).data;
+  const sheetsOpen = useQuery<any>({ queryKey: [`/api/desk/sheets?rink=${rink?.id}`], enabled: !!rink, retry: false }).data?.open?.filter((r: any) => r.status !== "processing").length ?? 0;
   const run = async (method: string, url: string, body?: unknown) => { const e = await act(method, url, body, STAFF_KEYS); setErr(e); return !e; };
 
   const missing = gaps?.reduce((n, g) => n + (g.games - g.with_lineup), 0);
@@ -151,6 +156,13 @@ function HomeBody({ overview }: { overview: any }) {
         <Tile n={goalies?.length} label="Goalie numbers to settle" tone="red" />
         <Tile n={missing} label="Games with no lineup" href="/desk/lineups" />
       </div>
+      {!!sheetsOpen && (
+        <Link href="/desk/sheets" className="card mt-3.5 px-5 py-4 flex items-center gap-3 hover:bg-[var(--surface-2)]" data-testid="link-desk-sheets">
+          <span className="font-display font-black text-2xl text-[var(--red)]">{sheetsOpen}</span>
+          <span className="flex-1 font-bold">{sheetsOpen === 1 ? "Scoresheet to check" : "Scoresheets to check"}</span>
+          <span className="text-sm font-bold text-[var(--blue)]">Check them ›</span>
+        </Link>
+      )}
 
       <div className="grid gap-5 mt-2 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div className="min-w-0">

@@ -118,3 +118,53 @@ export async function ratingsOverview(db: Tx, user: any, rinkId: number) {
   const last = await one<any>(db, "SELECT kind, games, ms, created_at FROM rating_runs ORDER BY id DESC LIMIT 1");
   return { rink, leagues: out, lastRun: last ?? null, canRecompute: await P.can(db, user, "ratings.recompute") };
 }
+
+/** Scoresheets for one rink: open scans to check, and the last month of confirmed or discarded ones.
+ *  A scan belongs to a rink through the league a player sent it to, else the league its teams match.
+ *  Scans no league could be matched to show at every rink the person staffs, marked unsorted. */
+export async function sheetQueue(db: Tx, user: any, rinkId: number) {
+  const { suggest } = await import("./services");
+  const { rink, leagues } = await leaguesFor(db, user, rinkId, "sheet.confirm");
+  const mine = new Map(leagues.map((l) => [l.id, l]));
+  const rows = await q<any>(db,
+    `SELECT s.id, s.status, s.source, s.extracted_json, s.warnings_json, s.proposed_json, s.game_id, s.created_at, s.submitted_at,
+       u.name AS scanned_by, sb.name AS submitted_by, g.league_id AS game_league
+     FROM sheets s
+     LEFT JOIN users u ON u.id=s.scanned_by
+     LEFT JOIN users sb ON sb.id=s.submitted_by
+     LEFT JOIN games g ON g.id=s.game_id
+     WHERE COALESCE(s.source,'upload') <> 'sample'
+       AND (s.status IN ('processing','review','awaiting','failed') AND s.game_id IS NULL
+            OR s.created_at > now() - interval '30 days')
+     ORDER BY s.id DESC LIMIT 200`);
+  const open: any[] = [];
+  const done: any[] = [];
+  for (const s of rows) {
+    const data = s.extracted_json ? JSON.parse(s.extracted_json) : null;
+    const proposal = s.proposed_json ? JSON.parse(s.proposed_json) : null;
+    const isOpen = !s.game_id && ["processing", "review", "awaiting", "failed"].includes(s.status);
+    let leagueId: number | null = s.game_league ?? proposal?.leagueId ?? null;
+    let duplicate: number | null = null;
+    if (isOpen && data?.is_scoresheet !== false && data && s.status !== "processing") {
+      const sug = await suggest(db, proposal?.data ?? data);
+      leagueId = leagueId ?? sug.leagueId;
+      duplicate = sug.duplicateGameId;
+    }
+    if (leagueId != null && !mine.has(leagueId)) continue;
+    if (leagueId == null && !isOpen) continue;
+    const d = proposal?.data ?? data;
+    const total = (t: any) => (t ? t.total ?? t.goals?.length ?? null : null);
+    const row = {
+      id: s.id, status: s.status === "discarded" ? "discarded" : s.game_id ? "confirmed" : data?.is_scoresheet === false ? "failed" : s.status,
+      createdAt: s.created_at, scannedBy: s.scanned_by, submittedBy: s.submitted_by, gameId: s.game_id,
+      level: leagueId != null ? mine.get(leagueId)!.level : null, leagueId,
+      home: d?.home?.name ?? null, away: d?.away?.name ?? null,
+      homeScore: total(d?.home), awayScore: total(d?.away), date: d?.date ?? null,
+      confidence: d?.confidence ?? null,
+      warnings: s.warnings_json ? JSON.parse(s.warnings_json).length : 0,
+      duplicate,
+    };
+    (isOpen ? open : done).push(row);
+  }
+  return { rink, leagues, open: open.reverse(), done: done.slice(0, 60) };
+}
