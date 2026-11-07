@@ -302,6 +302,9 @@ async function main() {
   const mike = await addSlot("Mike Tolliver", "44");
   const mikeVariant = await addSlot("M Tolliver", "4");
 
+  // Signed out, only the sample rink is readable. Most checks below read the test rink signed out, so it
+  // stands in as the sample rink; the visibility checks at the end take that away again.
+  await db`UPDATE rinks SET is_sample=true WHERE name='Polar Ice Wilmington'`;
   await start();
 
   console.log("health");
@@ -482,10 +485,13 @@ async function main() {
   ok((await call("POST", "/api/sheets", { image: "nope" }, sam)).status === 400, "non-image upload rejected");
   const up = await call("POST", "/api/sheets", { image: tiny }, sam);
   ok(up.status === 202 && up.json.id, "photo upload stored, reading starts in the background");
-  const img = await fetch(`${BASE}/api/sheets/${up.json.id}/image`);
-  ok(img.status === 200 && img.headers.get("content-type") === "image/png", "photo comes back from private storage");
+  ok((await fetch(`${BASE}/api/sheets/${up.json.id}/image`)).status === 401, "signed out, a real scoresheet photo is refused");
+  const samKey = (await call("GET", "/api/me", undefined, sam)).json.imageKey;
+  const img = await fetch(`${BASE}/api/sheets/${up.json.id}/image?k=${encodeURIComponent(samKey)}`);
+  ok(img.status === 200 && img.headers.get("content-type") === "image/png", "photo comes back from private storage with the image key");
+  ok((await fetch(`${BASE}/api/sheets/${up.json.id}/image?k=1.2.forged`)).status === 401, "a forged image key is refused");
   let st: any;
-  for (let i = 0; i < 50; i++) { st = await call("GET", `/api/sheets/${up.json.id}`); if (st.json.status !== "processing") break; await new Promise((r) => setTimeout(r, 300)); }
+  for (let i = 0; i < 50; i++) { st = await call("GET", `/api/sheets/${up.json.id}`, undefined, sam); if (st.json.status !== "processing") break; await new Promise((r) => setTimeout(r, 300)); }
   ok(st.json.status === "failed" && st.json.error, "reader failure is recorded, not lost (no API key in CI)");
 
   // Turn a sheet into a game using the sample's ground truth as the reviewed result.
@@ -792,9 +798,9 @@ async function main() {
   ].join("\n");
   const lp = await call("POST", "/api/staff/import", { text: leagueReport, rinkId }, mt);
   ok(lp.status === 200 && lp.json.summary.leagueCreated && lp.json.summary.teamsCreated.length === 2 && lp.json.summary.standingsRows === 2 && lp.json.summary.playerTotals === 2, "preview: new league, 2 new teams, standings and totals read");
-  ok(!(await db`SELECT 1 FROM leagues WHERE level='B'`).length, "preview creates nothing");
+  ok(!(await db`SELECT 1 FROM leagues WHERE level='B' AND rink_id=${rinkId}`).length, "preview creates nothing");
   ok((await call("POST", "/api/staff/import", { text: leagueReport, rinkId, apply: true }, mt)).status === 200, "league imported");
-  const bLg = (await db`SELECT id FROM leagues WHERE level='B'`)[0].id;
+  const bLg = (await db`SELECT id FROM leagues WHERE level='B' AND rink_id=${rinkId}`)[0].id;
   const bl2 = (await call("GET", `/api/leagues/${bLg}`)).json;
   const pcp = bl2.standings.find((t: any) => t.name === "Port City Pilots");
   ok(pcp && pcp.gp === 4 && pcp.w === 3 && pcp.l === 1 && pcp.pts === 6 && pcp.diff === 7, "standings come straight from the league page, with DIFF");
@@ -818,7 +824,7 @@ async function main() {
   ok((await db`SELECT level, tag FROM leagues WHERE name='40+ League'`)[0].level === "B" && (await db`SELECT tag FROM leagues WHERE name='40+ League'`)[0].tag === "40+", "stored as level B, tag 40+");
   ok((await call("POST", "/api/staff/import", { text: mk("LEAGUE Monday A League | LEVEL A | SEASON Fall 2026", "ConeHeads", "Mermen"), rinkId, apply: true }, mt)).status === 200, "Monday A League in");
   ok((await call("POST", "/api/staff/import", { text: mk("LEAGUE Sunday A/B League | LEVEL OTHER | SEASON Fall 2026", "Kraken Beers", "Dirty Birds"), rinkId, apply: true, level: "A" }, mt)).status === 200, "Sunday A/B in at A");
-  const aLeagues = await db`SELECT name FROM leagues WHERE level='A' ORDER BY name`;
+  const aLeagues = await db`SELECT name FROM leagues WHERE level='A' AND rink_id=${rinkId} ORDER BY name`;
   ok(aLeagues.length === 2 && aLeagues.some((l: any) => l.name === "Sunday A/B League") && aLeagues.some((l: any) => l.name === "Monday A League"), "two A leagues stay separate, matched by name");
   ok((await call("POST", `/api/rinks/${rinkId}/leagues`, { name: "Wednesday Whatever" }, mt)).status === 400, "adding a league needs a skill level");
 
@@ -846,7 +852,7 @@ async function main() {
       goals: [{ period: 2, time: "4:00", scorer: "5", assist1: null, assist2: null }], penalties: [], shots_by_period: [5, 5, 5], score_by_period: [0, 1, 0], total: 1 },
   };
   await db`UPDATE sheets SET extracted_json=${JSON.stringify(real)} WHERE id=${sh2.id}`;
-  const sv2 = (await call("GET", `/api/sheets/${sh2.id}`)).json;
+  const sv2 = (await call("GET", `/api/sheets/${sh2.id}`, undefined, boss)).json;
   ok(sv2.suggestion.duplicateGameId === null, "an imported game isn't flagged as already scanned");
   ok((await call("POST", `/api/sheets/${sh2.id}/confirm`, { leagueId: lg, homeTeamId: hh, awayTeamId: blId, data: real }, outsider)).status === 403, "a player who isn't a captain of either team can't confirm");
   const sub2 = await call("POST", `/api/sheets/${sh2.id}/submit`, { leagueId: lg, homeTeamId: hh, awayTeamId: blId, data: real }, outsider);
@@ -1051,16 +1057,16 @@ async function main() {
   ok(ca.status === 200 && ca.json.created, "an admin adds a Canadian rink with its province");
   ok((await call("POST", "/api/rink-requests", { name: "Nowhere Rink", city: "Toronto", state: "ZZ", country: "CA", confirmNew: true }, boss)).status === 400, "an unknown province is refused");
   ok((await call("POST", "/api/rink-requests", { name: "Mix Up Rink", city: "Toronto", state: "ON", country: "US", confirmNew: true }, boss)).status === 400, "a province with the US picked is refused");
-  const caRow = (await call("GET", "/api/rinks?q=toronto")).json.rinks.find((r: any) => r.id === ca.json.rinkId);
+  const caRow = (await call("GET", "/api/rinks?q=toronto", undefined, boss)).json.rinks.find((r: any) => r.id === ca.json.rinkId);
   ok(caRow && caRow.country === "CA" && caRow.state === "ON", "rink search finds it by city, with country and province");
   const guess = await (await fetch(`${BASE}/api/rinks`, { headers: { "x-vercel-ip-country": "CA" } })).json();
   ok(guess.yourCountry === "CA", "the connection's country picks where the rink picker opens");
-  const bootCa = (await call("GET", `/api/bootstrap?rink=${ca.json.rinkId}`)).json;
+  const bootCa = (await call("GET", `/api/bootstrap?rink=${ca.json.rinkId}`, undefined, boss)).json;
   ok(bootCa.rink.id === ca.json.rinkId && bootCa.leagues.length === 0 && bootCa.region.country === "CA", "the app can look at the Toronto rink, with none of Wilmington's leagues");
   const bootHome = (await call("GET", "/api/bootstrap", undefined, sam)).json;
   ok(bootHome.rink.name === "Polar Ice Wilmington", "a signed-in player opens on their home rink");
-  ok((await call("GET", `/api/feed?rink=${ca.json.rinkId}`)).json.games.length === 0, "Toronto's home page has no Wilmington games");
-  ok((await call("GET", `/api/players?rink=${ca.json.rinkId}`)).json.length === 0, "nor Wilmington's players");
+  ok((await call("GET", `/api/feed?rink=${ca.json.rinkId}`, undefined, boss)).json.games.length === 0, "Toronto's home page has no Wilmington games");
+  ok((await call("GET", `/api/players?rink=${ca.json.rinkId}`, undefined, boss)).json.length === 0, "nor Wilmington's players");
   ok((await call("GET", `/api/players?rink=${rinkId}`)).json.length > 0, "Wilmington's players still show at Wilmington");
 
   console.log("standings: goal difference");
@@ -1203,7 +1209,9 @@ async function main() {
   const inv = await call("POST", `/api/teams/${hh}/invite`, undefined, graham);
   ok(inv.status === 200 && inv.json.invite.token && inv.json.invite.uses === 0, "captain makes an invite link");
   ok((await call("POST", `/api/teams/${hh}/invite`, undefined, fan)).status === 403, "only the team's captains and staff can");
-  ok((await call("GET", `/api/invites/${inv.json.invite.token}`)).json.team === "Hammer'd Heads", "the link says which team");
+  const invOut = (await call("GET", `/api/invites/${inv.json.invite.token}`)).json;
+  ok(invOut.valid === true && invOut.team === undefined, "signed out, the link is valid but names no team");
+  ok((await call("GET", `/api/invites/${inv.json.invite.token}`, undefined, fan)).json.team === "Hammer'd Heads", "signed in, the link says which team");
   const invited = await signUp("invited@example.com", { name: "Ivan Invited", number: "5", position: "D" }, { waitlist: true });
   const acc = await call("POST", "/api/invites/accept", { token: inv.json.invite.token }, invited);
   ok(acc.status === 200 && acc.json.newlyApproved && acc.json.teamId === hh, "signing in through the link lets you in");
@@ -1238,7 +1246,7 @@ async function main() {
     ok(up.status === 202 && up.json.id, "fake scan accepted");
     let st: any;
     for (let i = 0; i < 50; i++) {
-      st = await call("GET", `/api/sheets/${up.json.id}`);
+      st = await call("GET", `/api/sheets/${up.json.id}`, undefined, boss);
       if (st.json.status !== "processing") break;
       await new Promise((r) => setTimeout(r, 200));
     }
@@ -1301,7 +1309,7 @@ async function main() {
   const saved = await call("POST", `/api/sheets/${failed.id}/manual`, hand, sam);
   ok(saved.status === 200 && saved.json.data?.home?.total === 4 && saved.json.data?.away?.total === 2, "hand entry stores the final score");
   ok(saved.json.data.home.roster.map((p: any) => p.number).join(",") === "81,82" && saved.json.data.is_scoresheet === true, "hand entry stores who dressed and becomes review data");
-  const mid = await call("GET", `/api/sheets/${failed.id}`);
+  const mid = await call("GET", `/api/sheets/${failed.id}`, undefined, sam);
   ok(mid.json.status === "review" && mid.json.gameId == null, "hand entry does not confirm the game");
   const demoId = (await db`SELECT id FROM leagues WHERE level='DEMO'`)[0].id;
   const demoTeams = await db`SELECT t.id FROM teams t WHERE t.league_id=${demoId} ORDER BY t.id LIMIT 2`;
@@ -1547,7 +1555,7 @@ async function main() {
   ok(cleanup.status === 200 && cleanupBody.photos.deleted >= 1, "nightly cleanup deletes photos confirmed more than 90 days ago");
   const oldRow = (await db`SELECT photo_deleted_at, extracted_json, image_path FROM sheets WHERE id = ${oldSheet.id}`)[0];
   ok(oldRow.photo_deleted_at && String(oldRow.extracted_json).includes("kept") && oldRow.image_path === oldKey, "the old photo is marked deleted only after removal, and the extract stays");
-  ok((await fetch(`${BASE}/api/sheets/${oldSheet.id}/image`)).status === 404, "the deleted photo no longer downloads");
+  ok((await fetch(`${BASE}/api/sheets/${oldSheet.id}/image`, { headers: { Authorization: `Bearer ${boss}` } })).status === 404, "the deleted photo no longer downloads");
   ok((await db`SELECT photo_deleted_at FROM sheets WHERE id = ${edgeSheet.id}`)[0].photo_deleted_at === null, "a sheet just under 90 days confirmed is kept");
   ok((await db`SELECT photo_deleted_at FROM sheets WHERE id = ${freshSheet.id}`)[0].photo_deleted_at === null, "a sheet confirmed 89 days ago is kept");
   const second = await fetch(`${BASE}/api/cron/recompute`, { headers: { Authorization: `Bearer ${env.CRON_SECRET}` } });
@@ -1592,6 +1600,29 @@ async function main() {
   }
 
   await pushChecks({ graham, sam, outsider, fan, hh, ids });
+
+  console.log("signed out: sample rink only");
+  await db`UPDATE rinks SET is_sample=false WHERE name='Polar Ice Wilmington'`;
+  await start();
+  const sampleRink = (await db`SELECT id, name FROM rinks WHERE is_sample ORDER BY id LIMIT 1`)[0];
+  ok(!!sampleRink, "the migration made a sample rink");
+  const outBoot = await call("GET", `/api/bootstrap?rink=${rid}`);
+  ok(outBoot.json.rink.id === sampleRink.id && outBoot.json.rinkCount === 1, "signed out, bootstrap gives the sample rink even when a real one is asked for");
+  ok(outBoot.json.leagues.length > 0 && outBoot.json.leagues.every((l: any) => l.teams.length > 0), "the sample rink has leagues and teams");
+  ok((await call("GET", "/api/rinks")).json.rinks.every((r: any) => r.is_sample), "signed out, the rink list holds only the sample rink");
+  ok((await call("GET", `/api/teams/${hh}`)).status === 401, "signed out, a real team page is refused");
+  ok((await call("GET", `/api/teams/${hh}`, undefined, graham)).status === 200, "signed in, it loads");
+  ok((await call("GET", `/api/leagues/${lg}`)).status === 401, "signed out, a real league is refused");
+  ok((await call("GET", `/api/players/${mike}`)).status === 401, "signed out, a real player is refused");
+  ok((await call("GET", `/api/standings?rink=${rid}`)).json.rinkId === sampleRink.id, "signed out, standings fall back to the sample rink");
+  ok((await call("GET", "/api/sheets")).status === 401, "signed out, the scoresheet list is refused");
+  ok((await fetch(`${BASE}/api/cards/game/${conf.json.gameId}`)).status === 401, "signed out, a real game's share card is refused");
+  ok((await fetch(`${BASE}/api/cards/game/${conf.json.gameId}`, { headers: { Authorization: `Bearer ${graham}` } })).status === 200, "signed in, the card renders");
+  const meNow = await call("GET", "/api/me", undefined, graham);
+  ok(typeof meNow.json.imageKey === "string" && meNow.json.imageKey.split(".").length === 3, "signed in, /api/me carries an image key for scoresheet photos");
+  const sampleTeam = outBoot.json.leagues[0].teams[0].id;
+  ok((await call("GET", `/api/teams/${sampleTeam}`)).status === 200, "signed out, a sample team loads");
+  await stop();
   await db.end();
   console.log(`\nsmoke: ${passed} checks passed`);
 }

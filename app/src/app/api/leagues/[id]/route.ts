@@ -4,6 +4,7 @@ import { currentSeason, gameCards, leaders, seasonsWithData, standings, HttpErro
 import * as A from "@/server/accounts";
 import * as P from "@/server/permissions";
 import { clean, LEVELS, TAGS } from "@/server/manage";
+import { assertRinkVisible } from "@/server/visibility";
 
 export const dynamic = "force-dynamic";
 /** seasonsWithData adds a count column; the response season is the plain seasons row. */
@@ -20,6 +21,7 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
     seasonsWithData(sql, l.id),
     A.userFromRequest(req).catch(() => null),
   ]);
+  await assertRinkVisible(sql, u, l.rink_id);
   const qs = new URL(req.url).searchParams.get("season");
   const gamesAll = new URL(req.url).searchParams.get("games") === "all";
   // The newest season that has games or imports, unless the caller picks one.

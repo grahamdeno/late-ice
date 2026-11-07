@@ -40,7 +40,8 @@ export default async function SiteHome() {
 
       {rinks.length > 0 && (
         <section className="max-w-6xl mx-auto px-6 py-10">
-          <h2 className="text-3xl font-black">Live now</h2>
+          <h2 className="text-3xl font-black">See it working</h2>
+          <p className="text-[#c3ccd8] mt-2">A sample rink with made-up teams and players. Sign in to find your own league.</p>
           <div className="grid gap-3 mt-5 md:grid-cols-2">
             {rinks.map((r) => (
               <a key={r.id} href={`${app}/`} className="flex items-center gap-4 rounded-[20px] bg-[#151c28] hover:bg-[#1b2433] p-5">

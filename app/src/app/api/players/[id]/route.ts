@@ -4,12 +4,14 @@ import { handle, body, num } from "@/server/http";
 import { sql, q, one } from "@/server/db";
 import { gameCard, HttpError } from "@/server/services";
 import { applyViewerNames, userFromRequest } from "@/server/accounts";
+import { assertPlayerVisible } from "@/server/visibility";
 
 export const dynamic = "force-dynamic";
 export const GET = handle<{ id: string }>(async (req, { id }) => {
   const raw = await one<any>(sql, "SELECT * FROM players WHERE id=$1", [num(id)]);
   if (!raw) throw new HttpError(404, "Player not found");
   const me = await userFromRequest(req);
+  await assertPlayerVisible(sql, me, raw.id);
   const { name_key: _k, name: _n, user_id: uid, display_name, start_rating: _s, ...rest } = raw;
   const owner = uid ? await one<any>(sql, "SELECT avatar FROM users WHERE id=$1", [uid]) : null;
   const p = { ...rest, name: display_name, registered: !!uid, mine: !!me && me.id === uid, avatar: owner?.avatar ?? null };

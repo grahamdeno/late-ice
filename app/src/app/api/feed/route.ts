@@ -2,16 +2,19 @@ import { handle, body, num } from "@/server/http";
 import { sql, q, one } from "@/server/db";
 import { gameCards, leaders } from "@/server/services";
 import { applyLoadedNames, sameRinkSql, userFromRequest } from "@/server/accounts";
+import { rinkFor, rinkOfLeague, sampleRinkId } from "@/server/visibility";
 
 export const dynamic = "force-dynamic";
 export const GET = handle(async (req) => {
   const u = new URL(req.url);
-  const lid = u.searchParams.get("league") ? num(u.searchParams.get("league")) : null;
+  const viewer = await userFromRequest(req).catch(() => null);
+  let lid = u.searchParams.get("league") ? num(u.searchParams.get("league")) : null;
+  // Signed out: only the sample rink. A league from a real rink falls back to the sample rink.
+  if (lid && !viewer && (await rinkOfLeague(sql, lid)) !== (await sampleRinkId(sql))) lid = null;
   // With no league picked, the rink picks the scope. No rink either: every rink (old links keep working).
-  const rid = !lid && u.searchParams.get("rink") ? num(u.searchParams.get("rink")) : null;
+  const rid = lid ? null : await rinkFor(sql, viewer, u.searchParams.get("rink") ? num(u.searchParams.get("rink")) : null);
   const where = lid ? "WHERE g.league_id=$1" : rid ? "WHERE l.rink_id=$1 AND l.level NOT IN ('DEMO','TOURN')" : "WHERE l.level NOT IN ('DEMO','TOURN')";
   const args = lid ? [lid] : rid ? [rid] : [];
-  const viewer = await userFromRequest(req).catch(() => null);
   const viewerParam = args.length + 1;
   const games = await gameCards(sql, await q(sql,
     `SELECT g.* FROM games g JOIN leagues l ON l.id=g.league_id ${where} ORDER BY g.played_on DESC NULLS LAST, g.id DESC LIMIT 20`, args));

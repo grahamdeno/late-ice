@@ -9,7 +9,9 @@ import { checkScan } from "@/server/scanlimits";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-export const GET = handle(async () => {
+export const GET = handle(async (req) => {
+  // Scoresheets carry real names: signed in only.
+  if (!(await userFromRequest(req).catch(() => null))) throw new HttpError(401, "Sign in to see this.");
   const out = [];
   for (const s of await q(sql, "SELECT * FROM sheets ORDER BY id DESC LIMIT 30")) out.push(await sheetView(s));
   return out;

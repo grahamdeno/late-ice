@@ -33,7 +33,12 @@ export function middleware(req: NextRequest) {
   }
 
   const isSite = siteHosts.includes(host) || pathname === "/site" || pathname.startsWith("/site/");
-  if (!isSite) return NextResponse.next();
+  if (!isSite) {
+    // App and Rink Desk pages hold real rinks, teams and players once signed in: keep them out of search.
+    const res = NextResponse.next();
+    res.headers.set("X-Robots-Tag", "noindex, nofollow");
+    return res;
+  }
 
   const headers = new Headers(req.headers);
   headers.set("x-li-site", "1");

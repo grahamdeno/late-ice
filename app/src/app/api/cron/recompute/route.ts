@@ -8,6 +8,7 @@ import { runBackup } from "@/server/backup";
 import { escalateWaitingSheets } from "@/server/sheetconfirm";
 import { deleteOldSheetPhotos } from "@/server/privacy";
 import { computeMilestones } from "@/server/milestones";
+import { rollSampleDates } from "@/server/sample";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -15,6 +16,8 @@ export const maxDuration = 60;
 export const GET = handle(async (req) => {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) return new Response("Unauthorized", { status: 401 });
+  // The sample rink keeps its newest game a few days old, so signed-out visitors see a live league.
+  const sampleDays = await rollSampleDates(sql).catch(() => 0);
   const people = await sql.begin((tx) => consolidatePeople(tx));
   const r = { ...(await recomputeAll()), people };
   await refreshDisplays(sql, true);
@@ -31,5 +34,5 @@ export const GET = handle(async (req) => {
   // Game-day alerts run from /api/cron/gameday at 9:17 am Eastern, after quiet hours.
   // Backup last, so a failure here never blocks the rest; it still shows in the logs.
   const backup = await runBackup().catch((e) => ({ error: String(e?.message ?? e) }));
-  return { ...r, milestones, merges, feeds, escalated, photos, backup };
+  return { ...r, milestones, merges, feeds, escalated, photos, backup, sampleDays };
 });

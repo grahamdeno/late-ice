@@ -19,13 +19,14 @@ export async function appBase() {
 }
 
 /** Rinks live on Late Ice, with what's there. Public numbers only. */
+/** The website shows only the made-up sample rink. Real rinks appear in the app after sign-in. */
 export async function liveRinks() {
   return q<{ id: number; name: string; city: string | null; state: string | null; leagues: number; teams: number; players: number }>(sql, `
     SELECT r.id, r.name, r.city, r.state,
       (SELECT COUNT(*) FROM leagues l WHERE l.rink_id=r.id AND l.archived_at IS NULL AND l.level NOT IN ('DEMO','TOURN'))::int leagues,
       (SELECT COUNT(*) FROM teams t JOIN leagues l ON l.id=t.league_id WHERE l.rink_id=r.id AND t.archived_at IS NULL AND l.archived_at IS NULL AND l.level NOT IN ('DEMO','TOURN') AND t.is_sample=0)::int teams,
       (SELECT COUNT(DISTINCT re.player_id) FROM roster_entries re JOIN teams t ON t.id=re.team_id JOIN leagues l ON l.id=t.league_id WHERE l.rink_id=r.id AND t.is_sample=0 AND l.level NOT IN ('DEMO','TOURN'))::int players
-    FROM rinks r WHERE r.archived_at IS NULL ORDER BY r.name`);
+    FROM rinks r WHERE r.archived_at IS NULL AND r.is_sample ORDER BY r.name`);
 }
 
 export function Dot({ size = 22 }: { size?: number }) {

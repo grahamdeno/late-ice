@@ -1,13 +1,16 @@
 import { handle, body, num } from "@/server/http";
 import { sql, q, one } from "@/server/db";
 import { applyViewerNames, userFromRequest } from "@/server/accounts";
+import { rinkFor, rinkOfLeague, sampleRinkId } from "@/server/visibility";
 
 export const dynamic = "force-dynamic";
 export const GET = handle(async (req) => {
   const sp = new URL(req.url).searchParams, s = sp.get("league");
-  const lid = s ? num(s) : null;
-  const rid = !lid && sp.get("rink") ? num(sp.get("rink")) : null;
   const viewer = await userFromRequest(req).catch(() => null);
+  let lid = s ? num(s) : null;
+  // Signed out: only the sample rink.
+  if (lid && !viewer && (await rinkOfLeague(sql, lid)) !== (await sampleRinkId(sql))) lid = null;
+  const rid = lid ? null : await rinkFor(sql, viewer, sp.get("rink") ? num(sp.get("rink")) : null);
   return applyViewerNames(sql, viewer, await q(sql,
     `SELECT p.id, p.display_name AS name, p.position, p.rating, p.games_rated, p.user_id IS NOT NULL AS registered,
       (p.position IS DISTINCT FROM 'G' AND COALESCE((SELECT SUM(gp) FROM player_imports i WHERE i.player_id=p.id),0) > 0) AS season_rated,

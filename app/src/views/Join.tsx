@@ -147,7 +147,7 @@ export default function Join() {
 
       {invite && (
         <div className="card mt-4 p-3.5 text-sm border-[var(--up)]/40" data-testid="card-invite-banner">
-          You're invited to join <b>{invite.team}</b> ({invite.league}, {invite.rink}). Sign in and you're in.
+          {invite.team ? <>You're invited to join <b>{invite.team}</b> ({invite.league}, {invite.rink}). Sign in and you're in.</> : <>You've been invited to a team on Late Ice. Sign in to see which one, and you're in.</>}
         </div>
       )}
       {!invite && step === "email" && (

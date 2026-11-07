@@ -5,6 +5,7 @@ import { captainOf, assistantsOf, requireUser, requireTeam, logAction, userFromR
 import { teamIsEmpty, removeTeam } from "@/server/manage";
 import { teamArchetypes, canSetCaptainArchetype } from "@/server/archetypes";
 import { audit } from "@/server/permissions";
+import { assertRinkVisible } from "@/server/visibility";
 
 export const dynamic = "force-dynamic";
 export const GET = handle<{ id: string }>(async (req, { id }) => {
@@ -12,6 +13,7 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
   if (!t) throw new HttpError(404, "Team not found");
   const viewer = await userFromRequest(req).catch(() => null);
   const league = await one<any>(sql, "SELECT * FROM leagues WHERE id=$1", [t.league_id]);
+  await assertRinkVisible(sql, viewer, league.rink_id);
   const roster = await q(sql,
     `SELECT p.id, p.display_name AS name, p.position, p.rating, p.games_rated, p.user_id IS NOT NULL AS registered, re.number, re.is_sub,
       (SELECT u.avatar FROM users u WHERE u.id=p.user_id) avatar,

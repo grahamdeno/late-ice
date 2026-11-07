@@ -1,13 +1,12 @@
-import { SiteShell, Display, liveRinks, siteBase } from "@/site/Site";
+import { SiteShell, Display, siteBase } from "@/site/Site";
 import { ClaimForm } from "@/site/ClaimForm";
 import { SUPPORT_EMAIL } from "@/lib/contact";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Claim your rink · Late Ice" };
 
-export default async function Claim({ searchParams }: { searchParams: Promise<{ rink?: string }> }) {
-  const [base, rinks, sp] = await Promise.all([siteBase(), liveRinks(), searchParams]);
-  const initial = Number(sp?.rink) || null;
+export default async function Claim() {
+  const base = await siteBase();
   return (
     <SiteShell>
       <section className="max-w-6xl mx-auto px-6 pt-12 pb-16 flex flex-wrap gap-10">
@@ -15,7 +14,8 @@ export default async function Claim({ searchParams }: { searchParams: Promise<{ 
           <div className="font-bold text-[#ff8a8a]">Rinks</div>
           <Display className="text-[48px] sm:text-[60px] mt-2">Claim your rink</Display>
           <p className="text-[#c3ccd8] mt-3 mb-6 max-w-xl">Pick your rink if it&apos;s live, or add a new one. It takes a minute.</p>
-          <ClaimForm rinks={rinks} initialRink={initial && rinks.some((r) => r.id === initial) ? initial : null} thanksHref={`${base}/claim/thanks`} />
+          {/* Real rinks are not listed on the website: the rink manager types theirs and we match it. */}
+          <ClaimForm rinks={[]} initialRink={null} thanksHref={`${base}/claim/thanks`} />
         </div>
         <aside className="flex-[1_1_300px]">
           <h2 className="text-xl font-black">What happens next</h2>
