@@ -40,8 +40,8 @@ export async function teamLineups(db: Tx, user: any, teamId: number) {
      WHERE g.source<>'sheet' AND (g.home_team_id=$1 OR g.away_team_id=$1)
      ORDER BY g.played_on DESC NULLS LAST, g.id DESC`, [teamId]);
   const ids = games.map((g) => g.id);
-  const attendance = ids.length ? await q<{ game_id: number; player_id: number }>(db,
-    "SELECT game_id, player_id FROM imported_game_attendance WHERE team_id=$1 AND game_id = ANY($2::int[])", [teamId, ids]) : [];
+  const attendance = ids.length ? await q<{ game_id: number; player_id: number; in_goal: boolean }>(db,
+    "SELECT game_id, player_id, in_goal FROM imported_game_attendance WHERE team_id=$1 AND game_id = ANY($2::int[])", [teamId, ids]) : [];
   const credited = ids.length ? await q<{ game_id: number; player_id: number; goals: number; assists: number }>(db,
     "SELECT game_id, player_id, goals, assists FROM imported_game_lines WHERE team_id=$1 AND game_id = ANY($2::int[])", [teamId, ids]) : [];
 
@@ -67,6 +67,7 @@ export async function teamLineups(db: Tx, user: any, teamId: number) {
         id: g.id, playedOn: g.played_on, startTime: g.start_time, opponent: g.opponent, home: g.home,
         us, them, result: us == null || them == null ? null : us > them ? "W" : us < them ? "L" : "T",
         lineup: attendance.filter((a) => a.game_id === g.id).map((a) => a.player_id),
+        goalie: attendance.find((a) => a.game_id === g.id && a.in_goal)?.player_id ?? null,
         credited: credited.filter((c) => c.game_id === g.id).map((c) => ({ playerId: c.player_id, goals: c.goals, assists: c.assists })),
       };
     }),
@@ -77,7 +78,7 @@ export async function teamLineups(db: Tx, user: any, teamId: number) {
  * Replace one team's lineup for one imported game. Players DaySmart credited with a point are
  * always kept: they played. An empty list clears the lineup, and the game goes back to unrated.
  */
-export async function saveLineup(tx: Tx, user: any, teamId: number, gameId: number, playerIds: number[]) {
+export async function saveLineup(tx: Tx, user: any, teamId: number, gameId: number, playerIds: number[], goalieId: number | null = null) {
   const g = await one<any>(tx, "SELECT id, source, league_id, home_team_id, away_team_id FROM games WHERE id=$1", [gameId]);
   if (!g || (g.home_team_id !== teamId && g.away_team_id !== teamId)) throw new HttpError(404, "That game isn't one of this team's.");
   if (g.source === "sheet") throw new HttpError(400, "This game came from a scoresheet, which already lists who played.");
@@ -93,19 +94,23 @@ export async function saveLineup(tx: Tx, user: any, teamId: number, gameId: numb
   const stray = wanted.filter((id) => !allowed.has(id));
   if (stray.length) throw new HttpError(400, "Some of those players aren't on this team's roster.");
   const ids = wanted.length ? [...new Set([...wanted, ...credited])] : [];
+  const goalie = goalieId != null && Number.isInteger(Number(goalieId)) ? Number(goalieId) : null;
+  if (goalie != null && !ids.includes(goalie)) throw new HttpError(400, "The goalie has to be in the lineup.");
 
-  const before = (await q<{ player_id: number }>(tx,
-    "SELECT player_id FROM imported_game_attendance WHERE game_id=$1 AND team_id=$2 ORDER BY player_id", [gameId, teamId])).map((r) => r.player_id);
+  const prior = await q<{ player_id: number; in_goal: boolean }>(tx,
+    "SELECT player_id, in_goal FROM imported_game_attendance WHERE game_id=$1 AND team_id=$2 ORDER BY player_id", [gameId, teamId]);
+  const before = prior.map((r) => r.player_id);
+  const goalieBefore = prior.find((r) => r.in_goal)?.player_id ?? null;
   await q(tx, "DELETE FROM imported_game_attendance WHERE game_id=$1 AND team_id=$2", [gameId, teamId]);
   if (ids.length) {
     await q(tx,
-      `INSERT INTO imported_game_attendance (game_id, player_id, team_id)
-       SELECT $1, x, $2 FROM unnest($3::int[]) AS x ON CONFLICT (game_id, player_id) DO NOTHING`, [gameId, teamId, ids]);
+      `INSERT INTO imported_game_attendance (game_id, player_id, team_id, in_goal)
+       SELECT $1, x, $2, x = $4 FROM unnest($3::int[]) AS x ON CONFLICT (game_id, player_id) DO NOTHING`, [gameId, teamId, ids, goalie ?? 0]);
   }
   const after = [...ids].sort((a, b) => a - b);
-  const changed = before.join(",") !== after.join(",");
-  if (changed) await P.audit(tx, user.id, "lineup.record", { type: "game", id: gameId, rinkId }, { teamId, players: before }, { teamId, players: after });
-  return { saved: ids.length, changed };
+  const changed = before.join(",") !== after.join(",") || goalieBefore !== (ids.length ? goalie : null);
+  if (changed) await P.audit(tx, user.id, "lineup.record", { type: "game", id: gameId, rinkId }, { teamId, players: before, goalie: goalieBefore }, { teamId, players: after, goalie: ids.length ? goalie : null });
+  return { saved: ids.length, changed, goalie: ids.length ? goalie : null };
 }
 
 /** Normalize a typed or pasted name: lowercase letters, digits and single spaces. */

@@ -4,6 +4,7 @@ import { HttpError } from "@/server/services";
 import * as A from "@/server/accounts";
 import * as P from "@/server/permissions";
 import * as S from "@/server/staff";
+import { SUPPORT_EMAIL } from "@/lib/contact";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,7 @@ export const POST = handle(async (req) => {
   });
   if (!result.ran && result.from.email) {
     const sent = await S.sendEmail(result.from.email, "Your Late Ice account is being moved",
-      "Someone asked to move your Late Ice account to a new email address. If this wasn't you, reply to this email or write to support@tangomike.app within 24 hours to stop it.");
+      `Someone asked to move your Late Ice account to a new email address. If this wasn't you, reply to this email or write to ${SUPPORT_EMAIL} within 24 hours to stop it.`);
     if (sent) await q(sql, "UPDATE account_merges SET notified_at=now() WHERE id=$1", [result.merge.id]);
   }
   return { ok: true, id: result.merge.id, ran: result.ran, runAfter: result.merge.run_after };

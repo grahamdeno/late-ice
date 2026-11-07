@@ -114,3 +114,14 @@ describe("ratePlayer", () => {
     expect(short.reasons.some((r) => r.label.includes("penalty"))).toBe(false);
   });
 });
+
+describe("goalie with no shot count", () => {
+  it("is rated on the result and says why", () => {
+    const base = { rating: 4, gamesRated: 10, goals: 0, assists: 0, pim: 0, shotsAgainst: null, goalsAgainst: null, own: 4, opp: 4, gf: 3, ga: 2, eventId: null };
+    const g = ratePlayer({ ...base, isGoalie: 1 });
+    const skater = ratePlayer({ ...base, isGoalie: 0 });
+    expect(g.after).toBe(skater.after);
+    expect(g.reasons.some((r) => r.label.startsWith("In goal.") && r.value === 0)).toBe(true);
+    expect(skater.reasons.some((r) => r.label.startsWith("In goal."))).toBe(false);
+  });
+});

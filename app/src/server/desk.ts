@@ -118,3 +118,107 @@ export async function ratingsOverview(db: Tx, user: any, rinkId: number) {
   const last = await one<any>(db, "SELECT kind, games, ms, created_at FROM rating_runs ORDER BY id DESC LIMIT 1");
   return { rink, leagues: out, lastRun: last ?? null, canRecompute: await P.can(db, user, "ratings.recompute") };
 }
+
+/** Scoresheets for one rink: open scans to check, and the last month of confirmed or discarded ones.
+ *  A scan belongs to a rink through the league a player sent it to, else the league its teams match.
+ *  Scans no league could be matched to show at every rink the person staffs, marked unsorted. */
+export async function sheetQueue(db: Tx, user: any, rinkId: number) {
+  const { suggest } = await import("./services");
+  const { rink, leagues } = await leaguesFor(db, user, rinkId, "sheet.confirm");
+  const mine = new Map(leagues.map((l) => [l.id, l]));
+  const rows = await q<any>(db,
+    `SELECT s.id, s.status, s.source, s.extracted_json, s.warnings_json, s.proposed_json, s.game_id, s.created_at, s.submitted_at,
+       u.name AS scanned_by, sb.name AS submitted_by, g.league_id AS game_league
+     FROM sheets s
+     LEFT JOIN users u ON u.id=s.scanned_by
+     LEFT JOIN users sb ON sb.id=s.submitted_by
+     LEFT JOIN games g ON g.id=s.game_id
+     WHERE COALESCE(s.source,'upload') <> 'sample'
+       AND (s.status IN ('processing','review','awaiting','failed') AND s.game_id IS NULL
+            OR s.created_at > now() - interval '30 days')
+     ORDER BY s.id DESC LIMIT 200`);
+  const open: any[] = [];
+  const done: any[] = [];
+  for (const s of rows) {
+    const data = s.extracted_json ? JSON.parse(s.extracted_json) : null;
+    const proposal = s.proposed_json ? JSON.parse(s.proposed_json) : null;
+    const isOpen = !s.game_id && ["processing", "review", "awaiting", "failed"].includes(s.status);
+    let leagueId: number | null = s.game_league ?? proposal?.leagueId ?? null;
+    let duplicate: number | null = null;
+    if (isOpen && data?.is_scoresheet !== false && data && s.status !== "processing") {
+      const sug = await suggest(db, proposal?.data ?? data);
+      leagueId = leagueId ?? sug.leagueId;
+      duplicate = sug.duplicateGameId;
+    }
+    if (leagueId != null && !mine.has(leagueId)) continue;
+    if (leagueId == null && !isOpen) continue;
+    const d = proposal?.data ?? data;
+    const total = (t: any) => (t ? t.total ?? t.goals?.length ?? null : null);
+    const row = {
+      id: s.id, status: s.status === "discarded" ? "discarded" : s.game_id ? "confirmed" : data?.is_scoresheet === false ? "failed" : s.status,
+      createdAt: s.created_at, scannedBy: s.scanned_by, submittedBy: s.submitted_by, gameId: s.game_id,
+      level: leagueId != null ? mine.get(leagueId)!.level : null, leagueId,
+      home: d?.home?.name ?? null, away: d?.away?.name ?? null,
+      homeScore: total(d?.home), awayScore: total(d?.away), date: d?.date ?? null,
+      confidence: d?.confidence ?? null,
+      warnings: s.warnings_json ? JSON.parse(s.warnings_json).length : 0,
+      duplicate,
+    };
+    (isOpen ? open : done).push(row);
+  }
+  return { rink, leagues, open: open.reverse(), done: done.slice(0, 60) };
+}
+
+/** Teams at a rink this person can manage the roster of: all of them for staff, their own for captains. */
+async function teamsFor(db: Tx, user: any, rinkId: number) {
+  const rink = await one<{ id: number; name: string }>(db, "SELECT id, name FROM rinks WHERE id=$1", [rinkId]);
+  if (!rink) throw new HttpError(404, "Rink not found.");
+  const all = await q<any>(db,
+    `SELECT t.id, t.name, t.color, l.id AS league_id, l.level, l.name AS league
+     FROM teams t JOIN leagues l ON l.id=t.league_id
+     WHERE l.rink_id=$1 AND l.archived_at IS NULL AND l.level NOT IN ('DEMO','TOURN')
+       AND t.archived_at IS NULL AND COALESCE(t.is_sample,0)=0
+     ORDER BY l.sort, t.name`, [rinkId]);
+  const out = [];
+  for (const t of all) if (await P.can(db, user, "roster.manage", { teamId: t.id, leagueId: t.league_id, rinkId })) out.push(t);
+  if (!out.length) throw new HttpError(403, "This page is for the rink's staff and team captains.");
+  return { rink, teams: out };
+}
+
+/** How far each team has got signing up: roster joined, the captain, and the team's invite link. */
+export async function joinProgress(db: Tx, user: any, rinkId: number) {
+  const { rink, teams } = await teamsFor(db, user, rinkId);
+  const ids = teams.map((t) => t.id);
+  const counts = await q<any>(db,
+    `SELECT re.team_id, COUNT(*)::int AS roster, COUNT(p.user_id)::int AS joined,
+       MAX(u.created_at) AS last_joined
+     FROM roster_entries re JOIN players p ON p.id=re.player_id LEFT JOIN users u ON u.id=p.user_id
+     WHERE re.team_id = ANY($1::int[]) AND NOT COALESCE(re.is_sub, false)
+     GROUP BY re.team_id`, [ids]);
+  const captains = await q<any>(db,
+    `SELECT g.scope_id AS team_id, g.role, u.id AS user_id, u.name
+     FROM role_grants g JOIN users u ON u.id=g.user_id
+     WHERE g.scope_type='team' AND g.scope_id = ANY($1::int[]) AND g.role IN ('captain','assistant_captain') AND g.revoked_at IS NULL
+     ORDER BY g.role='captain' DESC, u.name`, [ids]);
+  const invites = await q<any>(db,
+    `SELECT DISTINCT ON (team_id) team_id, uses, max_uses, created_at
+     FROM team_invites WHERE team_id = ANY($1::int[]) AND revoked_at IS NULL AND uses < max_uses
+     ORDER BY team_id, created_at DESC`, [ids]);
+  const rows = teams.map((t) => {
+    const c = counts.find((x) => x.team_id === t.id);
+    const caps = captains.filter((x) => x.team_id === t.id);
+    const inv = invites.find((x) => x.team_id === t.id);
+    const roster = c?.roster ?? 0, joined = c?.joined ?? 0;
+    const step = !caps.some((x) => x.role === "captain") ? "captain" : !inv ? "link" : joined < roster ? "joining" : "done";
+    return {
+      id: t.id, name: t.name, color: t.color, leagueId: t.league_id, level: t.level, league: t.league,
+      roster, joined, lastJoined: c?.last_joined ?? null,
+      captain: caps.find((x) => x.role === "captain")?.name ?? null,
+      assistants: caps.filter((x) => x.role === "assistant_captain").map((x) => x.name),
+      invite: inv ? { uses: inv.uses, maxUses: inv.max_uses, createdAt: inv.created_at } : null,
+      step,
+    };
+  });
+  const roster = rows.reduce((n, r) => n + r.roster, 0), joined = rows.reduce((n, r) => n + r.joined, 0);
+  return { rink, teams: rows, totals: { teams: rows.length, roster, joined, noCaptain: rows.filter((r) => r.step === "captain").length, noLink: rows.filter((r) => r.step === "link").length } };
+}

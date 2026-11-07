@@ -2,6 +2,7 @@ import { handle, body } from "@/server/http";
 import { sql, q, one } from "@/server/db";
 import { HttpError } from "@/server/services";
 import { requireUser, notify, captainOf, isApproved } from "@/server/accounts";
+import { SUPPORT_EMAIL } from "@/lib/contact";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export const POST = handle(async (req) => {
       `SELECT i.*, t.name team, l.rink_id FROM team_invites i JOIN teams t ON t.id=i.team_id JOIN leagues l ON l.id=t.league_id
        WHERE i.token=$1 AND i.revoked_at IS NULL AND i.uses < i.max_uses FOR UPDATE OF i`, [String(b?.token ?? "").slice(0, 64)]);
     if (!i) throw new HttpError(404, "That invite link has expired. Ask your captain for a new one.");
-    if (u.access === "removed") throw new HttpError(403, "This account can't join. Email support@tangomike.app.");
+    if (u.access === "removed") throw new HttpError(403, `This account can't join. Email ${SUPPORT_EMAIL}.`);
     const already = await isApproved(tx, u);
     await q(tx, "UPDATE users SET access='approved', invited_team_id=$1, home_rink_id=COALESCE(home_rink_id,$2) WHERE id=$3", [i.team_id, i.rink_id, u.id]);
     if (!already) {

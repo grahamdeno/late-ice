@@ -5,6 +5,7 @@ import * as A from "@/server/accounts";
 import * as P from "@/server/permissions";
 import * as S from "@/server/staff";
 import { createRink, createTeam, emailOnRinkDomain } from "@/server/manage";
+import { SUPPORT_EMAIL } from "@/lib/contact";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ export const POST = handle<{ id: string }>(async (req, { id }) => {
         await P.grant(tx, r.user_id, "rink_manager", r.scope_id, u.id, "request approved");
         await P.audit(tx, u.id, "grant.rink_manager", { type: "user", id: r.user_id, rinkId: r.scope_id }, undefined, { role: "rink_manager" });
       }
-      await A.notify(tx, r.user_id, { kind: "request", link: approve ? "/staff" : "/rink", title: approve ? "You're now a rink manager" : "Your rink manager request wasn't approved", body: approve ? "Open the staff page from your profile." : "Reply to support@tangomike.app if this is a mistake." });
+      await A.notify(tx, r.user_id, { kind: "request", link: approve ? "/staff" : "/rink", title: approve ? "You're now a rink manager" : "Your rink manager request wasn't approved", body: approve ? "Open the staff page from your profile." : `Reply to ${SUPPORT_EMAIL} if this is a mistake.` });
     } else if (r.kind === "new_rink") {
       await P.require_(tx, u, "system.grant");
       const d = r.details ?? {};
@@ -40,9 +41,9 @@ export const POST = handle<{ id: string }>(async (req, { id }) => {
           await P.grant(tx, r.user_id, "rink_manager", rink.id, u.id, "new rink request approved");
           await P.audit(tx, u.id, "grant.rink_manager", { type: "user", id: r.user_id, rinkId: rink.id }, undefined, { role: "rink_manager" });
         }
-        await A.notify(tx, r.user_id, { kind: "request", link: asManager ? "/staff" : "/rink", title: `${rink.name} is on Late Ice`, body: asManager ? "You're its rink manager. Open Manage from your profile to add leagues and teams." : d.manage ? "The rink is listed. We couldn't confirm the manager part yet; reply to support@tangomike.app." : undefined });
+        await A.notify(tx, r.user_id, { kind: "request", link: asManager ? "/staff" : "/rink", title: `${rink.name} is on Late Ice`, body: asManager ? "You're its rink manager. Open Manage from your profile to add leagues and teams." : d.manage ? `The rink is listed. We couldn't confirm the manager part yet; reply to ${SUPPORT_EMAIL}.` : undefined });
       } else {
-        await A.notify(tx, r.user_id, { kind: "request", link: "/rink", title: `${d.name ?? "Your rink"} wasn't added`, body: "Reply to support@tangomike.app if this is a mistake." });
+        await A.notify(tx, r.user_id, { kind: "request", link: "/rink", title: `${d.name ?? "Your rink"} wasn't added`, body: `Reply to ${SUPPORT_EMAIL} if this is a mistake.` });
       }
     } else if (r.kind === "new_team") {
       const l = await one<any>(tx, "SELECT * FROM leagues WHERE id=$1", [r.scope_id]);

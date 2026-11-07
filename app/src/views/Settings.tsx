@@ -8,6 +8,7 @@ import { ProfileForm } from "./Join";
 import { useTheme, type Theme } from "@/lib/theme";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { apiUrl, authHeaders } from "@/lib/queryClient";
+import { SUPPORT_EMAIL } from "@/lib/contact";
 
 /** Every setting in one place, in the order people look for them. Reached from the gear on Me. */
 export default function Settings() {
@@ -90,7 +91,7 @@ export default function Settings() {
 
       <Section title="Help">
         <div className="card divide-y divide-[var(--line)]">
-          <a href={`mailto:support@tangomike.app?subject=${encodeURIComponent("Late Ice help")}&body=${encodeURIComponent(`\n\n---\nApp: Late Ice\nAccount: ${u.id}`)}`} className="flex items-center gap-3 px-4 min-h-[52px]" data-testid="link-help">
+          <a href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Late Ice help")}&body=${encodeURIComponent(`\n\n---\nApp: Late Ice\nAccount: ${u.id}`)}`} className="flex items-center gap-3 px-4 min-h-[52px]" data-testid="link-help">
             <span className="flex-1 font-bold text-sm">Email us</span><span className="text-[var(--mute)]">›</span>
           </a>
           <Link href="/privacy" className="flex items-center gap-3 px-4 min-h-[52px]" data-testid="link-privacy">
@@ -117,7 +118,7 @@ export default function Settings() {
           <button className="w-full flex items-center gap-3 px-4 min-h-[52px] text-left" onClick={async () => {
             if (!confirm("Delete your Late Ice account? Your name comes off every roster and game, and your old game lines stay as \"Player\" and your number. This can't be undone.")) return;
             const r = await fetch(apiUrl("/api/me/delete"), { method: "POST", headers: { ...authHeaders(), "Content-Type": "application/json" }, body: JSON.stringify({ confirm: true }) });
-            if (!r.ok) { setErr((await r.json().catch(() => null))?.message ?? "Couldn't delete the account. Email support@tangomike.app and we'll do it."); return; }
+            if (!r.ok) { setErr((await r.json().catch(() => null))?.message ?? `Couldn't delete the account. Email ${SUPPORT_EMAIL} and we'll do it.`); return; }
             await signOut(); swap("/");
           }} data-testid="button-delete-account">
             <span className="flex-1"><span className="block font-bold text-sm down">Delete my account</span><span className="block text-xs text-[var(--mute)]">Removes your name; past scores stay</span></span>

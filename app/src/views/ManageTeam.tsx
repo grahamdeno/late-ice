@@ -317,6 +317,7 @@ export function InviteLink({ teamId, teamName, invites }: { teamId: number; team
         <button className="btn btn-red h-10 text-sm mt-2" onClick={async () => setErr(await act("POST", `/api/teams/${teamId}/invite`, undefined, ["/api/teams"]))} data-testid="button-make-invite">Make an invite link</button>
       )}
       {err && <p className="text-xs down mt-2">{err}</p>}
+      <Link href="/desk" className="hidden md:block text-xs font-bold text-[var(--blue)] mt-3" data-testid="link-desk-joined">On a computer? See who's joined on Rink Desk</Link>
     </div>
   );
 }
