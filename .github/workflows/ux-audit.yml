@@ -1,0 +1,77 @@
+name: UX audit
+
+# Walks real jobs in phone-sized Chromium and WebKit and reports findings. Never blocks a ship.
+on:
+  push:
+    branches: [claude/release-4, ux-audit]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install
+        run: npm ci
+      - name: Start local Supabase
+        run: |
+          started=""
+          for reg in ghcr.io public.ecr.aws docker.io ghcr.io; do
+            if SUPABASE_INTERNAL_IMAGE_REGISTRY=$reg npx supabase start -x studio,imgproxy,realtime,edge-runtime,logflare,vector,postgres-meta; then
+              started=$reg; break
+            fi
+            npx supabase stop --no-backup || true
+            sleep 30
+          done
+          [ -n "$started" ] || { echo "Could not start Supabase"; exit 1; }
+          npx supabase status -o env > /tmp/sb.env
+          get() { grep "^$1=" /tmp/sb.env | head -1 | cut -d= -f2- | tr -d '"'; }
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$(get API_URL)"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(get ANON_KEY)"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$(get SERVICE_ROLE_KEY)"
+            echo "DATABASE_URL=$(get DB_URL)"
+            echo "CRON_SECRET=ci-secret"
+          } >> "$GITHUB_ENV"
+      - name: Build
+        run: npm run build
+      - name: Browsers and axe
+        run: |
+          npm i --no-save playwright@1 axe-core@4 || npm i --no-save playwright@~1.64.0 axe-core@4
+          npx playwright install --with-deps chromium webkit
+      - name: Audit
+        continue-on-error: true
+        run: node script/ux-audit.mjs
+      - name: Report in the run summary
+        if: always()
+        run: '[ -f audit/report.md ] && cat audit/report.md >> "$GITHUB_STEP_SUMMARY" || true'
+      - name: Keep the report and screens
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ux-audit
+          path: app/audit
+          if-no-files-found: ignore
+      # The report also lives on its own branch so it can be read through the GitHub API. Vercel deploys are off there.
+      - name: Publish the report to the ux-audit-results branch
+        if: always()
+        working-directory: .
+        run: |
+          [ -f app/audit/report.md ] || exit 0
+          rm -rf /tmp/r && cp -r app/audit /tmp/r
+          git config user.name "ci" && git config user.email "ci@users.noreply.github.com"
+          git stash -u -q || true
+          git checkout -q --orphan ux-audit-results && git rm -rfq . && rm -rf app
+          cp -r /tmp/r/. . && mkdir -p app && printf '{ "git": { "deploymentEnabled": false } }\n' > app/vercel.json
+          git add -A && git commit -qm "UX audit for ${GITHUB_SHA::7}"
+          git push -f origin ux-audit-results

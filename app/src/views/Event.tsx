@@ -9,9 +9,9 @@ const PLACE = ["", "Champion", "Finalist", "Third"];
 
 /** A tournament: its own standings, games, finish and MVP. Nothing here touches league standings. */
 export default function EventPage({ id }: { id: string }) {
-  const { data } = useQuery<any>({ queryKey: [`/api/events/${id}`] });
+  const { data, error } = useQuery<any>({ queryKey: [`/api/events/${id}`] });
   const [err, setErr] = useState<string | null>(null);
-  if (!data) return <Loading />;
+  if (!data) return <Loading error={error} />;
   const { event: ev, teams, games, players, mvp, me } = data;
   const mvpName = mvp ? players.find((p: any) => p.id === mvp.playerId)?.name : null;
   return (

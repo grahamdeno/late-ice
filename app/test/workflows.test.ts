@@ -63,6 +63,6 @@ describe("release workflows", () => {
     const lint = stepBody(ci, "Lint");
     expect(lint).toContain("continue-on-error: true");
     expect(lint).toContain("npx next lint");
-    expect(ci).toContain("branches-ignore: [master, ci-shots]");
+    expect(ci).toContain("branches-ignore: [master, ci-shots, ux-audit-results]");
   });
 });

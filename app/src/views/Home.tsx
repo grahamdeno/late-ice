@@ -36,7 +36,7 @@ export default function Home() {
       <div className="hero mt-4 p-5" style={{ ["--team" as any]: slot.color || undefined }} data-testid="card-next-game">
         <div className="flex items-center gap-2 mb-3">
           <TeamBadge team={{ id: slot.team_id, name: slot.team_name, color: slot.color, logo: slot.logo }} size={22} />
-          <Link href={`/team/${slot.team_id}`} className="font-bold text-sm truncate flex-1">{slot.team_name}</Link>
+          <Link href={`/team/${slot.team_id}`} className="font-bold text-sm truncate flex-1 min-h-[40px] flex items-center">{slot.team_name}</Link>
           {next?.rsvp?.counts && <span className="text-xs text-[var(--mute)] tnum" data-testid="text-next-counts">{next.rsvp.counts.in || next.rsvp.counts.out || next.rsvp.counts.late ? `${next.rsvp.counts.in} in${next.rsvp.counts.late ? `, ${next.rsvp.counts.late} late` : ""}${next.rsvp.counts.out ? `, ${next.rsvp.counts.out} out` : ""}` : "No answers yet"}</span>}
         </div>
         {next ? (
@@ -47,8 +47,9 @@ export default function Home() {
             {(slot.teamRole === "captain" || slot.teamRole === "assistant_captain") && <GoalieNudge g={next} teamId={slot.team_id} />}
             {next.rsvp?.member && <Scout g={next} />}
             <div className="flex gap-4 mt-3 text-sm font-bold">
-              <Link href={`/team/${slot.team_id}/lineup/${next.id}`} className="text-[var(--blue)] min-h-[32px] inline-flex items-center" data-testid="link-home-lineup">Lineup</Link>
-              <Link href={`/team/${slot.team_id}#schedule`} className="text-[var(--blue)] min-h-[32px] inline-flex items-center">Schedule</Link>
+              <Link href={`/team/${slot.team_id}/lineup/${next.id}`} className="text-[var(--blue)] min-h-[40px] inline-flex items-center" data-testid="link-home-lineup">Lineup</Link>
+              {(slot.teamRole === "captain" || slot.teamRole === "assistant_captain") && next.status === "scheduled" && <Link href={`/team/${slot.team_id}?details=${next.id}#game-${next.id}`} className="text-[var(--blue)] min-h-[40px] inline-flex items-center" data-testid="link-home-details">{next.sheet || next.jersey || next.locker_room ? "Edit details" : "Set sheet & room"}</Link>}
+              <Link href={`/team/${slot.team_id}#schedule`} className="text-[var(--blue)] min-h-[40px] inline-flex items-center">Schedule</Link>
             </div>
           </>
         ) : (
@@ -156,7 +157,7 @@ function Welcome({ place, data, isLoading, pending, signedIn }: { place: string;
       ))}
       {isLoading ? <HomeFeedSkeleton /> : data && (
         <>
-          <Section title="Latest finals" action={<Link href="/leagues" className="text-sm text-[var(--mute)]" data-testid="link-all-standings">Standings</Link>}>
+          <Section title="Latest finals" action={<Link href="/leagues" className="text-sm text-[var(--mute)] min-h-[40px] inline-flex items-center" data-testid="link-all-standings">Standings</Link>}>
             {data.games.length ? (
               <div className="space-y-3">{data.games.slice(0, 3).map((g) => <GameRow key={g.id} g={g} />)}</div>
             ) : (

@@ -8,8 +8,8 @@ import { Stars } from "@/components/Stars";
 import { ShareCard } from "@/components/ShareCard";
 
 export default function Game({ id, fresh }: { id: string; fresh?: boolean }) {
-  const { data: g } = useQuery<any>({ queryKey: [`/api/games/${id}`] });
-  if (!g) return <Loading />;
+  const { data: g, error } = useQuery<any>({ queryKey: [`/api/games/${id}`] });
+  if (!g) return <Loading error={error} />;
   const sides = [
     { key: "home", team: g.home, score: g.homeScore },
     { key: "away", team: g.away, score: g.awayScore },
@@ -176,7 +176,7 @@ function ReportMistake({ gameId }: { gameId: number }) {
   const [err, setErr] = useState<string | null>(null);
   if (!me) return null;
   if (done) return <p className="text-sm text-[var(--mute)] mt-6 px-1" data-testid="text-report-sent">Thanks. Rink staff will check it and you'll get a notice when it's sorted.</p>;
-  if (!open) return <button className="mt-6 px-1 text-sm text-[var(--mute)] underline underline-offset-4" onClick={() => setOpen(true)} data-testid="button-report-mistake">Something wrong on this game? Report a mistake</button>;
+  if (!open) return <button className="mt-6 px-1 min-h-[44px] text-sm text-[var(--mute)] underline underline-offset-4" onClick={() => setOpen(true)} data-testid="button-report-mistake">Something wrong on this game? Report a mistake</button>;
   const send = async () => {
     setBusy(true);
     const e = await act("POST", `/api/games/${gameId}/report`, { kind, body: text }, []);

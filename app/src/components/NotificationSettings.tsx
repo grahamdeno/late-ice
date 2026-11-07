@@ -100,7 +100,7 @@ export function NotificationSettings({ overlay = false }: { overlay?: boolean })
             </span>
             <input
               type="checkbox"
-              className="h-5 w-5 shrink-0"
+              className="h-6 w-6 shrink-0"
               checked={!!prefs[t.key]}
               data-testid={t.testid}
               onChange={(e) => { toggle(t.key, e.target.checked).catch(() => {}); }}

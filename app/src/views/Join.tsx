@@ -1,10 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@/lib/router";
 import { apiRequest, invalidatePrefixes, queryClient, setToken } from "@/lib/queryClient";
 import { useMe, normEmail, POSITION_LABEL, INVITE_KEY } from "@/lib/auth";
-import { supabase, passkeysSupported, passkeyError } from "@/lib/supabase";
+import { supabase, passkeysSupported, passkeyError, passkeyAutofillSupported, markPasskeyOffer } from "@/lib/supabase";
 import { FaceoffDot, Loading, useFilter } from "@/lib/ui";
 import { RinkPicker } from "@/components/RinkPicker";
 
@@ -59,6 +59,25 @@ export default function Join() {
     else setStep("profile");
   }, [me, swap]);
 
+  // Passkey autofill: a saved passkey shows above the keyboard on the email field, no button needed.
+  // Runs quietly in the background; tapping the Face ID button or sending a code cancels it.
+  const finishRef = useRef<((token: string) => Promise<void>) | null>(null);
+  useEffect(() => {
+    if (loading || me || step !== "email") return;
+    let live = true;
+    (async () => {
+      if (!(await passkeyAutofillSupported())) return;
+      for (let tries = 0; live && tries < 3; tries++) {
+        const { data, error } = await (supabase().auth as any).signInWithPasskey({ options: { mediation: "conditional" } });
+        if (!live) return;
+        if (data?.session) { await finishRef.current?.(data.session.access_token); return; }
+        // The prompt can outlast its challenge; start a fresh one. Anything else (canceled, replaced) ends it quietly.
+        if (!/challenge_expired/i.test(`${error?.code ?? ""} ${error?.message ?? ""}`)) return;
+      }
+    })();
+    return () => { live = false; };
+  }, [loading, me, step]);
+
   // Resend cooldown ticker.
   useEffect(() => {
     if (wait <= 0) return;
@@ -88,6 +107,7 @@ export default function Join() {
     setBusy(true); setErr(null);
     const { data, error } = await supabase().auth.verifyOtp({ email: addr, token: code, type: "email" });
     if (error || !data.session) { setErr(codeError(error?.message ?? "invalid", sentAt)); setBusy(false); return; }
+    markPasskeyOffer();
     await finish(data.session.access_token);
     setBusy(false);
   };
@@ -95,13 +115,15 @@ export default function Join() {
   // Shared by the email code and the passkey: the account changed, so drop anonymous responses before the profile decides where to go.
   const finish = async (token: string) => {
     setToken(token);
-    queryClient.removeQueries();
+    queryClient.resetQueries();
     try {
       const res = await apiRequest("GET", "/api/me");
       const j = await res.json();
       if (j.user.profileComplete) swap("/me"); else setStep("profile");
     } catch (e: any) { setErr(e.message); }
   };
+
+  finishRef.current = finish;
 
   const withPasskey = async () => {
     setBusy(true); setErr(null);
@@ -137,7 +159,7 @@ export default function Join() {
         <form onSubmit={send} className="card-hi p-5 mt-5 space-y-3">
           <label className="block">
             <span className="label">Email</span>
-            <input className="input w-full mt-1.5" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} data-testid="input-email" autoFocus />
+            <input className="input w-full mt-1.5" type="email" inputMode="email" autoComplete="username webauthn" autoCapitalize="none" spellCheck={false} placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} data-testid="input-email" autoFocus />
           </label>
           {err && <p className="text-sm down" data-testid="text-error">{err}</p>}
           <button className="btn btn-red w-full h-12" disabled={busy || !normEmail(email)} data-testid="button-send-code">{busy ? "Sending…" : "Email me a code"}</button>
@@ -148,7 +170,7 @@ export default function Join() {
 
       {step === "code" && (
         <form onSubmit={verify} className="card-hi p-5 mt-5 space-y-3">
-          <div className="text-sm">Code sent to <b className="break-all">{normEmail(email)}</b>. <button type="button" className="text-[var(--blue)]" onClick={() => { setStep("email"); setErr(null); }} data-testid="button-change-email">Change</button></div>
+          <div className="text-sm">Code sent to <b className="break-all">{normEmail(email)}</b>. <button type="button" className="text-[var(--blue)] min-h-[40px] px-1" onClick={() => { setStep("email"); setErr(null); }} data-testid="button-change-email">Change</button></div>
           <p className="text-xs text-[var(--mute)]">Check your inbox and spam folder. The code expires in 10 minutes.</p>
           <label className="block">
             <span className="label">Six-digit code</span>
@@ -198,28 +220,26 @@ export function ProfileForm({ onDone, submitLabel = "Join the draft pool" }: { o
         <span className="label">Name</span>
         <input className="input w-full mt-1.5" autoComplete="name" placeholder="First and last" value={name} onChange={(e) => setName(e.target.value)} data-testid="input-name" />
       </label>
-      <div className="grid grid-cols-[96px_1fr] gap-3">
-        <label className="block">
-          <span className="label">Number</span>
-          <input className="input w-full mt-1.5 tnum text-center" inputMode="numeric" maxLength={2} placeholder="#" value={number} onChange={(e) => setNumber(e.target.value.replace(/\D/g, "").slice(0, 2))} data-testid="input-number" />
-        </label>
-        <div>
-          <span className="label">Position</span>
-          <div className="grid grid-cols-4 gap-1.5 mt-1.5">
-            {(["C", "W", "D", "G"] as const).map((p) => (
-              <button type="button" key={p} onClick={() => setPosition(p)} className={`h-11 rounded-xl border text-sm font-bold ${position === p ? "border-[var(--red)] bg-[var(--red-dim)]" : "border-[var(--line)] bg-[var(--ice-3)]"}`} data-testid={`button-position-${p}`}>
-                {POSITION_LABEL[p]}
-              </button>
-            ))}
-          </div>
+      <label className="block">
+        <span className="label">Number</span>
+        <input className="input w-24 mt-1.5 tnum text-center" inputMode="numeric" maxLength={2} placeholder="#" value={number} onChange={(e) => setNumber(e.target.value.replace(/\D/g, "").slice(0, 2))} data-testid="input-number" />
+      </label>
+      <div>
+        <span className="label">Position</span>
+        <div className="grid grid-cols-4 gap-1.5 mt-1.5">
+          {(["C", "W", "D", "G"] as const).map((p) => (
+            <button type="button" key={p} onClick={() => setPosition(p)} aria-pressed={position === p} className={`h-11 rounded-xl border text-sm font-bold whitespace-nowrap ${position === p ? "border-[var(--red)] bg-[var(--red-dim)]" : "border-[var(--line)] bg-[var(--ice-3)]"}`} data-testid={`button-position-${p}`}>
+              {POSITION_LABEL[p]}
+            </button>
+          ))}
         </div>
       </div>
       <div>
         <span className="label">Home rink</span>
         <div className="mt-1.5"><RinkPicker value={rink} onPick={setRink} /></div>
       </div>
-      <label className="flex items-start gap-2 text-sm">
-        <input type="checkbox" className="mt-1" checked={age} onChange={(e) => setAge(e.target.checked)} data-testid="input-age" />
+      <label className="flex items-center gap-3 text-sm min-h-[44px]">
+        <input type="checkbox" className="h-6 w-6 shrink-0" checked={age} onChange={(e) => setAge(e.target.checked)} data-testid="input-age" />
         <span>I&apos;m 18 or older. <Link href="/terms" className="underline" data-testid="link-terms-profile">Terms</Link></span>
       </label>
       {err && <p className="text-sm down" data-testid="text-error">{err}</p>}

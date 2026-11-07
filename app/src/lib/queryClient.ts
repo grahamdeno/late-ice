@@ -136,12 +136,21 @@ export function syncQueryScope(scope: string, ready: boolean) {
   if (!scopeReady) {
     scopeReady = true;
     activeScope = scope;
-    if (scope.split("|")[0]) queryClient.removeQueries();
+    if (scope.split("|")[0]) dropForNewScope();
     return;
   }
   if (scope === activeScope) return;
   activeScope = scope;
-  queryClient.removeQueries();
+  dropForNewScope();
+}
+
+/**
+ * Forget every cached response, then refetch what is on screen.
+ * removeQueries would cancel a request a mounted page is waiting on and nothing would restart it:
+ * a signed-in fresh load of a team or player page then spun forever.
+ */
+function dropForNewScope() {
+  void queryClient.resetQueries().catch(() => {});
 }
 
 let currentPath = "/";

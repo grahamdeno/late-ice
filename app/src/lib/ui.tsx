@@ -60,7 +60,7 @@ export function TeamBadge({ team, size = 32 }: { team: Team; size?: number }) {
     return (
       <img
         src={team.logo}
-        alt={team.name}
+        alt=""
         className="rounded-full shrink-0 object-cover"
         style={{ width: size, height: size, border: `1.5px solid ${team.color}`, background: "#000" }}
       />
@@ -69,8 +69,10 @@ export function TeamBadge({ team, size = 32 }: { team: Team; size?: number }) {
   const initials = team.name.split(/\s+/).filter((w) => /[A-Za-z]/.test(w[0])).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
   return (
     <span
+      aria-hidden="true"
       className="inline-flex items-center justify-center rounded-full shrink-0 font-black"
-      style={{ width: size, height: size, background: team.color + "26", color: team.color, border: `1.5px solid ${team.color}`, fontSize: size * 0.36 }}
+      // Initials mix the team color toward the page's text color so dark team colors stay readable on both themes.
+      style={{ width: size, height: size, background: team.color + "26", color: `color-mix(in srgb, ${team.color} 45%, var(--white))`, border: `1.5px solid ${team.color}`, fontSize: Math.max(10, size * 0.36) }}
     >
       {initials}
     </span>
@@ -134,9 +136,33 @@ export function Empty({ title, body, action }: { title: string; body: string; ac
   );
 }
 
-export function Loading() {
+/** The spinner, or, once the request has failed, a page that says what happened and offers a way on. */
+export function Loading({ error }: { error?: unknown } = {}) {
+  if (error) return <NotThere error={error} />;
   return (
     <div className="flex justify-center py-16" data-testid="status-loading"><FaceoffDot size={44} pulse /></div>
+  );
+}
+
+function NotThere({ error }: { error: any }) {
+  const status = Number(error?.status) || 0;
+  const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+  const [title, body] = offline ? ["No connection", "Late Ice can't reach the rink right now. Check your signal and try again."]
+    : status === 404 ? ["Not here", "This page doesn't exist anymore. It may have been merged or removed, or the link is wrong."]
+    : status === 401 ? ["Sign in to see this", "This page is for players with an account."]
+    : status === 403 ? ["Not yours to see", "This page belongs to someone else's team or rink."]
+    : ["Something went wrong", "That didn't load. Try again in a moment."];
+  return (
+    <div className="py-12 text-center" data-testid="status-not-there">
+      <div className="flex justify-center"><FaceoffDot size={36} /></div>
+      <h1 className="font-black text-2xl mt-4">{title}</h1>
+      <p className="text-[var(--mute)] mt-2 max-w-sm mx-auto">{body}</p>
+      <div className="flex justify-center gap-3 mt-6">
+        {status === 401 ? <Link href="/join" className="btn btn-red h-11 px-5 inline-flex items-center" data-testid="link-not-there-join">Sign in</Link>
+          : !status || offline ? <button className="btn btn-red h-11 px-5" onClick={() => window.location.reload()} data-testid="button-not-there-retry">Try again</button> : null}
+        <Link href="/" className="btn btn-ghost h-11 px-5 inline-flex items-center" data-testid="link-not-there-home">Home</Link>
+      </div>
+    </div>
   );
 }
 

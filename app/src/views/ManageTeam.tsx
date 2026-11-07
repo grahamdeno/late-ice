@@ -26,7 +26,7 @@ export default function ManageTeam({ id }: { id: string }) {
   const [err, setErr] = useState<string | null>(null);
   if (!me) return <div className="card p-4 text-sm">Sign in to manage a team. <Link href="/join" className="text-[var(--blue)] font-bold">Join</Link></div>;
   if (error) return <div className="card p-4 text-sm">{(error as any).message ?? "Only the captain, an assistant or rink staff can manage this team."}</div>;
-  if (!data) return <Loading />;
+  if (!data) return <Loading error={error} />;
   const myRole = me.captainTeams.find((t) => t.id === teamId)?.role ?? null;
   const isCaptain = myRole === "captain" || (!myRole && me.staff);
   const canMerge = myRole === "captain" || (me.roles ?? []).some((r: any) => ["commissioner", "rink_manager", "admin"].includes(r.role));
@@ -134,7 +134,7 @@ export default function ManageTeam({ id }: { id: string }) {
           </div>
         </details>
       )}
-      {myRole === "captain" && <button className="text-xs text-[var(--mute)] mt-4 px-1" onClick={() => confirm(assistants.length ? `Step down? ${assistants[0].name} becomes captain.` : "Step down as captain? Anyone on the roster can take the role.") && run("POST", `/api/teams/${teamId}/captain/step-down`)} data-testid="button-step-down">Step down as captain</button>}
+      {myRole === "captain" && <button className="text-xs text-[var(--mute)] mt-4 px-1 min-h-[40px]" onClick={() => confirm(assistants.length ? `Step down? ${assistants[0].name} becomes captain.` : "Step down as captain? Anyone on the roster can take the role.") && run("POST", `/api/teams/${teamId}/captain/step-down`)} data-testid="button-step-down">Step down as captain</button>}
     </div>
   );
 }
@@ -249,7 +249,7 @@ function AddSpot({ teamId, full, run }: { teamId: number; full: { skaters: boole
           ))}
         </div>
       </div>
-      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={v.sub || isFull} onChange={(e) => setV({ ...v, sub: e.target.checked })} disabled={isFull} data-testid="checkbox-spot-sub" /> Sub (doesn't count toward the roster){isFull ? " · roster is full" : ""}</label>
+      <label className="flex items-center gap-3 text-sm min-h-[44px]"><input type="checkbox" className="h-6 w-6 shrink-0" checked={v.sub || isFull} onChange={(e) => setV({ ...v, sub: e.target.checked })} disabled={isFull} data-testid="checkbox-spot-sub" /> Sub (doesn't count toward the roster){isFull ? " · roster is full" : ""}</label>
       {done && <p className="text-sm up" data-testid="text-spot-added">{done}</p>}
       <button className="btn btn-red w-full h-11" disabled={busy || v.name.trim().split(/\s+/).length < 2} data-testid="button-add-spot">{busy ? "Adding…" : "Add to roster"}</button>
     </form>

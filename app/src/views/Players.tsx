@@ -88,10 +88,10 @@ function Spark({ pts }: { pts: number[] }) {
 }
 
 export function PlayerPage({ id }: { id: string }) {
-  const { data } = useQuery<any>({ queryKey: [`/api/players/${id}`] });
+  const { data, error } = useQuery<any>({ queryKey: [`/api/players/${id}`] });
   const [openRow, setOpenRow] = useState<number | null>(null);
   const [voteErr, setVoteErr] = useState<string | null>(null);
-  if (!data) return <Loading />;
+  if (!data) return <Loading error={error} />;
   const { player, teams, history, totals, ranks, reliability, imported } = data;
   const series = history.length ? [history[0].before, ...history.map((h: any) => h.after)] : [];
   const start = series[0] ?? player.rating;
@@ -256,7 +256,7 @@ function ClaimCard({ player }: { player: any }) {
       {!player.registered && !player.hidden && !hidden && (
         <div className="px-1">
           {!hideOpen ? (
-            <button className="text-xs text-[var(--mute)] underline" onClick={() => setHideOpen(true)} data-testid="button-hide-open">Don't want your name here? Hide it.</button>
+            <button className="text-xs text-[var(--mute)] underline min-h-[40px]" onClick={() => setHideOpen(true)} data-testid="button-hide-open">Don't want your name here? Hide it.</button>
           ) : (
             <form className="card p-4 space-y-2" onSubmit={async (e) => { e.preventDefault(); const r = await act("POST", `/api/players/${player.id}/hide`, { contact }, ["/api/players", "/api/me"]); setErr(r); if (!r) setHidden(true); }}>
               <div className="text-sm font-bold">Hide this name</div>

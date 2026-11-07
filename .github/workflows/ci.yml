@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches-ignore: [master, ci-shots]
+    branches-ignore: [master, ci-shots, ux-audit-results]
   pull_request:
   workflow_dispatch:
 

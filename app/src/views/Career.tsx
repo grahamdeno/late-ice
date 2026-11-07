@@ -6,8 +6,8 @@ import { ShareCard } from "@/components/ShareCard";
 
 /** A player's whole run: seasons, rating over time, milestones, and goalie numbers for goalies. */
 export function CareerPage({ id }: { id: string }) {
-  const { data } = useQuery<any>({ queryKey: [`/api/players/${id}/career`] });
-  if (!data) return <Loading />;
+  const { data, error } = useQuery<any>({ queryKey: [`/api/players/${id}/career`] });
+  if (!data) return <Loading error={error} />;
   const { player, seasons, totals, rating, milestones, goalie } = data;
   return (
     <div data-testid="page-career">
