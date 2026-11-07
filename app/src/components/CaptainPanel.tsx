@@ -31,7 +31,7 @@ export function CaptainPanel({ team, captain, assistants = [] }: { team: any; ca
           <span className="flex-1 font-bold truncate">{assistants.map((a) => a.name).join(", ")}</span>
         </div>
       )}
-      {me && !onRoster && !runsTeam && <p className="text-[11px] text-[var(--mute)] mt-2 px-1">On this team? Tap your name in the roster and claim it.</p>}
+      {me && !onRoster && !runsTeam && <p className="text-xs text-[var(--mute)] mt-2 px-1">On this team? Tap your name in the roster and claim it.</p>}
       {err && <p className="text-sm down mt-2 px-1" data-testid="text-error">{err}</p>}
       {(runsTeam || me?.staff) && (
         <Link href={`/team/${team.id}/manage`} className="card-hi mt-3 p-4 flex items-center gap-3" data-testid="link-manage-team">

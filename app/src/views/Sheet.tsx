@@ -267,7 +267,7 @@ export default function Sheet({ id }: { id: string }) {
                     <span className="text-[var(--mute)] w-3">#</span>
                     <Cell v={p.number} w="w-11" onChange={(v) => set((x) => (x[side].roster[i].number = v))} testid={`input-roster-num-${side}-${i}`} />
                     <input className="field flex-1 w-full font-bold" value={p.name ?? ""} onChange={(e) => set((x) => (x[side].roster[i].name = e.target.value))} data-testid={`input-roster-name-${side}-${i}`} />
-                    {(p.position || "").toUpperCase().startsWith("G") && <span className="chip h-6 text-[11px]">G</span>}
+                    {(p.position || "").toUpperCase().startsWith("G") && <span className="chip h-6 text-xs">G</span>}
                     <button className="h-8 w-8 text-[var(--mute)] hover:text-[var(--down)]" onClick={() => set((x) => x[side].roster.splice(i, 1))} aria-label="Remove misread row" data-testid={`button-remove-roster-${side}-${i}`}>×</button>
                   </div>
                 ))}

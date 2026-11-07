@@ -7,7 +7,6 @@ import { queryClient } from "@/lib/queryClient";
 export function UpdateBanner() {
   const { token } = useAuth();
   const [ready, setReady] = useState(false);
-  const [offline, setOffline] = useState(false);
   const hadController = useRef(false);
   const reloadAsked = useRef(false);
 
@@ -21,7 +20,6 @@ export function UpdateBanner() {
       if (reloadAsked.current) window.location.reload();
     };
     const onMessage = (e: MessageEvent) => {
-      if (e.data && e.data.type === "offline") setOffline(!!e.data.offline);
       // Stale-while-revalidate already answered this fetch. Refetch once the stored copy changes.
       if (e.data && e.data.type === "api-updated" && typeof e.data.url === "string") {
         const url = e.data.url;
@@ -81,15 +79,6 @@ export function UpdateBanner() {
         >
           <span className="text-sm font-bold">Update ready</span>
           <button type="button" className="btn btn-red h-9 px-4 text-sm" data-testid="button-update-reload" onClick={() => { reload().catch(() => {}); }}>Reload</button>
-        </div>
-      )}
-      {offline && (
-        <div
-          className="chip fixed z-50"
-          style={{ top: ready ? "calc(env(safe-area-inset-top) + 136px)" : "calc(env(safe-area-inset-top) + 76px)", right: 12 }}
-          data-testid="chip-offline"
-        >
-          Offline
         </div>
       )}
     </>

@@ -81,7 +81,7 @@ export function CareerPage({ id }: { id: string }) {
           </tbody>
         </table>
       </div>
-      <p className="text-[11px] text-[var(--mute)] mt-2 px-1">Counts games Late Ice has on record, including games the rink imported.</p>
+      <p className="text-xs text-[var(--mute)] mt-2 px-1">Counts games Late Ice has on record, including games the rink imported.</p>
 
       {player.claimed && <div className="mt-5"><ShareCard kind="player" id={player.id} title={`${player.name} on Late Ice`} label="Share my player card" /></div>}
     </div>

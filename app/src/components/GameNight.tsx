@@ -61,7 +61,7 @@ export function DetailsEditor({ teamId, g, roster }: { teamId: number; g: any; r
           </select>
           <button className="btn btn-ghost h-11 text-sm shrink-0" onClick={async () => setErr(await act("PUT", `/api/schedule/${g.id}/cooler`, { auto: true }, keys))} data-testid={`button-cooler-auto-${g.id}`}>Next in turn</button>
         </div>
-        <p className="text-[11px] text-[var(--mute)] mt-1.5">Next in turn picks the player who has carried it the fewest times and isn't marked out.</p>
+        <p className="text-xs text-[var(--mute)] mt-1.5">Next in turn picks the player who has carried it the fewest times and isn't marked out.</p>
       </div>
       {err && <p className="text-xs down mt-2">{err}</p>}
     </div>
@@ -75,7 +75,7 @@ export function Scout({ g }: { g: any }) {
   if (!g.opponent_team_id) return null;
   return (
     <div className="mt-3" data-testid={`scout-${g.id}`}>
-      <button className="text-sm font-bold text-[var(--blue)] min-h-[32px]" onClick={() => setOpen((o) => !o)} data-testid="button-scout">{open ? "Hide scouting" : `Scout ${g.opponent}`}</button>
+      <button className="text-sm font-bold text-[var(--blue)] min-h-[44px]" onClick={() => setOpen((o) => !o)} data-testid="button-scout">{open ? "Hide scouting" : `Scout ${g.opponent}`}</button>
       {open && (!data ? <p className="text-xs text-[var(--mute)] mt-1">Loading…</p> : !data.known ? <p className="text-xs text-[var(--mute)] mt-1">Not enough on this team yet.</p> : (
         <div className="mt-2 space-y-1.5 text-sm" data-testid="panel-scout">
           {data.stakes && <p className="font-bold" data-testid="text-stakes">{data.stakes}</p>}
@@ -115,7 +115,7 @@ export function SharpenCard({ compact = false }: { compact?: boolean }) {
         <label className="flex items-center gap-2 text-sm"><span className="shrink-0">Remind me after</span>
           <input className="input w-16 h-10 text-center" inputMode="numeric" value={every || String(data.every)} onChange={(e) => setEvery(e.target.value.replace(/\D/g, "").slice(0, 2))} onBlur={() => every && save({ every: Number(every) })} data-testid="input-sharpen-every" /></label>
       </div>
-      <p className="text-[11px] text-[var(--mute)] mt-2">Counts games on Late Ice since the day you log. Games, not weeks.</p>
+      <p className="text-xs text-[var(--mute)] mt-2">Counts games on Late Ice since the day you log. Games, not weeks.</p>
       {err && <p className="text-xs down mt-1">{err}</p>}
     </div>
   );

@@ -50,7 +50,7 @@ export default function Settings() {
               <input type="date" className="input w-full mt-1.5" value={until} onChange={(e) => setUntil(e.target.value)} onBlur={() => run("PATCH", "/api/me", { status: u.status, statusUntil: until || null })} data-testid="input-status-until" />
             </label>
           )}
-          <p className="text-[11px] text-[var(--mute)] mt-3">{u.status === "active" ? "Injured reserve and Away keep your roster spot and mark you out until the date you set, then switch back on their own." : `You're marked out of games${u.statusUntil ? ` until ${u.statusUntil}` : ""}. Your roster spot stays, and your rating doesn't move while you're out.`}</p>
+          <p className="text-xs text-[var(--mute)] mt-3">{u.status === "active" ? "Injured reserve and Away keep your roster spot and mark you out until the date you set, then switch back on their own." : `You're marked out of games${u.statusUntil ? ` until ${u.statusUntil}` : ""}. Your roster spot stays, and your rating doesn't move while you're out.`}</p>
           <div className="mt-4 divide-y divide-[var(--line)] border-t border-[var(--line)]">
             {([["lookingForTeam", "Looking for a team", "Captains at your rink see you in their draft pool."], ["willSub", "Will sub", "Other teams can ask you to fill in."]] as const).map(([k, label, hint]) => (
               <Toggle key={k} label={label} hint={hint} on={u[k]} onClick={() => run("PATCH", "/api/me", { [k]: !u[k] })} testid={`switch-${k}`} />
@@ -73,7 +73,7 @@ export default function Settings() {
             <button key={k} role="radio" aria-checked={theme === k} onClick={() => setTheme(k)} className={`h-11 rounded-xl text-sm font-bold ${theme === k ? "bg-[var(--red-btn)] text-white" : "text-[var(--mute)]"}`} data-testid={`button-theme-${k}`}>{label}</button>
           ))}
         </div>
-        <p className="text-[11px] text-[var(--mute)] mt-2 px-1">Saved on this phone.</p>
+        <p className="text-xs text-[var(--mute)] mt-2 px-1">Saved on this phone.</p>
       </Section>
 
       <Section title="Notifications">
@@ -137,7 +137,7 @@ export default function Settings() {
             <span className="flex-1"><span className="block font-bold text-sm down">Delete my account</span><span className="block text-xs text-[var(--mute)]">Removes your name; past scores stay</span></span>
           </button>
         </div>
-        <p className="text-[11px] text-[var(--mute)] mt-2 px-1"><Link href="/terms" className="underline" data-testid="link-terms-settings">Terms</Link></p>
+        <p className="text-xs text-[var(--mute)] mt-2 px-1"><Link href="/terms" className="underline" data-testid="link-terms-settings">Terms</Link></p>
       </Section>
     </div>
   );

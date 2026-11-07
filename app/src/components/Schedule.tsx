@@ -106,7 +106,7 @@ function SubFinder({ gameId }: { gameId: number }) {
   const askedOf = (id: number) => data?.asked?.find((a: any) => a.user_id === id && a.status !== "canceled");
   return (
     <div className="mt-2 rounded-xl border border-[var(--line)] p-3" data-testid={`panel-subs-${gameId}`}>
-      <div className="flex items-center justify-between"><span className="label">Players who'll sub</span><button className="text-xs text-[var(--mute)] min-h-[36px] px-2" onClick={() => setOpen(false)}>Close</button></div>
+      <div className="flex items-center justify-between"><span className="label">Players who'll sub</span><button className="text-xs text-[var(--mute)] min-h-[44px] px-2" onClick={() => setOpen(false)}>Close</button></div>
       {!data ? <p className="text-xs text-[var(--mute)] mt-1">Loading…</p> : data.candidates.length === 0 ? <p className="text-sm text-[var(--mute)] mt-1">Nobody at this rink has turned on Will sub yet. Players switch it on in Settings; until then, ask in your team chat.</p> : (
         <div className="divide-y divide-[var(--line)] mt-1">
           {[...data.candidates].sort((a: any, b: any) => Number(b.position === "G") - Number(a.position === "G")).map((c: any) => {

@@ -44,7 +44,7 @@ function StandingsTable({ rows, compact = false, mine = [] }: { rows: any[]; com
       </tbody>
       {!compact && (
         <tfoot>
-          <tr><td colSpan={5} className="px-4 pt-3 pb-1 text-[11px] text-[var(--mute)] text-left font-sans">GP games played · W-L-T wins, losses, ties · DIFF goals for minus goals against · PTS 2 for a win, 1 for a tie</td></tr>
+          <tr><td colSpan={5} className="px-4 pt-3 pb-1 text-xs text-[var(--mute)] text-left font-sans">GP games played · W-L-T wins, losses, ties · DIFF goals for minus goals against · PTS 2 for a win, 1 for a tie</td></tr>
         </tfoot>
       )}
     </table>
@@ -117,7 +117,7 @@ export function Leagues() {
           {rest.map((l: any) => <LeagueRow key={l.id} league={l} />)}
         </>
       )}
-      <p className="text-[11px] text-[var(--mute)] mt-4 px-1">Two points a win, one a tie. Standings reset every season; ratings carry over.</p>
+      <p className="text-xs text-[var(--mute)] mt-4 px-1">Two points a win, one a tie. Standings reset every season; ratings carry over.</p>
     </div>
   );
 }
@@ -149,7 +149,7 @@ export function LeaguePage({ id }: { id: string }) {
       {adding && <div className="mt-2"><AddTeamForm leagueId={league.id} leagueName={league.name} request={!can.addTeam} onDone={() => setAdding(false)} /></div>}
       <div className="card overflow-hidden mt-2"><StandingsTable rows={data.standings} /></div>
       {data.imported && (
-        <p className="text-[11px] text-[var(--mute)] mt-2 px-1" data-testid="text-imported-note">
+        <p className="text-xs text-[var(--mute)] mt-2 px-1" data-testid="text-imported-note">
           Includes {data.imported.gp / 2} games imported from the {data.imported.source}, as of {fmtDate(data.imported.as_of)}. Goal totals start with the first scanned sheet.
         </p>
       )}
@@ -158,7 +158,7 @@ export function LeaguePage({ id }: { id: string }) {
           <Link key={t.id} href={`/team/${t.id}`} className="card p-3" data-testid={`card-team-rating-${t.id}`}>
             <div className="label truncate">{t.name}</div>
             <div className="font-display text-2xl mt-1 tnum">{fmtRating(t.rating)}</div>
-            <div className="text-[11px] text-[var(--mute)]">Team strength, from results</div>
+            <div className="text-xs text-[var(--mute)]">Team strength, from results</div>
           </Link>
         ))}
       </div>
@@ -205,7 +205,7 @@ export function TeamPage({ id }: { id: string }) {
           {[["Record", `${record.w}-${record.l}-${record.t}`], ["Points", record.pts], ["GF-GA", record.gf != null && record.gp ? `${record.gf}-${record.ga}` : "–"], ["Strength", fmtRating(rating)]].map(([k, v]) => (
             <div key={k as string} className="tile py-2.5">
               <div className="font-display text-xl tnum">{v}</div>
-              <div className="text-[11px] text-[var(--mute)] font-bold">{k}</div>
+              <div className="text-xs text-[var(--mute)] font-bold">{k}</div>
             </div>
           ))}
         </div>

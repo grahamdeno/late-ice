@@ -90,7 +90,7 @@ export default function MePage() {
               </div>
             ))}
           </div>
-          <p className="text-[11px] text-[var(--mute)] px-4 pb-3">Claiming moves that spot's goals, assists and rating onto your profile. Your captain sees it and can undo it.</p>
+          <p className="text-xs text-[var(--mute)] px-4 pb-3">Claiming moves that spot's goals, assists and rating onto your profile. Your captain sees it and can undo it.</p>
         </div>
       )}
 
@@ -110,8 +110,8 @@ export default function MePage() {
       {me.roles.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-2" data-testid="list-roles">
           {me.roles.map((r) => STAFF_ROLES.includes(r.role)
-            ? <Link key={r.id} href="/staff" className="chip h-7 text-[11px]" data-testid={`link-role-${r.role}`}>{ROLE_LABEL[r.role] ?? r.role}{r.where ? ` · ${r.where}` : ""} ›</Link>
-            : <span key={r.id} className="chip h-7 text-[11px]">{ROLE_LABEL[r.role] ?? r.role}{r.where ? ` · ${r.where}` : ""}</span>)}
+            ? <Link key={r.id} href="/staff" className="chip h-7 text-xs" data-testid={`link-role-${r.role}`}>{ROLE_LABEL[r.role] ?? r.role}{r.where ? ` · ${r.where}` : ""} ›</Link>
+            : <span key={r.id} className="chip h-7 text-xs">{ROLE_LABEL[r.role] ?? r.role}{r.where ? ` · ${r.where}` : ""}</span>)}
         </div>
       )}
       {me.staff && <StaffCard roles={me.roles} />}
@@ -178,7 +178,7 @@ function Notifications({ me }: { me: any }) {
                   <span className="block text-sm font-bold">{n.title}</span>
                   {n.body && <span className="block text-xs text-[var(--mute)] mt-0.5">{n.body}</span>}
                 </span>
-                <span className="text-[11px] text-[var(--mute)] shrink-0">{timeAgo(n.created_at)}</span>
+                <span className="text-xs text-[var(--mute)] shrink-0">{timeAgo(n.created_at)}</span>
               </div>
             );
             return n.link ? <Link key={n.id} href={n.link} data-testid={`row-notice-${n.id}`}>{body}</Link> : <div key={n.id}>{body}</div>;
@@ -209,7 +209,7 @@ function FindSpot({ run }: { run: (m: string, u: string, b?: unknown) => Promise
           {(rows ?? []).map((s) => (
             <div key={`${s.id}-${s.team_id}`} className="flex items-center gap-3 py-2.5" data-testid={`row-spot-${s.id}`}>
               <TeamBadge team={{ id: s.team_id, name: s.team_name, color: s.color, logo: s.logo }} size={28} />
-              <span className="flex-1 min-w-0"><span className="block font-bold text-sm truncate">{s.number ? `#${s.number} ` : ""}{s.name}</span><span className="block text-[11px] text-[var(--mute)] truncate">{s.team_name} · {s.rink}</span></span>
+              <span className="flex-1 min-w-0"><span className="block font-bold text-sm truncate">{s.number ? `#${s.number} ` : ""}{s.name}</span><span className="block text-xs text-[var(--mute)] truncate">{s.team_name} · {s.rink}</span></span>
               <button className="btn btn-red h-8 text-xs" onClick={() => confirm(`Claim ${s.name} on ${s.team_name}? Their captain sees it.`) && run("POST", `/api/players/${s.id}/claim`)} data-testid={`button-claim-spot-${s.id}`}>That's me</button>
             </div>
           ))}

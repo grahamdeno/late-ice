@@ -1,10 +1,14 @@
 // Shell cache, plus a small API cache.
 // The new worker waits until a page posts {type:"activate"}. Install does not call skipWaiting.
 // Bumping SHELL discards older shell caches on activation. The API cache is separate.
-const SHELL = "late-ice-v5";
+const SHELL = "late-ice-v6";
 const API_CACHE = "late-ice-api-v1";
 // Exact paths only. Query strings stay in the cache key, but /api/me/spots and other routes do not match.
 const API_PATHS = new Set(["/api/bootstrap", "/api/feed", "/api/me", "/api/standings"]);
+// Pages people open at the rink: kept so a dropped signal shows the last copy instead of an error.
+const API_PREFIXES = ["/api/teams/", "/api/players", "/api/games/", "/api/leagues/", "/api/rink"];
+const API_MAX = 150;
+const cacheableApi = (path) => API_PATHS.has(path) || API_PREFIXES.some((p) => path.startsWith(p));
 
 self.addEventListener("install", () => {
   // Stay in waiting until the open page asks. A forced skipWaiting would reload over unsaved work.
@@ -51,7 +55,7 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/api/")) {
-    if (e.request.method !== "GET" || !API_PATHS.has(url.pathname)) return;
+    if (e.request.method !== "GET" || !cacheableApi(url.pathname)) return;
     const job = serveApi(e.request);
     e.respondWith(job.response);
     e.waitUntil(job.done);
@@ -108,7 +112,7 @@ function serveApi(request) {
       const cached = await cache.match(key.request);
       // null means the network itself failed. A non-200 is an error, not a cacheable response, and not "offline".
       const network = fetch(request).then(async (res) => {
-        if (res.status === 200 && res.type === "basic" && !res.redirected) await cache.put(key.request, res.clone());
+        if (res.status === 200 && res.type === "basic" && !res.redirected) { await cache.put(key.request, res.clone()); await trim(cache); }
         return res;
       }).catch(() => null);
 
@@ -143,6 +147,13 @@ function serveApi(request) {
     }
   })();
   return { response, done };
+}
+
+// Oldest entries go first once the cache passes API_MAX.
+async function trim(cache) {
+  const keys = await cache.keys();
+  if (keys.length <= API_MAX) return;
+  await Promise.all(keys.slice(0, keys.length - API_MAX).map((k) => cache.delete(k)));
 }
 
 async function tellOffline(offline) {

@@ -68,7 +68,7 @@ export function PlayerCard({
       {badges.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-3" data-testid="card-badges">
           {badges.slice(0, 3).map((b, i) => (
-            <span key={i} className="chip h-7 text-[11px]" title={b.detail}><span className="font-black text-[var(--amber)] uppercase tracking-wide">{b.label}</span></span>
+            <span key={i} className="chip h-7 text-xs" title={b.detail}><span className="font-black text-[var(--amber)] uppercase tracking-wide">{b.label}</span></span>
           ))}
         </div>
       )}
