@@ -3,7 +3,7 @@ name: UX audit
 # Walks real jobs in phone-sized Chromium and WebKit and reports findings. Never blocks a ship.
 on:
   push:
-    branches: [claude/release-4, ux-audit]
+    branches: [claude/release-4, claude/polish-1, ux-audit]
   workflow_dispatch:
 
 permissions:

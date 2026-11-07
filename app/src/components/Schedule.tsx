@@ -77,7 +77,7 @@ function Counts({ g }: { g: any }) {
   const names = g.rsvp.names;
   return (
     <div className="mt-2">
-      <button className="text-xs text-[var(--mute)] tnum" onClick={() => names && setOpen((o) => !o)} data-testid={`button-rsvp-counts-${g.id}`}>
+      <button className="text-xs text-[var(--mute)] tnum min-h-[40px] px-1" onClick={() => names && setOpen((o) => !o)} data-testid={`button-rsvp-counts-${g.id}`}>
         {parts.map(([n, l], i) => <span key={l as string}>{i ? " · " : ""}<span className={l === "in" ? "up font-bold" : l === "late" ? "text-[var(--amber)] font-bold" : l === "out" ? "down font-bold" : ""}>{n} {l}</span></span>)}{names ? (open ? " ▴" : " ▾") : ""}
       </button>
       {open && names && (
@@ -136,7 +136,7 @@ export function Schedule({ teamId }: { teamId: number }) {
   const run = async (m: string, u: string, b?: unknown) => { const e = await act(m, u, b, ["/api/teams", "/api/me", "/api/feed"]); setErr(e); return !e; };
 
   return (
-    <Section title="Schedule" action={can.manual && !adding ? <button className="text-sm text-[var(--blue)] font-bold" onClick={() => setAdding(true)} data-testid="button-add-game">Add a game</button> : undefined}>
+    <Section title="Schedule" action={can.manual && !adding ? <button className="text-sm text-[var(--blue)] font-bold min-h-[40px] px-1" onClick={() => setAdding(true)} data-testid="button-add-game">Add a game</button> : undefined}>
       {err && <p className="text-sm down mb-2" data-testid="text-schedule-error">{err}</p>}
       {adding && <AddGame teamId={teamId} opponents={data.opponents} onDone={() => setAdding(false)} />}
       {games.length ? (
@@ -146,12 +146,12 @@ export function Schedule({ teamId }: { teamId: number }) {
               <div className="flex items-center gap-2">
               <GameLine g={g} teamId={teamId} />
               {can.manual && (g.source === "manual"
-                ? <button className="text-xs text-[var(--mute)] shrink-0 px-1" onClick={() => confirm("Take this game off the schedule?") && run("DELETE", `/api/teams/${teamId}/schedule/${g.id}`)} data-testid={`button-remove-game-${g.id}`}>Remove</button>
+                ? <button className="text-xs text-[var(--mute)] shrink-0 px-2 min-h-[40px]" onClick={() => confirm("Take this game off the schedule?") && run("DELETE", `/api/teams/${teamId}/schedule/${g.id}`)} data-testid={`button-remove-game-${g.id}`}>Remove</button>
                 : <button className="text-xs text-[var(--mute)] shrink-0 px-1" onClick={() => run("PATCH", `/api/teams/${teamId}/schedule/${g.id}`, { status: g.status === "canceled" ? "scheduled" : "canceled" })} data-testid={`button-cancel-game-${g.id}`}>{g.status === "canceled" ? "Restore" : "Canceled?"}</button>)}
               </div>
               {g.status === "scheduled" && g.rsvp?.member && <div className="mt-2.5"><Rsvp g={g} /></div>}
               {g.status === "scheduled" && (g.rsvp?.member || can.manual) && <Counts g={g} />}
-              {g.status === "scheduled" && (g.rsvp?.member || can.manual) && <Link href={`/team/${teamId}/lineup/${g.id}`} className="inline-block mt-2 text-xs font-bold text-[var(--blue)]" data-testid={`link-lineup-${g.id}`}>{can.manual ? "Set the lineup" : "Lineup"} ›</Link>}
+              {g.status === "scheduled" && (g.rsvp?.member || can.manual) && <Link href={`/team/${teamId}/lineup/${g.id}`} className="inline-flex items-center min-h-[40px] text-sm font-bold text-[var(--blue)]" data-testid={`link-lineup-${g.id}`}>{can.manual ? "Set the lineup" : "Lineup"} ›</Link>}
               {g.status === "scheduled" && <GameDetails g={g} />}
               {g.status === "scheduled" && can.manual && <GoalieNudge g={g} teamId={teamId} />}
               {g.status === "scheduled" && can.manual && <SubFinder gameId={g.id} />}

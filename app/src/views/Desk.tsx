@@ -263,7 +263,7 @@ function WeeklyEmail({ rinkId }: { rinkId: number }) {
       <div className="card mt-3 p-5">
         <div className="flex items-center gap-3 flex-wrap">
           <label className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer">
-            <input type="checkbox" className="h-4 w-4 accent-[var(--up)]" checked={!!data?.on} disabled={!data} onChange={flip} data-testid="toggle-weekly-email" />
+            <input type="checkbox" className="h-5 w-5 accent-[var(--up)]" checked={!!data?.on} disabled={!data} onChange={flip} data-testid="toggle-weekly-email" />
             <span className="font-bold">{data?.on === false ? "Off for me" : "On for me"}</span>
           </label>
           <button className="btn btn-ghost h-10 px-4 text-sm" onClick={send} disabled={busy} data-testid="button-weekly-preview">{busy ? "Building…" : "Send me this week's now"}</button>
