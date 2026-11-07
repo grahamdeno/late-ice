@@ -1,10 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@/lib/router";
 import { apiRequest, invalidatePrefixes, queryClient, setToken } from "@/lib/queryClient";
 import { useMe, normEmail, POSITION_LABEL, INVITE_KEY } from "@/lib/auth";
-import { supabase, passkeysSupported, passkeyError } from "@/lib/supabase";
+import { supabase, passkeysSupported, passkeyError, passkeyAutofillSupported, markPasskeyOffer } from "@/lib/supabase";
 import { FaceoffDot, Loading, useFilter } from "@/lib/ui";
 import { RinkPicker } from "@/components/RinkPicker";
 
@@ -59,6 +59,25 @@ export default function Join() {
     else setStep("profile");
   }, [me, swap]);
 
+  // Passkey autofill: a saved passkey shows above the keyboard on the email field, no button needed.
+  // Runs quietly in the background; tapping the Face ID button or sending a code cancels it.
+  const finishRef = useRef<((token: string) => Promise<void>) | null>(null);
+  useEffect(() => {
+    if (loading || me || step !== "email") return;
+    let live = true;
+    (async () => {
+      if (!(await passkeyAutofillSupported())) return;
+      for (let tries = 0; live && tries < 3; tries++) {
+        const { data, error } = await (supabase().auth as any).signInWithPasskey({ options: { mediation: "conditional" } });
+        if (!live) return;
+        if (data?.session) { await finishRef.current?.(data.session.access_token); return; }
+        // The prompt can outlast its challenge; start a fresh one. Anything else (canceled, replaced) ends it quietly.
+        if (!/challenge_expired/i.test(`${error?.code ?? ""} ${error?.message ?? ""}`)) return;
+      }
+    })();
+    return () => { live = false; };
+  }, [loading, me, step]);
+
   // Resend cooldown ticker.
   useEffect(() => {
     if (wait <= 0) return;
@@ -88,6 +107,7 @@ export default function Join() {
     setBusy(true); setErr(null);
     const { data, error } = await supabase().auth.verifyOtp({ email: addr, token: code, type: "email" });
     if (error || !data.session) { setErr(codeError(error?.message ?? "invalid", sentAt)); setBusy(false); return; }
+    markPasskeyOffer();
     await finish(data.session.access_token);
     setBusy(false);
   };
@@ -102,6 +122,8 @@ export default function Join() {
       if (j.user.profileComplete) swap("/me"); else setStep("profile");
     } catch (e: any) { setErr(e.message); }
   };
+
+  finishRef.current = finish;
 
   const withPasskey = async () => {
     setBusy(true); setErr(null);
@@ -137,7 +159,7 @@ export default function Join() {
         <form onSubmit={send} className="card-hi p-5 mt-5 space-y-3">
           <label className="block">
             <span className="label">Email</span>
-            <input className="input w-full mt-1.5" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} data-testid="input-email" autoFocus />
+            <input className="input w-full mt-1.5" type="email" inputMode="email" autoComplete="username webauthn" autoCapitalize="none" spellCheck={false} placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} data-testid="input-email" autoFocus />
           </label>
           {err && <p className="text-sm down" data-testid="text-error">{err}</p>}
           <button className="btn btn-red w-full h-12" disabled={busy || !normEmail(email)} data-testid="button-send-code">{busy ? "Sending…" : "Email me a code"}</button>

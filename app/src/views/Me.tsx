@@ -8,6 +8,7 @@ import { GameLine } from "@/components/Schedule";
 import { useQuery } from "@tanstack/react-query";
 import { AvatarBuilder } from "@/components/AvatarBuilder";
 import { PlayerCard } from "@/components/PlayerCard";
+import { PasskeyOffer } from "@/components/Passkeys";
 
 function timeAgo(s: string) {
   const t = new Date(s).getTime();
@@ -40,6 +41,7 @@ export default function MePage() {
 
   return (
     <div>
+      <PasskeyOffer />
       {/* Things waiting on you come first, and only when there are any. */}
       {me.subRequests?.length > 0 && (
         <div className="card mb-3 p-4" data-testid="card-sub-requests">

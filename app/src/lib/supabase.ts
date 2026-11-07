@@ -25,3 +25,15 @@ export function passkeyError(message?: string | null) {
   if (/not found|no credential|no passkey/i.test(m)) return "No passkey found for this device. Sign in with the email code, then add one in Settings.";
   return "Couldn't use a passkey. Use the email code instead.";
 }
+
+/** Safari, Chrome and Edge can show a saved passkey above the keyboard on the email field. */
+export async function passkeyAutofillSupported() {
+  try { return passkeysSupported() && !!(await (window as any).PublicKeyCredential.isConditionalMediationAvailable?.()); }
+  catch { return false; }
+}
+
+const OFFER_KEY = "lateice.passkeyOffer";
+/** Set after an email-code sign-in so the next screen can offer Face ID once. */
+export function markPasskeyOffer() { try { sessionStorage.setItem(OFFER_KEY, "1"); } catch { /* storage off */ } }
+export function takePasskeyOffer() { try { const v = sessionStorage.getItem(OFFER_KEY) === "1"; return v; } catch { return false; } }
+export function clearPasskeyOffer() { try { sessionStorage.removeItem(OFFER_KEY); } catch { /* storage off */ } }
