@@ -8,3 +8,4 @@ next-env.d.ts
 shots
 supabase/.branches
 supabase/.temp
+audit
