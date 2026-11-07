@@ -1057,16 +1057,16 @@ async function main() {
   ok(ca.status === 200 && ca.json.created, "an admin adds a Canadian rink with its province");
   ok((await call("POST", "/api/rink-requests", { name: "Nowhere Rink", city: "Toronto", state: "ZZ", country: "CA", confirmNew: true }, boss)).status === 400, "an unknown province is refused");
   ok((await call("POST", "/api/rink-requests", { name: "Mix Up Rink", city: "Toronto", state: "ON", country: "US", confirmNew: true }, boss)).status === 400, "a province with the US picked is refused");
-  const caRow = (await call("GET", "/api/rinks?q=toronto")).json.rinks.find((r: any) => r.id === ca.json.rinkId);
+  const caRow = (await call("GET", "/api/rinks?q=toronto", undefined, boss)).json.rinks.find((r: any) => r.id === ca.json.rinkId);
   ok(caRow && caRow.country === "CA" && caRow.state === "ON", "rink search finds it by city, with country and province");
   const guess = await (await fetch(`${BASE}/api/rinks`, { headers: { "x-vercel-ip-country": "CA" } })).json();
   ok(guess.yourCountry === "CA", "the connection's country picks where the rink picker opens");
-  const bootCa = (await call("GET", `/api/bootstrap?rink=${ca.json.rinkId}`)).json;
+  const bootCa = (await call("GET", `/api/bootstrap?rink=${ca.json.rinkId}`, undefined, boss)).json;
   ok(bootCa.rink.id === ca.json.rinkId && bootCa.leagues.length === 0 && bootCa.region.country === "CA", "the app can look at the Toronto rink, with none of Wilmington's leagues");
   const bootHome = (await call("GET", "/api/bootstrap", undefined, sam)).json;
   ok(bootHome.rink.name === "Polar Ice Wilmington", "a signed-in player opens on their home rink");
-  ok((await call("GET", `/api/feed?rink=${ca.json.rinkId}`)).json.games.length === 0, "Toronto's home page has no Wilmington games");
-  ok((await call("GET", `/api/players?rink=${ca.json.rinkId}`)).json.length === 0, "nor Wilmington's players");
+  ok((await call("GET", `/api/feed?rink=${ca.json.rinkId}`, undefined, boss)).json.games.length === 0, "Toronto's home page has no Wilmington games");
+  ok((await call("GET", `/api/players?rink=${ca.json.rinkId}`, undefined, boss)).json.length === 0, "nor Wilmington's players");
   ok((await call("GET", `/api/players?rink=${rinkId}`)).json.length > 0, "Wilmington's players still show at Wilmington");
 
   console.log("standings: goal difference");
