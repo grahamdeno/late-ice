@@ -271,7 +271,7 @@ describe("polish css", () => {
     expect(motion[0]).toContain("animation: none");
     expect(css).toContain("outline: 2px solid var(--red)");
     const chip = css.match(/\.chip \{[\s\S]*?\}/)?.[0] ?? "";
-    expect(chip).toContain("min-height: 36px");
+    expect(chip).toContain("min-height: 44px");
     expect(chip).toContain("gap: 8px");
   });
 
