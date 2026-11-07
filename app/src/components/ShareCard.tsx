@@ -1,0 +1,34 @@
+"use client";
+import { useState } from "react";
+
+/** Share a result or player card as a picture: the phone's share sheet where there is one, else a download. */
+export function ShareCard({ kind, id, title, label = "Share card" }: { kind: "game" | "player"; id: number | string; title: string; label?: string }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const share = async () => {
+    setBusy(true); setErr(null);
+    try {
+      const res = await fetch(`/api/cards/${kind}/${id}?format=story`);
+      if (!res.ok) throw new Error("no card");
+      const blob = await res.blob();
+      const file = new File([blob], `late-ice-${kind}-${id}.png`, { type: "image/png" });
+      const nav: any = navigator;
+      const url = `${location.origin}/${kind}/${id}`;
+      if (nav.canShare?.({ files: [file] })) await nav.share({ files: [file], title, url });
+      else {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob); a.download = file.name; a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      }
+    } catch (e: any) {
+      if (e?.name !== "AbortError") setErr("Couldn't make the card. Try again.");
+    }
+    setBusy(false);
+  };
+  return (
+    <div>
+      <button className="btn btn-ghost h-11 w-full text-sm" disabled={busy} onClick={share} data-testid={`button-share-${kind}`}>{busy ? "Making the card…" : label}</button>
+      {err && <p className="text-xs down mt-1.5">{err}</p>}
+    </div>
+  );
+}

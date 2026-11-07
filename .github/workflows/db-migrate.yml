@@ -1,0 +1,74 @@
+name: Database migrations
+
+# Applies app/supabase/migrations to the hosted Supabase database.
+# Needs one repository secret: SUPABASE_DB_URL (Supabase > Project Settings > Database >
+# Connect > Session pooler URI, port 5432, with the database password filled in. The direct
+# connection is IPv6-only and GitHub runners cannot reach it).
+# Already-applied migrations are skipped, so running it again is safe.
+# First run against the hosted project: 2026-11-05.
+#
+# Before any migration, dump schema and data with pg_dump, gzip it, and keep the
+# artifact for 30 days. The dump is a full copy of the database. Do not print the URL.
+# If the dump, the gzip, or the upload fails, the migration step does not run.
+on:
+  workflow_dispatch:
+  push:
+    branches: [master, nextjs-supabase]
+    paths: ["app/supabase/migrations/**", ".github/workflows/db-migrate.yml"]
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Back up the database
+        id: backup
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::notice::SUPABASE_DB_URL secret not set yet; skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends curl ca-certificates gnupg
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor --batch --yes -o /usr/share/keyrings/postgresql.gpg
+          echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] http://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo "$VERSION_CODENAME")-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends postgresql-client-17
+          out="/tmp/late-ice-backup/pre-migrate.sql.gz"
+          mkdir -p /tmp/late-ice-backup
+          set -o pipefail
+          # The runner ships an older pg_dump first on PATH; call the 17 client directly.
+          # Supabase is on Postgres 17; pg_dump refuses a server newer than itself.
+          /usr/lib/postgresql/17/bin/pg_dump --no-password --dbname="$SUPABASE_DB_URL" | gzip -c > "$out"
+          gzip -t "$out"
+          test -s "$out"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      # success() is required. A custom if replaces GitHub's default success check,
+      # and an empty skip output must not let the migration run after a failed dump.
+      - name: Upload pre-migration backup
+        if: success() && steps.backup.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pre-migrate-db-${{ github.run_id }}
+          path: /tmp/late-ice-backup/pre-migrate.sql.gz
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Apply migrations
+        if: success() && steps.backup.outputs.skip != 'true'
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then echo "::notice::SUPABASE_DB_URL secret not set yet; skipping."; exit 0; fi
+          npx --yes supabase@2 db push --db-url "$SUPABASE_DB_URL" --include-all

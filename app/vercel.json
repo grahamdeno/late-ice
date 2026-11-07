@@ -1,0 +1,15 @@
+{
+  "crons": [
+    { "path": "/api/cron/recompute", "schedule": "17 8 * * *" },
+    { "path": "/api/cron/gameday", "schedule": "17 14 * * *" },
+    { "path": "/api/cron/weekly", "schedule": "47 13 * * 1" }
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "ci-shots": false,
+      "grok/**": false,
+      "claude/**": false,
+      "audit/**": false
+    }
+  }
+}
