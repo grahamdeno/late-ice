@@ -69,7 +69,7 @@ async function journey(p, name, goal, fn) {
   p.state.journey = name;
   const t0 = Date.now();
   const t = {
-    tap: async (loc, label) => {
+    tap: async (loc) => {
       j.taps++;
       await loc.first().click({ timeout: 8000 });
       await settle(p.page);

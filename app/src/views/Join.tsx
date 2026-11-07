@@ -115,7 +115,7 @@ export default function Join() {
   // Shared by the email code and the passkey: the account changed, so drop anonymous responses before the profile decides where to go.
   const finish = async (token: string) => {
     setToken(token);
-    queryClient.removeQueries();
+    queryClient.resetQueries();
     try {
       const res = await apiRequest("GET", "/api/me");
       const j = await res.json();

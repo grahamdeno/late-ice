@@ -154,7 +154,7 @@ function NotThere({ error }: { error: any }) {
     : ["Something went wrong", "That didn't load. Try again in a moment."];
   return (
     <div className="py-12 text-center" data-testid="status-not-there">
-      <FaceoffDot size={36} />
+      <div className="flex justify-center"><FaceoffDot size={36} /></div>
       <h1 className="font-black text-2xl mt-4">{title}</h1>
       <p className="text-[var(--mute)] mt-2 max-w-sm mx-auto">{body}</p>
       <div className="flex justify-center gap-3 mt-6">
