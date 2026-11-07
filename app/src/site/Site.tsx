@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 import { sql, q } from "@/server/db";
+import { SUPPORT_EMAIL } from "@/lib/contact";
 
 /** Site links work on lateice.com ("/rinks") and as a preview on the app's address ("/site/rinks"). */
 export async function siteBase() {
@@ -51,7 +52,7 @@ export async function SiteShell({ children }: { children: React.ReactNode }) {
         <span className="flex-1" />
         <a href={`${app}/terms`} className="hover:text-white">Terms</a>
         <a href={`${app}/privacy`} className="hover:text-white">Privacy</a>
-        <a href="mailto:support@tangomike.app" className="hover:text-white">Contact</a>
+        <a href={`mailto:${SUPPORT_EMAIL}`} className="hover:text-white">Contact</a>
       </footer>
     </div>
   );

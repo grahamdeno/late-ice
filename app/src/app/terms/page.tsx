@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BackBar } from "@/lib/ui";
+import { SUPPORT_EMAIL } from "@/lib/contact";
 
 export const metadata = { title: "Terms · Late Ice" };
 
@@ -21,7 +22,7 @@ export default function TermsPage() {
       <BackBar href="/" to="Late Ice" />
       <h1 className="text-[28px] leading-tight font-black">Terms</h1>
       <p className="text-xs text-[var(--mute)] mt-2">
-        Updated {UPDATED}. Questions: <a className="text-[var(--blue)]" href="mailto:support@tangomike.app">support@tangomike.app</a>
+        Updated {UPDATED}. Questions: <a className="text-[var(--blue)]" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
         {" · "}
         <Link href="/privacy" className="text-[var(--blue)] underline" data-testid="link-privacy">Privacy</Link>
       </p>

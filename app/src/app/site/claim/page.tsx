@@ -1,5 +1,6 @@
 import { SiteShell, Display, liveRinks, siteBase } from "@/site/Site";
 import { ClaimForm } from "@/site/ClaimForm";
+import { SUPPORT_EMAIL } from "@/lib/contact";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Claim your rink · Late Ice" };
@@ -24,7 +25,7 @@ export default async function Claim({ searchParams }: { searchParams: Promise<{ 
             <li>Not live yet? Send one DaySmart standings report and we set your leagues up.</li>
             <li>Share one link with your captains. Players join and claim their spots.</li>
           </ol>
-          <div className="rounded-[18px] bg-[#0d1219] p-5 mt-6 text-[#c3ccd8]">Rather talk first? Email <a className="text-[#8cc4ff] font-bold" href="mailto:support@tangomike.app">support@tangomike.app</a></div>
+          <div className="rounded-[18px] bg-[#0d1219] p-5 mt-6 text-[#c3ccd8]">Rather talk first? Email <a className="text-[#8cc4ff] font-bold" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a></div>
         </aside>
       </section>
     </SiteShell>

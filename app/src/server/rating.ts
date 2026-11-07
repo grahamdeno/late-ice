@@ -55,6 +55,7 @@ export function ratePlayer(input: {
     const vs = `league ${svBase.toFixed(3).replace(/^0/, "")}`;
     reasons.push({ label: `Goalie: ${sa - gaa} saves on ${sa} (${sv.toFixed(3).replace(/^0/, "")}, ${vs})${goalieWeight < 1 ? ", not confirmed by the other team, half weight" : ""}`, value: b });
   }
+  if (isGoalie && !shotsAgainst) reasons.push({ label: "In goal. No shot count yet, so rated on the result only", value: 0 });
   if (pim >= 6) reasons.push({ label: `${pim} penalty minutes`, value: -0.004 });
   if (gamesRated < 5) reasons.push({ label: `Provisional: game ${gamesRated + 1} of 5 moves faster`, value: 0 });
   if (eventId) {
@@ -76,14 +77,15 @@ export async function rateGame(db: Tx, gameId: number) {
     ? await q<Line>(db, "SELECT * FROM player_game_stats WHERE game_id=$1 ORDER BY id", [gameId])
     : await q<Line>(db, `
         SELECT a.player_id, a.team_id, COALESCE(il.goals,0)::int goals, COALESCE(il.assists,0)::int assists,
-               0 pim, 0 is_goalie, NULL::int shots_against, NULL::int goals_against
+               0 pim, MAX(a.in_goal)::int is_goalie, NULL::int shots_against, NULL::int goals_against
         FROM (
-          SELECT player_id, team_id FROM imported_game_attendance WHERE game_id=$1
+          SELECT player_id, team_id, CASE WHEN in_goal THEN 1 ELSE 0 END AS in_goal FROM imported_game_attendance WHERE game_id=$1
           UNION
-          SELECT player_id, team_id FROM imported_game_lines
+          SELECT player_id, team_id, 0 FROM imported_game_lines
           WHERE game_id=$1 AND team_id IN (SELECT team_id FROM imported_game_attendance WHERE game_id=$1)
         ) a
         LEFT JOIN imported_game_lines il ON il.game_id=$1 AND il.player_id=a.player_id
+        GROUP BY a.player_id, a.team_id, il.goals, il.assists
         ORDER BY a.player_id`, [gameId]);
   // Goalie numbers the goalie entered and the other team confirmed (or didn't answer in time).
   const { effectiveStatus, weightOf } = await import("./goalies");

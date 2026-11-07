@@ -1,6 +1,7 @@
 "use client";
 import { Link } from "@/lib/router";
 import { BackBar } from "@/lib/ui";
+import { SUPPORT_EMAIL } from "@/lib/contact";
 
 const UPDATED = "November 5, 2026";
 
@@ -19,7 +20,7 @@ export default function Legal() {
     <div>
       <BackBar href="/me" to="Profile" />
       <h1 className="font-display text-[40px] leading-none font-black uppercase">Terms and privacy</h1>
-      <p className="text-xs text-[var(--mute)] mt-2">Updated {UPDATED}. Questions: <a className="text-[var(--blue)]" href="mailto:support@tangomike.app">support@tangomike.app</a></p>
+      <p className="text-xs text-[var(--mute)] mt-2">Updated {UPDATED}. Questions: <a className="text-[var(--blue)]" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a></p>
 
       <Block title="What Late Ice is">
         <p>A free app for adult rec hockey. Players and staff scan scoresheets, keep rosters and schedules, and see stats and a rating. Late Ice isn't run by any rink or league, and a rink's official records win over ours.</p>

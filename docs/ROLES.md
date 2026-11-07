@@ -95,6 +95,7 @@ What the running app does, where a cell above is easy to misread:
 - **Show a hidden name again** is the player, an assistant or captain of one of their teams, support, or an admin (`name.unhide`). A commissioner or rink manager is not on that grant. Anyone can hide a name with no account. Support's hide, unhide and stuck-claim fix stay on `support.fix`.
 - **Approve or remove a waitlisted signup** is `signup.approve`: the rink manager at that home rink, or an admin.
 - **Record who played an imported game** is `lineup.record`: assistant or captain of that team, or a commissioner, rink manager or admin. DaySmart games carry a score but no lineup, so they rate players only once a lineup is recorded (Rink Desk, Games and lineups).
+- **Rink Desk for captains:** a captain or assistant who isn't rink staff can open Rink Desk for their own team: Who's joined (sign-ups and the invite link, `roster.manage`) and Games and lineups (`lineup.record`), including who was in goal. Scoresheets, the rink-wide roster, ratings, imports and the Monday email stay with staff.
 - Filing a dispute, locking a game and correcting a confirmed game are not separate routes. `game.resolve` (commissioner, rink manager, admin) is what staff use to discard a sheet and to open a league on the staff page.
 
 Things nobody can do, on purpose:

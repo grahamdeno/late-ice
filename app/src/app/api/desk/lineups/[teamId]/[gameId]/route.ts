@@ -12,8 +12,8 @@ export const dynamic = "force-dynamic";
  */
 export const PUT = handle<{ teamId: string; gameId: string }>(async (req, { teamId, gameId }) => {
   const u = await requireUser(req);
-  const b = await body<{ playerIds?: unknown }>(req);
+  const b = await body<{ playerIds?: unknown; goalieId?: unknown }>(req);
   if (!Array.isArray(b.playerIds)) throw new HttpError(400, "Send the players who played.");
   if (b.playerIds.length > 60) throw new HttpError(400, "That's more players than a team dresses.");
-  return sql.begin((tx) => saveLineup(tx, u, num(teamId), num(gameId), b.playerIds as number[]));
+  return sql.begin((tx) => saveLineup(tx, u, num(teamId), num(gameId), b.playerIds as number[], b.goalieId == null ? null : Number(b.goalieId)));
 });
