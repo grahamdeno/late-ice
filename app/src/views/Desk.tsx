@@ -7,6 +7,7 @@ import { apiRequest, invalidatePrefixes } from "@/lib/queryClient";
 import { FaceoffDot, useFilter } from "@/lib/ui";
 import { GoalieDisputes, Requests, RinkLeads, Signups } from "@/views/Staff";
 import { JoinedBody } from "@/views/DeskJoined";
+import { ReportedMistakes } from "@/views/DeskReports";
 
 /**
  * Rink Desk: the computer view for rink staff. A sidebar frame, a home page with what's waiting,
@@ -72,6 +73,8 @@ export function DeskFrame({ children, waiting }: { children: React.ReactNode; wa
             <NavItem href="/desk/roster" label="Players and rosters" active={path.startsWith("/desk/roster")} />
             <NavItem href="/desk/lineups" label="Games and lineups" active={path.startsWith("/desk/lineups")} />
             <NavItem href="/desk/ratings" label="Ratings" active={path.startsWith("/desk/ratings")} />
+            <NavItem href="/desk/season" label="Season" active={path.startsWith("/desk/season")} />
+            {overview?.isAdmin && <NavItem href="/desk/usage" label="Usage" active={path.startsWith("/desk/usage")} />}
           </>
         )}
         {canImport && <NavItem href="/desk/imports" label="Imports" active={path.startsWith("/desk/imports")} />}
@@ -199,6 +202,7 @@ function HomeBody({ overview }: { overview: any }) {
               <div className="card p-5 mt-3 text-[var(--mute)]">Nothing waiting. New sign-ups, requests and goalie numbers show up here.</div>
             </section>
           )}
+          {rink && <ReportedMistakes rinkId={rink.id} />}
           <Requests run={run} />
           <Signups run={run} />
           <GoalieDisputes run={run} />

@@ -52,6 +52,7 @@ export async function SiteShell({ children }: { children: React.ReactNode }) {
         <span className="flex-1" />
         <a href={`${app}/terms`} className="hover:text-white">Terms</a>
         <a href={`${app}/privacy`} className="hover:text-white">Privacy</a>
+        <a href={`${app}/help`} className="hover:text-white">Help</a>
         <a href={`mailto:${SUPPORT_EMAIL}`} className="hover:text-white">Contact</a>
       </footer>
     </div>

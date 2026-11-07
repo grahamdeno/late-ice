@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { act } from "@/lib/auth";
+import { act, useMe } from "@/lib/auth";
 import { Link } from "@/lib/router";
 import { BackBar, Delta, FaceoffDot, LevelPill, Loading, TeamBadge, fmtDate, img } from "@/lib/ui";
 
@@ -166,6 +166,44 @@ export default function Game({ id, fresh }: { id: string; fresh?: boolean }) {
         </a>
       )}
       {g.goalies && (g.goalies.reports.length > 0 || g.goalies.canSubmit) && <GoalieNumbers g={g} />}
+      <ReportMistake gameId={Number(id)} />
+    </div>
+  );
+}
+
+/** Something wrong on this game? Tell rink staff, who fix it and send a notice back. */
+function ReportMistake({ gameId }: { gameId: number }) {
+  const { me } = useMe();
+  const [open, setOpen] = useState(false);
+  const [kind, setKind] = useState("points");
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  if (!me) return null;
+  if (done) return <p className="text-sm text-[var(--mute)] mt-6 px-1" data-testid="text-report-sent">Thanks. Rink staff will check it and you'll get a notice when it's sorted.</p>;
+  if (!open) return <button className="mt-6 px-1 text-sm text-[var(--mute)] underline underline-offset-4" onClick={() => setOpen(true)} data-testid="button-report-mistake">Something wrong on this game? Report a mistake</button>;
+  const send = async () => {
+    setBusy(true);
+    const e = await act("POST", `/api/games/${gameId}/report`, { kind, body: text }, []);
+    setBusy(false);
+    if (e) setErr(e); else setDone(true);
+  };
+  return (
+    <div className="card mt-6 p-4" data-testid="card-report-mistake">
+      <div className="font-bold">Report a mistake</div>
+      <div className="flex gap-2 mt-3 flex-wrap">
+        {([["score", "The score"], ["points", "A goal or assist"], ["lineup", "Who played"], ["other", "Something else"]] as const).map(([k, label]) => (
+          <button key={k} className="chip" data-active={kind === k} onClick={() => setKind(k)} data-testid={`chip-report-${k}`}>{label}</button>
+        ))}
+      </div>
+      <textarea className="input w-full h-24 mt-3 py-2.5" value={text} onChange={(e) => setText(e.target.value)} maxLength={600}
+        placeholder="What's wrong, and what should it be? For example: #12 had the second goal, not #19." data-testid="input-report-body" />
+      {err && <p className="text-sm down mt-2">{err}</p>}
+      <div className="flex gap-2 mt-3">
+        <button className="btn btn-red h-10 px-4 text-sm" onClick={send} disabled={busy || text.trim().length < 5} data-testid="button-report-send">{busy ? "Sending…" : "Send to rink staff"}</button>
+        <button className="btn btn-ghost h-10 px-4 text-sm" onClick={() => setOpen(false)}>Cancel</button>
+      </div>
     </div>
   );
 }

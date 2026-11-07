@@ -745,6 +745,22 @@ async function main() {
   ok(wk.status === 200 && wk.json.subject.includes("Polar Ice Wilmington") && wk.json.text.includes("of rostered players are on Late Ice") && wk.json.text.includes("/desk"), "the Monday email for the rink builds, with sign-ups and a desk link");
   ok((await call("POST", `/api/desk/weekly?rink=${rinkId}`, undefined, newAcct)).status === 403, "a player can't pull the rink's weekly email");
   ok((await call("GET", "/api/cron/weekly")).status === 401, "the weekly job needs the cron secret");
+  const plan = await call("GET", `/api/desk/season?rink=${rinkId}`, undefined, mt);
+  ok(plan.status === 200 && plan.json.current && plan.json.teams.some((t: any) => t.id === hh), "season page shows the current season and every team");
+  ok((await call("GET", `/api/desk/season?rink=${rinkId}`, undefined, graham)).status === 403, "a captain can't open season rollover");
+  if (!plan.json.ended) ok((await call("POST", `/api/desk/season?rink=${rinkId}`, { archive: [hh] }, mt)).status === 400, "teams can't be archived before the season ends");
+  ok((await call("POST", `/api/desk/season?rink=${rinkId}`, { next: plan.json.next ? undefined : { name: "Bad", startsOn: plan.json.current.starts_on, endsOn: plan.json.current.ends_on } }, mt)).status === (plan.json.next ? 200 : 400), "the next season can't overlap this one");
+  ok((await call("POST", `/api/games/${ig.id}/report`, { kind: "points", body: "no" }, mt)).status === 400, "a report has to say what's wrong");
+  const rep = await call("POST", `/api/games/${ig.id}/report`, { kind: "points", body: "Adam had one goal, not two" }, mt);
+  const reps = await call("GET", `/api/desk/reports?rink=${rinkId}`, undefined, mt);
+  ok(rep.status === 200 && reps.status === 200 && reps.json.some((r: any) => r.id === rep.json.id && r.status === "open"), "a reported mistake lands on Rink Desk");
+  ok((await call("GET", `/api/desk/reports?rink=${rinkId}`, undefined, graham)).status === 403, "a captain can't see the rink's reported mistakes");
+  const closed = await call("POST", `/api/desk/reports/${rep.json.id}`, { fixed: true, note: "Fixed the scorer" }, mt);
+  ok(closed.status === 200 && closed.json.status === "fixed", "staff close it as fixed");
+  ok((await call("GET", "/api/me", undefined, mt)).json.notifications.some((n: any) => n.title.startsWith("Fixed:")), "and the reporter gets a notice");
+  const use = await call("GET", "/api/desk/usage", undefined, boss);
+  ok(use.status === 200 && use.json.weeks.length === 8 && use.json.totals.users > 0 && use.json.rinks.some((r: any) => r.id === rinkId), "admins see usage across every rink, week by week");
+  ok((await call("GET", "/api/desk/usage", undefined, mt)).status === 403, "a rink manager can't see usage across rinks");
   const deskRatings = await call("GET", `/api/desk/ratings?rink=${rinkId}`, undefined, mt);
   ok(deskRatings.status === 200 && deskRatings.json.leagues.some((l: any) => l.id === lg && l.games >= 2) && deskRatings.json.canRecompute === false, "ratings overview per league; only admins recalculate");
   const deskImports = await call("GET", `/api/desk/imports?rink=${rinkId}`, undefined, mt);
@@ -1532,6 +1548,8 @@ async function main() {
 
   const terms = await (await fetch(`${BASE}/terms`)).text();
   ok(terms.includes("18 or older") && terms.includes("support@tangomike.app") && terms.includes("/privacy"), "the terms page is up");
+  const help = await (await fetch(`${BASE}/help`)).text();
+  ok(help.includes("Why did my rating move?") && help.includes("Report a mistake"), "the help page is up");
 
   console.log("pages render");
   for (const path of ["/", "/leagues", `/team/${hh}`, `/player/${mike}`, "/players", "/rink", "/scan", "/join", "/privacy", "/terms", `/game/${conf.json.gameId}`, `/league/${lg}`, `/team/${hh}/manage`, `/team/${hh}/lineup/${lgGame.json.id}`]) {

@@ -1,0 +1,112 @@
+name: Weekly off-site backup
+
+# A copy of the database kept outside Supabase (as a GitHub artifact, 90 days), and a practice
+# restore every week so we know the copy works. The nightly in-app backup stays in Supabase
+# storage; this one survives losing the Supabase project.
+#
+# Uses the SUPABASE_DB_URL secret the migration workflow already has. If BACKUP_PASSPHRASE is
+# set, the full copy is encrypted with it (gpg, AES256); keep that passphrase somewhere safe,
+# because the copy can't be opened without it.
+#
+# Restore a full copy:
+#   gpg --decrypt full.sql.gz.gpg | gunzip | psql "$NEW_DATABASE_URL"   (or gunzip if not encrypted)
+
+on:
+  schedule:
+    - cron: "23 7 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      scratch:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: scratch
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - name: Postgres 17 client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends curl ca-certificates gnupg
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor --batch --yes -o /usr/share/keyrings/postgresql.gpg
+          echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] http://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo "$VERSION_CODENAME")-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends postgresql-client-17
+
+      - name: Dump
+        id: dump
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          if [ -z "$SUPABASE_DB_URL" ]; then echo "::error::SUPABASE_DB_URL secret is missing."; exit 1; fi
+          bin=/usr/lib/postgresql/17/bin
+          mkdir -p out
+          # Full copy: everything, as the migration workflow takes it.
+          $bin/pg_dump --no-password --dbname="$SUPABASE_DB_URL" | gzip -c > out/full.sql.gz
+          gzip -t out/full.sql.gz
+          # App tables only, without owners or grants, for the practice restore into plain Postgres.
+          $bin/pg_dump --no-password --dbname="$SUPABASE_DB_URL" --schema=public --no-owner --no-privileges | gzip -c > out/public.sql.gz
+          # Row counts on the live side, to compare after the restore.
+          $bin/psql --no-password "$SUPABASE_DB_URL" -At -c "SELECT 'users', count(*) FROM public.users UNION ALL SELECT 'players', count(*) FROM public.players UNION ALL SELECT 'games', count(*) FROM public.games UNION ALL SELECT 'roster_entries', count(*) FROM public.roster_entries" > out/live-counts.txt
+          if [ -n "$BACKUP_PASSPHRASE" ]; then
+            gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" --symmetric --cipher-algo AES256 -o out/full.sql.gz.gpg out/full.sql.gz
+            gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" --symmetric --cipher-algo AES256 -o out/public.sql.gz.gpg out/public.sql.gz
+            echo "encrypted=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::BACKUP_PASSPHRASE is not set, so this copy is stored unencrypted (like the pre-migration copies)."
+            echo "encrypted=false" >> "$GITHUB_OUTPUT"
+          fi
+          ls -la out
+
+      - name: Practice restore
+        env:
+          PGPASSWORD: scratch
+        run: |
+          set -euo pipefail
+          bin=/usr/lib/postgresql/17/bin
+          url="postgresql://postgres@localhost:5432/postgres"
+          # Supabase roles referenced by policies don't exist here; create them so the restore is faithful.
+          for r in anon authenticated service_role; do $bin/psql "$url" -q -c "DO \$\$BEGIN CREATE ROLE $r; EXCEPTION WHEN duplicate_object THEN NULL; END\$\$;"; done
+          $bin/psql "$url" -q -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+          gunzip -c out/public.sql.gz | $bin/psql "$url" -q -v ON_ERROR_STOP=0 2> out/restore-errors.txt >/dev/null || true
+          $bin/psql "$url" -At -c "SELECT 'users', count(*) FROM public.users UNION ALL SELECT 'players', count(*) FROM public.players UNION ALL SELECT 'games', count(*) FROM public.games UNION ALL SELECT 'roster_entries', count(*) FROM public.roster_entries" > out/restored-counts.txt
+          echo "Live:";     cat out/live-counts.txt
+          echo "Restored:"; cat out/restored-counts.txt
+          if ! diff -q out/live-counts.txt out/restored-counts.txt; then
+            echo "::error::The practice restore doesn't match the live row counts."; head -50 out/restore-errors.txt; exit 1
+          fi
+          echo "Practice restore matched: $(wc -l < out/restore-errors.txt) non-fatal restore messages."
+
+      - name: Keep the copy (encrypted)
+        if: steps.dump.outputs.encrypted == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: late-ice-db-${{ github.run_id }}
+          path: |
+            out/full.sql.gz.gpg
+            out/public.sql.gz.gpg
+            out/live-counts.txt
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Keep the copy
+        if: steps.dump.outputs.encrypted != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: late-ice-db-${{ github.run_id }}
+          path: |
+            out/full.sql.gz
+            out/public.sql.gz
+            out/live-counts.txt
+          retention-days: 90
+          if-no-files-found: error
