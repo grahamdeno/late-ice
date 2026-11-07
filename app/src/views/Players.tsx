@@ -34,9 +34,9 @@ export function Players() {
       </span>
       <span className="text-right">
         {p.games_rated > 0
-          ? <><span className="block font-display text-xl tnum">{fmtRating(p.rating)}</span><Delta d={p.last_delta} className="text-[11px]" /></>
+          ? <><span className="block font-display text-xl tnum">{fmtRating(p.rating)}</span><Delta d={p.last_delta} className="text-xs" /></>
           : p.season_rated
-          ? <><span className="block font-display text-xl tnum">{fmtRating(p.rating)}</span><span className="block text-[11px] text-[var(--mute)]" data-testid={`text-season-${p.id}`}>Season</span></>
+          ? <><span className="block font-display text-xl tnum">{fmtRating(p.rating)}</span><span className="block text-xs text-[var(--mute)]" data-testid={`text-season-${p.id}`}>Season</span></>
           : <span className="block text-sm font-bold text-[var(--mute)]" data-testid={`text-unrated-${p.id}`}>Unrated</span>}
       </span>
     </Link>
@@ -65,7 +65,7 @@ export function Players() {
           {!all && !qs && rows.length > 10 && (
             <button className="card mt-3 w-full min-h-[52px] text-sm font-bold text-[var(--blue)]" onClick={() => setAll(true)} data-testid="button-show-all-players">Show all {rows.length}</button>
           )}
-          <p className="text-[11px] text-[var(--mute)] mt-3 px-1">{ratedCount === 0 ? "Ratings start with the first scanned sheet. Until then players are listed by points from the rink's stats page." : "Season ratings come from the rink's season totals: points per game against the league. Scanned sheets and team lineups then move them game by game. Goalies wait for a scanned sheet."}</p>
+          <p className="text-xs text-[var(--mute)] mt-3 px-1">{ratedCount === 0 ? "Ratings start with the first scanned sheet. Until then players are listed by points from the rink's stats page." : "Season ratings come from the rink's season totals: points per game against the league. Scanned sheets and team lineups then move them game by game. Goalies wait for a scanned sheet."}</p>
         </>
       )}
     </div>
@@ -155,7 +155,7 @@ export function PlayerPage({ id }: { id: string }) {
         ))}
       </div>
       {imported && (
-        <p className="text-[11px] text-[var(--mute)] mt-2 px-1" data-testid="text-imported-player">Totals include {imported.gp} games imported from the {imported.source} as of {fmtDate(imported.as_of)}.</p>
+        <p className="text-xs text-[var(--mute)] mt-2 px-1" data-testid="text-imported-player">Totals include {imported.gp} games imported from the {imported.source} as of {fmtDate(imported.as_of)}.</p>
       )}
       {ranks.length > 0 && (
         <div className="flex gap-2 mt-3 flex-wrap">

@@ -32,7 +32,7 @@ export function ReportedMistakes({ rinkId }: { rinkId: number }) {
             <div className="flex items-baseline gap-2 flex-wrap">
               <Link href={`/game/${r.game_id}`} className="font-bold hover:underline">{r.home} {r.home_score}-{r.away_score} {r.away}</Link>
               <span className="text-xs text-[var(--mute)]">{r.level} · {day(r.played_on)}</span>
-              <span className="chip h-6 text-[11px] ml-auto">{KIND[r.kind] ?? r.kind}</span>
+              <span className="chip h-6 text-xs ml-auto">{KIND[r.kind] ?? r.kind}</span>
             </div>
             <p className="text-sm mt-1.5">“{r.body}”</p>
             <p className="text-xs text-[var(--mute)] mt-1">{r.reporter} · {day(r.created_at)}</p>

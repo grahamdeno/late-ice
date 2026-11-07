@@ -101,8 +101,8 @@ export default function Lineup({ teamId, gameId }: { teamId: string; gameId: str
                 {[...players].sort((a, b) => ans(a) - ans(b) || jersey(a) - jersey(b) || a.name.localeCompare(b.name)).map((p) => (
                   <button key={p.id} className="w-full flex items-center gap-2.5 py-2 text-left text-sm" onClick={() => place(pick, p.id)} data-testid={`button-pick-${p.id}`}>
                     <Bobble avatar={p.avatar} jersey={data.team.color} number={p.number} archetype={p.archetype} goalie={p.position === "G"} size={32} />
-                    <span className="flex-1 min-w-0"><span className="block font-bold truncate">{p.name}{p.number ? ` #${p.number}` : ""}</span><span className="block text-[11px] text-[var(--mute)]">{POSITION_LABEL[p.position] ?? p.position}{p.isSub ? " · sub" : ""}{used.has(p.id) ? " · placed" : ""}</span></span>
-                    <span className={`text-[11px] font-bold ${p.answer === "in" ? "up" : p.answer === "out" ? "down" : "text-[var(--mute)]"}`}>{p.answer === "in" ? "In" : p.answer === "out" ? "Out" : p.answer === "late" ? "Late" : "No answer"}</span>
+                    <span className="flex-1 min-w-0"><span className="block font-bold truncate">{p.name}{p.number ? ` #${p.number}` : ""}</span><span className="block text-xs text-[var(--mute)]">{POSITION_LABEL[p.position] ?? p.position}{p.isSub ? " · sub" : ""}{used.has(p.id) ? " · placed" : ""}</span></span>
+                    <span className={`text-xs font-bold ${p.answer === "in" ? "up" : p.answer === "out" ? "down" : "text-[var(--mute)]"}`}>{p.answer === "in" ? "In" : p.answer === "out" ? "Out" : p.answer === "late" ? "Late" : "No answer"}</span>
                   </button>
                 ))}
               </div>

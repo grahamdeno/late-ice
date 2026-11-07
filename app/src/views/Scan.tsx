@@ -116,7 +116,7 @@ export default function Scan() {
           <div key={n} className="card p-3">
             <div className="font-display text-2xl text-[var(--red)]">{n}</div>
             <div className="font-bold text-sm">{t}</div>
-            <div className="text-[11px] text-[var(--mute)]">{d}</div>
+            <div className="text-xs text-[var(--mute)]">{d}</div>
           </div>
         ))}
       </div>

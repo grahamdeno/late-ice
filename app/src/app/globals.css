@@ -246,7 +246,7 @@ body {
 .hero .tile { background: var(--hero-tile); border-radius: 16px; }
 .chip {
   display: inline-flex; align-items: center; gap: 8px;
-  min-height: 36px; height: 36px; padding: 0 12px; border-radius: 999px;
+  min-height: 44px; height: 44px; padding: 0 14px; border-radius: 999px;
   background: var(--ice-3); border: 1px solid var(--line);
   font-size: 13px; font-weight: 600; color: var(--white); white-space: nowrap;
 }

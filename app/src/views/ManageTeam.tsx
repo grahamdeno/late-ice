@@ -48,9 +48,9 @@ export default function ManageTeam({ id }: { id: string }) {
       <div className="card mt-4 p-3.5 grid grid-cols-3 gap-2 text-center" data-testid="card-roster-counts">
         <Count n={c.skaters} max={c.rosterMax} label="Skaters" />
         <Count n={c.goalies} max={c.goalieMax} label="Goalies" />
-        <div><div className="font-display text-2xl font-black tnum">{c.out}</div><div className="text-[11px] text-[var(--mute)]">On IR or away</div></div>
+        <div><div className="font-display text-2xl font-black tnum">{c.out}</div><div className="text-xs text-[var(--mute)]">On IR or away</div></div>
       </div>
-      <p className="text-[11px] text-[var(--mute)] mt-2 px-1">Subs never count. A player on injured reserve or away frees their spot until they're back. Rink staff set the sizes per league.</p>
+      <p className="text-xs text-[var(--mute)] mt-2 px-1">Subs never count. A player on injured reserve or away frees their spot until they're back. Rink staff set the sizes per league.</p>
       {err && <p className="text-sm down mt-2 px-1" data-testid="text-error">{err}</p>}
 
       <Section title="Roster">
@@ -87,7 +87,7 @@ export default function ManageTeam({ id }: { id: string }) {
         <More title="Leadership" hint="Assistant captains and handing off the captaincy" testid="button-more-leadership"><div className="p-3">
           <div className="card p-4" data-testid="card-assistant-picker">
             <div className="text-sm font-bold">Assistant captains <span className="text-[var(--mute)] font-medium">({assistants.length} of 2)</span></div>
-            <p className="text-[11px] text-[var(--mute)] mt-0.5">They run the roster and schedule with you. Only the captain names assistants, hands off or edits the team.</p>
+            <p className="text-xs text-[var(--mute)] mt-0.5">They run the roster and schedule with you. Only the captain names assistants, hands off or edits the team.</p>
             <div className="mt-2 space-y-1.5">
               {assistants.map((a) => (
                 <div key={a.id} className="flex items-center gap-2 text-sm">
@@ -144,7 +144,7 @@ function Count({ n, max, label }: { n: number; max: number; label: string }) {
   return (
     <div>
       <div className={`font-display text-2xl font-black tnum ${full ? "text-[var(--amber)]" : ""}`}>{n}<span className="text-[var(--mute)] text-base font-bold"> / {max}</span></div>
-      <div className="text-[11px] text-[var(--mute)]">{label}{full ? " · full" : ""}</div>
+      <div className="text-xs text-[var(--mute)]">{label}{full ? " · full" : ""}</div>
     </div>
   );
 }
@@ -186,7 +186,7 @@ function Group({ title, rows, teamId, me, isCaptain, canMerge, run }: { title: s
               <span className="tnum text-[var(--mute)] w-8">{s.number ? `#${s.number}` : "–"}</span>
               <span className="flex-1 min-w-0">
                 <span className="block font-bold truncate">{s.name}{s.badge ? <span className="ml-1.5 text-[10px] font-black text-[var(--mute)]">{s.badge}</span> : null}</span>
-                <span className="block text-[11px] text-[var(--mute)]">
+                <span className="block text-xs text-[var(--mute)]">
                   {POSITION_LABEL[s.position] ?? s.position} · {s.registered ? <span className="up">Registered</span> : "Not signed up yet"}
                   {s.registered && s.status && !["active", "available"].includes(s.status) ? ` · ${STATUS_LABEL[s.status]}${s.status_until ? ` until ${s.status_until}` : ""}` : ""}
                 </span>
@@ -307,7 +307,7 @@ export function InviteLink({ teamId, teamName, invites }: { teamId: number; team
       {inv ? (
         <>
           <div className="mt-2 rounded-xl bg-[var(--ice-3)] px-3 py-2 text-xs break-all tnum" data-testid="text-invite-url">{url}</div>
-          <div className="text-[11px] text-[var(--mute)] mt-1">{inv.uses} of {inv.maxUses ?? inv.max_uses} uses</div>
+          <div className="text-xs text-[var(--mute)] mt-1">{inv.uses} of {inv.maxUses ?? inv.max_uses} uses</div>
           <div className="grid grid-cols-2 gap-2 mt-2">
             <button className="btn btn-red h-10 text-sm" onClick={share} data-testid="button-share-invite">{copied ? "Copied" : "Share link"}</button>
             <button className="btn btn-ghost h-10 text-sm" onClick={async () => { if (!confirm("Turn this link off? Anyone who has it won't get in.")) return; setErr(await act("DELETE", `/api/teams/${teamId}/invite`, undefined, ["/api/teams"])); }} data-testid="button-revoke-invite">Turn off link</button>

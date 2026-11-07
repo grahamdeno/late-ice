@@ -85,7 +85,7 @@ function LeagueCard({ l }: { l: League }) {
               </div>
             ))}
           </div>
-          <div className="flex justify-between text-[11px] text-[var(--mute)] mt-1 tabular-nums">
+          <div className="flex justify-between text-xs text-[var(--mute)] mt-1 tabular-nums">
             <span>{l.spread[0].from.toFixed(2)}</span><span>{(l.spread[l.spread.length - 1].from + 0.25).toFixed(2)}</span>
           </div>
         </div>

@@ -332,7 +332,7 @@ function Review({ s, d, setD, leagueId, setLeagueId, teamIds, setTeamIds, eventI
           <span className="label block">Final</span>
           <input className="field tnum text-center font-display text-3xl w-16 h-12" value={total(side)} aria-label={`${side} final score`} data-testid={`input-total-${side}`}
             onChange={(e) => set((x) => { const v = e.target.value.trim(); x[side].total = v === "" ? null : Number(v) || 0; })} />
-          {d[side].total != null && d[side].total !== listed && <span className="block text-[11px] text-[var(--amber)] mt-0.5">{listed} goals listed</span>}
+          {d[side].total != null && d[side].total !== listed && <span className="block text-xs text-[var(--amber)] mt-0.5">{listed} goals listed</span>}
         </label>
       </div>
     );
@@ -477,7 +477,7 @@ function Roster({ side, t, set }: { side: Side; t: any; set: (fn: (x: any) => vo
           <div key={i} className="flex items-center gap-1.5 px-3 py-1.5 text-sm">
             <Cell v={p.number} w="w-11" label="Number" onChange={(v) => set((x) => (x[side].roster[i].number = v))} testid={`input-roster-num-${side}-${i}`} />
             <input className="field flex-1 w-full font-bold" value={p.name ?? ""} aria-label="Name" onChange={(e) => set((x) => (x[side].roster[i].name = e.target.value))} data-testid={`input-roster-name-${side}-${i}`} />
-            <button className="chip h-7 text-[11px]" data-active={(p.position || "").toUpperCase().startsWith("G")} aria-label="Goalie"
+            <button className="chip h-7 text-xs" data-active={(p.position || "").toUpperCase().startsWith("G")} aria-label="Goalie"
               onClick={() => set((x) => (x[side].roster[i].position = (p.position || "").toUpperCase().startsWith("G") ? null : "G"))} data-testid={`button-roster-goalie-${side}-${i}`}>G</button>
             <button className="h-8 w-8 text-[var(--mute)] hover:text-[var(--down)]" onClick={() => set((x) => x[side].roster.splice(i, 1))} aria-label="Remove row" data-testid={`button-remove-roster-${side}-${i}`}>×</button>
           </div>

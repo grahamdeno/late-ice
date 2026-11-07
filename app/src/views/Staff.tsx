@@ -46,7 +46,7 @@ export default function Staff({ rinkId, leagueId }: { rinkId?: string; leagueId?
       <h1 className="font-black text-2xl">Manage</h1>
       <div className="flex flex-wrap gap-1.5 mt-2">
         {data.roles.filter((r: any) => !["captain", "assistant_captain"].includes(r.role)).map((r: any) => (
-          <span key={r.id} className="chip h-7 text-[11px]">{ROLE_LABEL[r.role]}{r.where ? ` · ${r.where}` : ""}</span>
+          <span key={r.id} className="chip h-7 text-xs">{ROLE_LABEL[r.role]}{r.where ? ` · ${r.where}` : ""}</span>
         ))}
       </div>
       <Link href="/desk" className="card mt-4 px-4 min-h-[56px] items-center gap-3 hidden md:flex" data-testid="link-rink-desk">
@@ -194,7 +194,7 @@ function SeasonRow({ season, run }: { season: any; run: Run }) {
         <button type="button" className="btn btn-ghost h-10" onClick={() => setEdit(false)}>Cancel</button>
         <button className="btn btn-red h-10" data-testid={`button-save-season-${season.id}`}>Save</button>
       </div>
-      {season.games > 0 && <p className="text-[11px] text-[var(--mute)]">{season.games} games belong to this season, so it can't be deleted. You can still rename it or change its dates.</p>}
+      {season.games > 0 && <p className="text-xs text-[var(--mute)]">{season.games} games belong to this season, so it can't be deleted. You can still rename it or change its dates.</p>}
     </form>
   );
 }
@@ -293,13 +293,13 @@ function TeamRow({ team: t, others, canEdit, run }: { team: any; others: any[]; 
                       {others.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
                     </select>
                   </label>
-                ) : <p className="text-[11px] text-[var(--mute)]">Teams with games stay in their league. To move one, archive it and add it to the other league.</p>
+                ) : <p className="text-xs text-[var(--mute)]">Teams with games stay in their league. To move one, archive it and add it to the other league.</p>
               )}
               <div className="flex gap-2">
                 <button className="btn btn-ghost h-10 flex-1" onClick={() => (t.archived_at || confirm(`Archive ${t.name}? It leaves standings and lists; its history stays.`)) && run("PATCH", `/api/teams/${t.id}`, { archived: !t.archived_at })} data-testid={`button-${t.archived_at ? "restore" : "archive"}-team-${t.id}`}>{t.archived_at ? "Restore" : "Archive"}</button>
                 <button className="btn btn-ghost h-10 flex-1 down" disabled={!t.removable} onClick={() => confirm(`Delete ${t.name} for good?`) && run("DELETE", `/api/teams/${t.id}`)} data-testid={`button-remove-team-${t.id}`}>Delete</button>
               </div>
-              {!t.removable && <p className="text-[11px] text-[var(--mute)]">Delete is only for empty teams. This one has games or players, so archive it instead.</p>}
+              {!t.removable && <p className="text-xs text-[var(--mute)]">Delete is only for empty teams. This one has games or players, so archive it instead.</p>}
             </>
           )}
         </div>
@@ -492,7 +492,7 @@ function RinkRequestCard({ r, run }: { r: any; run: Run }) {
         {isNew && wantsManager && <button className="btn btn-ghost h-10 text-sm" onClick={() => run("POST", `/api/staff/requests/${r.id}`, { decision: "approve_rink" })} data-testid={`button-approve-rink-only-${r.id}`}>Rink only</button>}
         <button className="btn btn-red h-10 text-sm" disabled={wantsManager && !onDomain && !phoneOk} onClick={() => run("POST", `/api/staff/requests/${r.id}`, { decision: "approve" })} data-testid={`button-approve-request-${r.id}`}>{wantsManager ? "Approve manager" : "Add rink"}</button>
       </div>
-      {wantsManager && !onDomain && !phoneOk && <p className="text-[11px] text-[var(--mute)] mt-2">Approving a manager needs one check: their email on the rink's domain, or your call to the rink.</p>}
+      {wantsManager && !onDomain && !phoneOk && <p className="text-xs text-[var(--mute)] mt-2">Approving a manager needs one check: their email on the rink's domain, or your call to the rink.</p>}
     </div>
   );
 }
@@ -533,7 +533,7 @@ function SupportDesk({ run, isAdmin }: { run: Run; isAdmin: boolean }) {
             </div>
             <button className="text-xs text-[var(--blue)]" onClick={() => setPick(null)}>Back</button>
           </div>
-          {acct.roles.length > 0 && <div className="flex flex-wrap gap-1.5">{acct.roles.map((r: any) => <span key={r.id} className="chip h-7 text-[11px]">{ROLE_LABEL[r.role]}{r.where ? ` · ${r.where}` : ""}</span>)}</div>}
+          {acct.roles.length > 0 && <div className="flex flex-wrap gap-1.5">{acct.roles.map((r: any) => <span key={r.id} className="chip h-7 text-xs">{ROLE_LABEL[r.role]}{r.where ? ` · ${r.where}` : ""}</span>)}</div>}
           <div>
             <div className="label mb-1">Roster spots</div>
             {acct.slots.length ? acct.slots.map((s: any) => (
@@ -546,7 +546,7 @@ function SupportDesk({ run, isAdmin }: { run: Run; isAdmin: boolean }) {
           </div>
           <div>
             <div className="label mb-1">Move this account to a new email</div>
-            <p className="text-[11px] text-[var(--mute)]">Only after the captain confirms it's the same person. The person signs in with the new email first. This account's spots, stats and roles move after a 24-hour hold.</p>
+            <p className="text-xs text-[var(--mute)]">Only after the captain confirms it's the same person. The person signs in with the new email first. This account's spots, stats and roles move after a 24-hour hold.</p>
             <div className="flex gap-2 mt-2">
               <input className="input flex-1" placeholder="New email they signed in with" value={mergeTo} onChange={(e) => setMergeTo(e.target.value)} data-testid="input-merge-to" />
               <button className="btn btn-red h-11" disabled={!mergeTo} onClick={async () => { if (await run("POST", "/api/staff/merges", { fromUserId: acct.user.id, toEmail: mergeTo })) setMergeTo(""); }} data-testid="button-merge">Start</button>
@@ -615,7 +615,7 @@ function AdminSection({ data, run }: { data: any; run: Run }) {
           <input className="input flex-1" placeholder="Their Late Ice email" value={email} onChange={(e) => setEmail(e.target.value)} data-testid="input-admin-email" />
           <button className="btn btn-red h-11" disabled={!email} data-testid="button-grant-admin">Add</button>
         </form>
-        {role === "admin" && <p className="text-[11px] text-[var(--mute)] mt-2">Admins can do everything, including removing you. Grant sparingly.</p>}
+        {role === "admin" && <p className="text-xs text-[var(--mute)] mt-2">Admins can do everything, including removing you. Grant sparingly.</p>}
       </div>
       <div className="card p-4 mt-3 flex items-center gap-3">
         <span className="flex-1"><span className="block font-bold text-sm">Recalculate ratings</span><span className="block text-xs text-[var(--mute)]">Replays every game. Runs nightly on its own.</span></span>
@@ -717,7 +717,7 @@ function ImportSection({ rinks }: { rinks: any[] }) {
               <option value="">Pick one</option>
               <option value="A">A: top level</option><option value="B">B</option><option value="C">C</option><option value="D">D: newest players</option>
             </select>
-            <span className="block text-[11px] text-[var(--mute)] mt-1">Picking a level only updates the preview. Nothing is saved yet.</span>
+            <span className="block text-xs text-[var(--mute)] mt-1">Picking a level only updates the preview. Nothing is saved yet.</span>
           </label>
         )}
         {s && (

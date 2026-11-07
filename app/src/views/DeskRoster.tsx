@@ -194,7 +194,7 @@ function RosterRow({ r, canEdit, run }: { r: Row; canEdit: boolean; run: (m: str
     <tr className="border-b border-[var(--line)] last:border-0 hover:bg-[var(--surface-2)]" data-testid={`row-roster-${r.teamId}-${r.id}`}>
       <td className="pl-5 pr-3 py-2.5">
         <span className="font-bold">{r.name}</span>
-        {tag && <span className="ml-1.5 text-[11px] font-black text-[var(--red)]" title={tag === "C" ? "Captain" : "Assistant captain"}>{tag}</span>}
+        {tag && <span className="ml-1.5 text-xs font-black text-[var(--red)]" title={tag === "C" ? "Captain" : "Assistant captain"}>{tag}</span>}
         {r.sub && <span className="ml-1.5 chip h-5 text-[10px] px-1.5">Sub</span>}
         {r.status !== "active" && <span className="ml-1.5 chip h-5 text-[10px] px-1.5">{r.status === "ir" ? "IR" : "Away"}</span>}
       </td>

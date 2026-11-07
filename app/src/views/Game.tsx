@@ -70,7 +70,7 @@ export default function Game({ id, fresh }: { id: string; fresh?: boolean }) {
 
       {imported && (
         <>
-          <p className="text-[11px] text-[var(--mute)] mt-3 px-1" data-testid="text-imported-game">
+          <p className="text-xs text-[var(--mute)] mt-3 px-1" data-testid="text-imported-game">
             {g.lineupTeams?.length
               ? "From DaySmart, with the lineup from the team's poll, so this game is rated for that team. DaySmart has no times, penalties or shots. Scan the sheet to add the rest."
               : "From DaySmart. It records the score and who was credited with goals and assists, but no times, penalties, shots or lineups, so this game isn't rated. Scan the sheet to add the rest."}
@@ -230,7 +230,7 @@ function GoalieNumbers({ g }: { g: any }) {
               </span>
               <span className="text-right tnum">
                 <span className="block font-display text-xl">{r.savePct != null ? r.savePct.toFixed(3).replace(/^0/, "") : "–"}</span>
-                <span className="block text-[11px] text-[var(--mute)]">{r.shots_against - r.goals_against} saves on {r.shots_against}</span>
+                <span className="block text-xs text-[var(--mute)]">{r.shots_against - r.goals_against} saves on {r.shots_against}</span>
               </span>
             </div>
             {r.canAnswer && (

@@ -45,7 +45,7 @@ export function AddLeagueForm({ rinkId, onDone }: { rinkId: number; onDone: () =
           <select className="input w-full mt-1" value={tag} onChange={(e) => setTag(e.target.value)} data-testid="select-league-tag">{TAG_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
         </label>
       </div>
-      <p className="text-[11px] text-[var(--mute)]">Skill level is one scale for every rink, so standings and ratings compare fairly. The name is whatever your rink calls it.</p>
+      <p className="text-xs text-[var(--mute)]">Skill level is one scale for every rink, so standings and ratings compare fairly. The name is whatever your rink calls it.</p>
       {err && <p className="text-sm down">{err}</p>}
       <div className="grid grid-cols-2 gap-2"><button type="button" className="btn btn-ghost h-11" onClick={onDone}>Cancel</button><button className="btn btn-red h-11" disabled={busy} data-testid="button-save-league">{busy ? "Adding…" : "Add league"}</button></div>
     </form>
@@ -164,7 +164,7 @@ export function RinkRequestForm({ onDone, admin = false }: { onDone: () => void;
           {manage && (
             <>
               <select className="input w-full" value={role} onChange={(e) => setRole(e.target.value)}>{ROLE_OPTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
-              <p className="text-[11px] text-[var(--mute)]">Signed in with your work email at the rink's own web address? That confirms it right away. Otherwise an admin calls the rink's public number to check.</p>
+              <p className="text-xs text-[var(--mute)]">Signed in with your work email at the rink's own web address? That confirms it right away. Otherwise an admin calls the rink's public number to check.</p>
             </>
           )}
         </>

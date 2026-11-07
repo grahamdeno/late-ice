@@ -58,7 +58,7 @@ export function ShotMap({ teamId }: { teamId: number }) {
         </div>
       </div>
       {sample && (
-        <p className="text-[11px] text-[var(--mute)] mt-2 px-1" data-testid="text-sample-note">
+        <p className="text-xs text-[var(--mute)] mt-2 px-1" data-testid="text-sample-note">
           Sample spots. DaySmart records who scored but not where, so these are placed to show how the map works. They replace themselves as players plot their real goals. Only players on this team see this map.
         </p>
       )}

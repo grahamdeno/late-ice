@@ -164,7 +164,7 @@ export default function Join() {
           {err && <p className="text-sm down" data-testid="text-error">{err}</p>}
           <button className="btn btn-red w-full h-12" disabled={busy || !normEmail(email)} data-testid="button-send-code">{busy ? "Sending…" : "Email me a code"}</button>
           {passkeysSupported() && <button type="button" className="btn btn-ghost w-full h-12" disabled={busy} onClick={withPasskey} data-testid="button-passkey-signin">Sign in with Face ID or a passkey</button>}
-          <p className="text-[11px] text-[var(--mute)] text-center">By joining you agree to the <Link href="/terms" className="underline" data-testid="link-terms">terms</Link> and <Link href="/privacy" className="underline" data-testid="link-privacy">privacy</Link>.</p>
+          <p className="text-xs text-[var(--mute)] text-center">By joining you agree to the <Link href="/terms" className="underline" data-testid="link-terms">terms</Link> and <Link href="/privacy" className="underline" data-testid="link-privacy">privacy</Link>.</p>
         </form>
       )}
 

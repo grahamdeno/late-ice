@@ -210,7 +210,7 @@ function HomeBody({ overview }: { overview: any }) {
         </div>
         <div className="min-w-0">
           <section className="mt-7">
-            <div className="flex items-baseline gap-3"><h2 className="font-black text-lg flex-1">Lineups for imported games</h2><Link href="/desk/lineups" className="text-sm font-bold text-[var(--blue)]">All teams</Link></div>
+            <div className="flex items-center gap-3"><h2 className="font-black text-lg flex-1">Lineups for imported games</h2><Link href="/desk/lineups" className="text-sm font-bold text-[var(--blue)] min-h-[44px] inline-flex items-center px-1">All teams</Link></div>
             <p className="text-sm text-[var(--mute)] mt-1">DaySmart sends scores, not who played. A game rates players once its lineup is in.</p>
             <div className="card mt-3 divide-y divide-[var(--line)]">
               {!gaps && <p className="p-4 text-sm text-[var(--mute)]">Loading…</p>}
@@ -220,7 +220,7 @@ function HomeBody({ overview }: { overview: any }) {
           </section>
           {rink && <WeeklyEmail rinkId={rink.id} />}
           <section className="mt-7">
-            <div className="flex items-baseline gap-3"><h2 className="font-black text-lg flex-1">Leagues</h2>{rink && <Link href={`/staff/rink/${rink.id}`} className="text-sm font-bold text-[var(--blue)]">Manage</Link>}</div>
+            <div className="flex items-center gap-3"><h2 className="font-black text-lg flex-1">Leagues</h2>{rink && <Link href={`/staff/rink/${rink.id}`} className="text-sm font-bold text-[var(--blue)] min-h-[44px] inline-flex items-center px-1">Manage</Link>}</div>
             <div className="card mt-3 divide-y divide-[var(--line)]">
               {leagues.length === 0 && <p className="p-4 text-sm text-[var(--mute)]">No leagues yet.</p>}
               {leagues.map((l: any) => (
@@ -262,8 +262,8 @@ function WeeklyEmail({ rinkId }: { rinkId: number }) {
       <p className="text-sm text-[var(--mute)] mt-1">Rink managers get last week's games, scans and sign-ups, and what's waiting, every Monday morning.</p>
       <div className="card mt-3 p-5">
         <div className="flex items-center gap-3 flex-wrap">
-          <label className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer">
-            <input type="checkbox" className="h-5 w-5 accent-[var(--up)]" checked={!!data?.on} disabled={!data} onChange={flip} data-testid="toggle-weekly-email" />
+          <label className="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer min-h-[44px]">
+            <input type="checkbox" className="h-6 w-6 accent-[var(--up)]" checked={!!data?.on} disabled={!data} onChange={flip} data-testid="toggle-weekly-email" />
             <span className="font-bold">{data?.on === false ? "Off for me" : "On for me"}</span>
           </label>
           <button className="btn btn-ghost h-10 px-4 text-sm" onClick={send} disabled={busy} data-testid="button-weekly-preview">{busy ? "Building…" : "Send me this week's now"}</button>

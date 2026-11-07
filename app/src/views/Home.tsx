@@ -78,7 +78,7 @@ export default function Home() {
 
       {isLoading ? <HomeFeedSkeleton /> : data && (
         <>
-          <Section title={feedLeague === slot.league_id ? `Latest in ${slot.league_name}` : "Latest finals"} action={<Link href={`/league/${slot.league_id}`} className="text-sm text-[var(--mute)] min-h-[32px] inline-flex items-center" data-testid="link-all-results">All results</Link>}>
+          <Section title={feedLeague === slot.league_id ? `Latest in ${slot.league_name}` : "Latest finals"} action={<Link href={`/league/${slot.league_id}`} className="text-sm text-[var(--mute)] min-h-[44px] inline-flex items-center" data-testid="link-all-results">All results</Link>}>
             {data.games.length ? <div className="space-y-3">{data.games.slice(0, 3).map((g) => <GameRow key={g.id} g={g} />)}</div>
               : <Empty title="No finals yet" body="The first scanned sheet puts this league on the board." />}
           </Section>

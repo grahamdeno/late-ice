@@ -68,9 +68,15 @@ function OfflineBanner() {
   const [off, setOff] = useState(false);
   useEffect(() => {
     const sync = () => setOff(!navigator.onLine);
+    // The service worker also says when a request failed or came back, which catches weak signal the browser still calls online.
+    const fromWorker = (e: MessageEvent) => { if (e.data?.type === "offline") setOff(!!e.data.offline || !navigator.onLine); };
     sync();
     window.addEventListener("online", sync); window.addEventListener("offline", sync);
-    return () => { window.removeEventListener("online", sync); window.removeEventListener("offline", sync); };
+    navigator.serviceWorker?.addEventListener("message", fromWorker);
+    return () => {
+      window.removeEventListener("online", sync); window.removeEventListener("offline", sync);
+      navigator.serviceWorker?.removeEventListener("message", fromWorker);
+    };
   }, []);
   if (!off) return null;
   return (
@@ -121,14 +127,14 @@ function AppShell({ children }: { children: React.ReactNode }) {
       >
         <div className="mx-auto max-w-[560px] px-4">
           <div className="mt-2 h-14 rounded-2xl flex items-center justify-between gap-2 px-3 overflow-hidden glass">
-            <Link href="/" className="flex items-center gap-2 shrink-0" data-testid="link-home-logo" aria-label="Late Ice home">
+            <Link href="/" className="flex items-center gap-2 shrink-0 min-h-[44px]" data-testid="link-home-logo" aria-label="Late Ice home">
               <FaceoffDot size={26} />
               <span className="whitespace-nowrap" style={{ fontWeight: 900, letterSpacing: "-0.03em", fontSize: 19 }}>Late Ice</span>
             </Link>
             <div className="flex items-center gap-1.5 min-w-0">
             <button
               onClick={() => setOpen((o) => !o)}
-              className="flex items-center gap-1.5 min-w-0 h-9 pl-3 pr-2 rounded-full bg-[var(--ice-3)] border border-[var(--line)] text-sm font-bold"
+              className="flex items-center gap-1.5 min-w-0 h-11 pl-3 pr-2 rounded-full bg-[var(--ice-3)] border border-[var(--line)] text-sm font-bold"
               data-testid="button-league-switcher"
               aria-expanded={open}
             >
@@ -152,11 +158,11 @@ function AppShell({ children }: { children: React.ReactNode }) {
                   <div className="font-black text-lg mt-0.5">{boot?.rink?.name}</div>
                   <div className="text-sm text-[var(--mute)]">{boot?.region ? `${boot.region.name}, ${boot.region.state}` : ""}{boot?.season ? ` · ${boot.season.name}` : ""}</div>
                   <div className="flex items-center gap-4 mt-1">
-                    <button className="min-h-[36px] text-sm font-bold text-[var(--blue)]" onClick={() => setPicking((p) => !p)} data-testid="button-change-rink">{picking ? "Keep this rink" : "Change rink"}</button>
-                    {!picking && <Link href="/rink" onClick={() => setOpen(false)} className="min-h-[36px] inline-flex items-center text-sm font-bold text-[var(--blue)]" data-testid="link-rink-details">Rink details</Link>}
+                    <button className="min-h-[44px] text-sm font-bold text-[var(--blue)]" onClick={() => setPicking((p) => !p)} data-testid="button-change-rink">{picking ? "Keep this rink" : "Change rink"}</button>
+                    {!picking && <Link href="/rink" onClick={() => setOpen(false)} className="min-h-[44px] inline-flex items-center text-sm font-bold text-[var(--blue)]" data-testid="link-rink-details">Rink details</Link>}
                   </div>
                 </div>
-                <button onClick={() => { setOpen(false); setPicking(false); }} className="h-9 w-9 rounded-full bg-[var(--ice-3)] flex items-center justify-center" aria-label="Close" data-testid="button-close-switcher">
+                <button onClick={() => { setOpen(false); setPicking(false); }} className="h-11 w-11 rounded-full bg-[var(--ice-3)] flex items-center justify-center" aria-label="Close" data-testid="button-close-switcher">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
                 </button>
               </div>
@@ -177,9 +183,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
                     key={l.id}
                     className={`rounded-xl p-3 text-left border ${leagueId === l.id ? "border-[var(--red)] bg-[var(--red-dim)]" : "border-[var(--line)] bg-[var(--ice-3)]"}`}
                     onClick={() => { setLeagueId(l.id); setOpen(false); }}
-                    data-testid={`button-filter-${l.level}`}
+                    data-testid={`button-filter-league-${l.id}`}
                   >
-                    <div className="font-black">{l.level === "40+" ? "40+" : l.level === "DEMO" ? "Demo" : `${l.level} League`}</div>
+                    <div className="font-black leading-tight break-words">{l.name || (l.level === "40+" ? "40+" : `${l.level} League`)}</div>
                     <div className="text-xs text-[var(--mute)]">{l.teams.length} teams</div>
                   </button>
                 ))}
@@ -214,7 +220,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
               ) : (
                 <Link key={n.href} href={n.href === "/me" && !me ? "/join" : n.href} className="flex flex-col items-center justify-center gap-1 min-h-[48px]" data-testid={`nav-${n.href === "/" ? "home" : n.href.slice(1)}`} aria-current={isActive(n.href) ? "page" : undefined}>
                   <span className="relative"><Icon d={n.d} active={isActive(n.href)} />{n.href === "/me" && me?.unread ? <span className="absolute -top-0.5 -right-1 h-2.5 w-2.5 rounded-full bg-[var(--red)] border-2 border-[var(--ice)]" /> : null}</span>
-                  <span className={`text-[11px] font-bold ${isActive(n.href) ? "text-[var(--white)]" : "text-[var(--dim)]"}`}>{n.href === "/me" && !me ? "Join" : n.label}</span>
+                  <span className={`text-xs font-bold ${isActive(n.href) ? "text-[var(--white)]" : "text-[var(--dim)]"}`}>{n.href === "/me" && !me ? "Join" : n.label}</span>
                 </Link>
               ),
             )}

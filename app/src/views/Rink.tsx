@@ -62,7 +62,7 @@ export default function Rink() {
             <span key={s.id} className="chip" data-active={season?.id === s.id}>{s.name}</span>
           ))}
         </div>
-        <p className="text-[11px] text-[var(--mute)] mt-2 px-1">Every rink sets its own calendar, from one season a year to four. A scanned sheet's date puts the game in the right one.</p>
+        <p className="text-xs text-[var(--mute)] mt-2 px-1">Every rink sets its own calendar, from one season a year to four. A scanned sheet's date puts the game in the right one.</p>
       </Section>
 
       <Section title="Leagues at this rink" action={can.addLeague && open !== "league" ? <AddButton label="League" onClick={() => setOpen("league")} testid="button-rink-add-league" /> : undefined}>

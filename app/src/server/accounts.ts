@@ -288,9 +288,12 @@ export async function notify(db: Tx, userId: number, n: { kind: string; title: s
 /** In-app notice plus push for each registered player in a confirmed game. */
 export async function notifyConfirmedResult(db: Tx, gameId: number) {
   const g = await one<any>(db,
-    `SELECT g.home_score, g.away_score, ht.name AS home, at.name AS away
-     FROM games g JOIN teams ht ON ht.id=g.home_team_id JOIN teams at ON at.id=g.away_team_id WHERE g.id=$1`, [gameId]);
+    `SELECT g.home_score, g.away_score, ht.name AS home, at.name AS away, COALESCE(l.star_voting, false) AS star_voting,
+       (SELECT COUNT(DISTINCT s.player_id) FROM player_game_stats s WHERE s.game_id=g.id)::int AS players
+     FROM games g JOIN teams ht ON ht.id=g.home_team_id JOIN teams at ON at.id=g.away_team_id LEFT JOIN leagues l ON l.id=g.league_id WHERE g.id=$1`, [gameId]);
   if (!g) return;
+  // Voting opens with the result when the league has it on and there are enough players to pick from.
+  const voting = g.star_voting && g.players >= 4;
   const users = await q<{ user_id: number }>(db,
     "SELECT DISTINCT p.user_id FROM player_game_stats s JOIN players p ON p.id=s.player_id WHERE s.game_id=$1 AND p.user_id IS NOT NULL", [gameId]);
   for (const row of users) {
@@ -298,7 +301,7 @@ export async function notifyConfirmedResult(db: Tx, gameId: number) {
       kind: "result",
       link: `/game/${gameId}`,
       title: `Final: ${g.home} ${g.home_score}-${g.away_score} ${g.away}`,
-      body: "Your rating moved.",
+      body: voting ? "Your rating moved. Three stars voting is open for 48 hours." : "Your rating moved.",
     });
   }
 }

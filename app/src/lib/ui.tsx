@@ -81,7 +81,7 @@ export function TeamBadge({ team, size = 32 }: { team: Team; size?: number }) {
 
 export function LevelPill({ level }: { level: string }) {
   return (
-    <span className="inline-flex items-center justify-center h-5 min-w-[28px] px-1.5 rounded-md text-[11px] font-black" style={{ background: "var(--red-dim)", color: "var(--red)" }}>
+    <span className="inline-flex items-center justify-center h-5 min-w-[28px] px-1.5 rounded-md text-xs font-black" style={{ background: "var(--red-dim)", color: "var(--red)" }}>
       {level}
     </span>
   );
