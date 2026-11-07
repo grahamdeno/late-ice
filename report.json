@@ -1,0 +1,1220 @@
+{
+  "journeys": [
+    {
+      "engine": "chromium",
+      "persona": "visitor",
+      "name": "Visitor browses standings, a team, a player and a game",
+      "goal": "A friend sent a link. Can they see how the league stands without an account?",
+      "ok": true,
+      "taps": 4,
+      "ms": 8563,
+      "steps": [
+        {
+          "label": "home",
+          "path": "/",
+          "shot": "001-chromium-visitor-home.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "standings",
+          "path": "/leagues",
+          "shot": "002-chromium-visitor-standings.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "team",
+          "path": "/team/29",
+          "shot": "003-chromium-visitor-team.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "player",
+          "path": "/player/41",
+          "shot": "004-chromium-visitor-player.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "career",
+          "path": "/player/41/career",
+          "shot": "005-chromium-visitor-career.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "game-shared-link",
+          "path": "/game/12",
+          "shot": "006-chromium-visitor-game-shared-link.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        }
+      ],
+      "blockedAt": null
+    },
+    {
+      "engine": "chromium",
+      "persona": "visitor",
+      "name": "Visitor hits a missing page",
+      "goal": "A stale link should still leave them somewhere useful.",
+      "ok": true,
+      "taps": 0,
+      "ms": 4786,
+      "steps": [
+        {
+          "label": "missing-team-99999999",
+          "path": "/team/99999999",
+          "shot": "007-chromium-visitor-missing-team-99999999.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "missing-player-99999999",
+          "path": "/player/99999999",
+          "shot": "008-chromium-visitor-missing-player-99999999.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "missing-game-99999999",
+          "path": "/game/99999999",
+          "shot": "009-chromium-visitor-missing-game-99999999.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "missing-nope",
+          "path": "/nope",
+          "shot": "010-chromium-visitor-missing-nope.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        }
+      ],
+      "blockedAt": null
+    },
+    {
+      "engine": "chromium",
+      "persona": "new-player",
+      "name": "New player joins and finds their rating",
+      "goal": "From an invite or a friend: sign up, claim my spot, see my rating.",
+      "ok": true,
+      "taps": 6,
+      "ms": 7893,
+      "steps": [
+        {
+          "label": "join-email",
+          "path": "/join",
+          "shot": "011-chromium-new-player-join-email.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "join-code",
+          "path": "/join",
+          "shot": "012-chromium-new-player-join-code.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "join-profile",
+          "path": "/join",
+          "shot": "013-chromium-new-player-join-profile.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 2
+        },
+        {
+          "label": "me-first-visit",
+          "path": "/me",
+          "shot": "014-chromium-new-player-me-first-visit.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "players",
+          "path": "/players",
+          "shot": "015-chromium-new-player-players.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "settings",
+          "path": "/settings",
+          "shot": "016-chromium-new-player-settings.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 11
+        }
+      ],
+      "blockedAt": null
+    },
+    {
+      "engine": "chromium",
+      "persona": "new-player",
+      "name": "New player opens a game and the stars",
+      "goal": "After a game: did I get a star, can I share it?",
+      "ok": true,
+      "taps": 0,
+      "ms": 1024,
+      "steps": [],
+      "blockedAt": null
+    },
+    {
+      "engine": "chromium",
+      "persona": "captain",
+      "name": "Captain takes over a team and adds a player",
+      "goal": "Claim my team, become captain, add a newcomer by hand.",
+      "ok": true,
+      "taps": 10,
+      "ms": 8979,
+      "steps": [
+        {
+          "label": "join-email",
+          "path": "/join",
+          "shot": "017-chromium-captain-join-email.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "join-code",
+          "path": "/join",
+          "shot": "018-chromium-captain-join-code.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "join-profile",
+          "path": "/join",
+          "shot": "019-chromium-captain-join-profile.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 2
+        },
+        {
+          "label": "me",
+          "path": "/me",
+          "shot": "020-chromium-captain-me.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "me-captain",
+          "path": "/me",
+          "shot": "021-chromium-captain-me-captain.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "manage",
+          "path": "/team/12/manage",
+          "shot": "022-chromium-captain-manage.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 19
+        },
+        {
+          "label": "manage-added",
+          "path": "/team/12/manage",
+          "shot": "023-chromium-captain-manage-added.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 21
+        }
+      ],
+      "blockedAt": null
+    },
+    {
+      "engine": "chromium",
+      "persona": "captain",
+      "name": "Captain schedules next game and sets tonight's details",
+      "goal": "Put Thursday's game on the schedule and tell the team the sheet and locker room.",
+      "ok": true,
+      "taps": 4,
+      "ms": 7706,
+      "steps": [
+        {
+          "label": "team",
+          "path": "/team/12",
+          "shot": "024-chromium-captain-team.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "add-game-form",
+          "path": "/team/12",
+          "shot": "025-chromium-captain-add-game-form.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "game-added",
+          "path": "/team/12",
+          "shot": "026-chromium-captain-game-added.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "home-next-game",
+          "path": "/",
+          "shot": "027-chromium-captain-home-next-game.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "details-editor",
+          "path": "/team/12",
+          "shot": "028-chromium-captain-details-editor.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "details-saved",
+          "path": "/team/12",
+          "shot": "029-chromium-captain-details-saved.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        }
+      ],
+      "blockedAt": null
+    },
+    {
+      "engine": "chromium",
+      "persona": "captain",
+      "name": "Captain fixes a missing goalie",
+      "goal": "Home says no goalie. Can I get one from here?",
+      "ok": true,
+      "taps": 1,
+      "ms": 3129,
+      "steps": [
+        {
+          "label": "after-find-goalie",
+          "path": "/team/12",
+          "shot": "030-chromium-captain-after-find-goalie.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        }
+      ],
+      "blockedAt": null
+    },
+    {
+      "engine": "chromium",
+      "persona": "captain",
+      "name": "Captain sets a lineup",
+      "goal": "Build lines for Thursday and share them.",
+      "ok": true,
+      "taps": 4,
+      "ms": 4765,
+      "steps": [
+        {
+          "label": "lineup",
+          "path": "/team/12/lineup/1",
+          "shot": "031-chromium-captain-lineup.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 2
+        },
+        {
+          "label": "lineup-pick",
+          "path": "/team/12/lineup/1",
+          "shot": "032-chromium-captain-lineup-pick.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 2
+        },
+        {
+          "label": "lineup-saved",
+          "path": "/team/12/lineup/1",
+          "shot": "033-chromium-captain-lineup-saved.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 2
+        }
+      ],
+      "blockedAt": null
+    },
+    {
+      "engine": "chromium",
+      "persona": "captain",
+      "name": "Captain scouts tonight's opponent",
+      "goal": "What do I need to know about the other team?",
+      "ok": true,
+      "taps": 1,
+      "ms": 1957,
+      "steps": [
+        {
+          "label": "scout",
+          "path": "/",
+          "shot": "034-chromium-captain-scout.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        }
+      ],
+      "blockedAt": null
+    },
+    {
+      "engine": "chromium",
+      "persona": "captain",
+      "name": "Scorekeeper opens the scanner",
+      "goal": "Just played: snap the sheet.",
+      "ok": true,
+      "taps": 1,
+      "ms": 1008,
+      "steps": [
+        {
+          "label": "scan",
+          "path": "/scan",
+          "shot": "035-chromium-captain-scan.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        }
+      ],
+      "blockedAt": null
+    },
+    {
+      "engine": "chromium",
+      "persona": "captain",
+      "name": "Rink manager turns on three-stars voting",
+      "goal": "Turn voting on for one league from the desk.",
+      "ok": true,
+      "taps": 3,
+      "ms": 3769,
+      "steps": [
+        {
+          "label": "desk-home",
+          "path": "/desk",
+          "shot": "036-chromium-captain-desk-home.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "desk-season",
+          "path": "/desk/season",
+          "shot": "037-chromium-captain-desk-season.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "desk-voting-on",
+          "path": "/desk/season",
+          "shot": "038-chromium-captain-desk-voting-on.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        }
+      ],
+      "blockedAt": null
+    },
+    {
+      "engine": "chromium",
+      "persona": "conditions",
+      "name": "Slow phone connection",
+      "goal": "Rink Wi-Fi is bad. Does Home still feel usable?",
+      "ok": true,
+      "taps": 0,
+      "ms": 6547,
+      "steps": [
+        {
+          "label": "home-slow-3g",
+          "path": "/",
+          "shot": "039-chromium-conditions-home-slow-3g.png",
+          "cls": 0.071,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        }
+      ],
+      "blockedAt": null
+    },
+    {
+      "engine": "chromium",
+      "persona": "conditions",
+      "name": "Signal drops mid-use",
+      "goal": "Lose signal in the locker room, tap Standings.",
+      "ok": true,
+      "taps": 0,
+      "ms": 5659,
+      "steps": [
+        {
+          "label": "offline-banner",
+          "path": "/",
+          "shot": "040-chromium-conditions-offline-banner.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "offline-standings",
+          "path": "/",
+          "shot": "041-chromium-conditions-offline-standings.png",
+          "cls": 0,
+          "axe": 2,
+          "tiny": 0,
+          "small": 0
+        }
+      ],
+      "blockedAt": null
+    },
+    {
+      "engine": "chromium",
+      "persona": "conditions",
+      "name": "Small phone, light mode, reduced motion",
+      "goal": "iPhone SE in daylight with motion turned down.",
+      "ok": true,
+      "taps": 0,
+      "ms": 6454,
+      "steps": [
+        {
+          "label": "se-light-",
+          "path": "/",
+          "shot": "042-chromium-conditions-se-light-.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "se-light-leagues",
+          "path": "/leagues",
+          "shot": "043-chromium-conditions-se-light-leagues.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "se-light-players",
+          "path": "/players",
+          "shot": "044-chromium-conditions-se-light-players.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "se-light-join",
+          "path": "/join",
+          "shot": "045-chromium-conditions-se-light-join.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "se-light-league-sheet",
+          "path": "/",
+          "shot": "046-chromium-conditions-se-light-league-sheet.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        }
+      ],
+      "blockedAt": null
+    },
+    {
+      "engine": "webkit",
+      "persona": "visitor",
+      "name": "Visitor browses standings, a team, a player and a game",
+      "goal": "A friend sent a link. Can they see how the league stands without an account?",
+      "ok": true,
+      "taps": 4,
+      "ms": 10464,
+      "steps": [
+        {
+          "label": "home",
+          "path": "/",
+          "shot": "047-webkit-visitor-home.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "standings",
+          "path": "/leagues",
+          "shot": "048-webkit-visitor-standings.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "team",
+          "path": "/team/29",
+          "shot": "049-webkit-visitor-team.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "player",
+          "path": "/player/41",
+          "shot": "050-webkit-visitor-player.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "career",
+          "path": "/player/41/career",
+          "shot": "051-webkit-visitor-career.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "game-shared-link",
+          "path": "/game/12",
+          "shot": "052-webkit-visitor-game-shared-link.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        }
+      ],
+      "blockedAt": null
+    },
+    {
+      "engine": "webkit",
+      "persona": "visitor",
+      "name": "Visitor hits a missing page",
+      "goal": "A stale link should still leave them somewhere useful.",
+      "ok": true,
+      "taps": 0,
+      "ms": 4987,
+      "steps": [
+        {
+          "label": "missing-team-99999999",
+          "path": "/team/99999999",
+          "shot": "053-webkit-visitor-missing-team-99999999.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "missing-player-99999999",
+          "path": "/player/99999999",
+          "shot": "054-webkit-visitor-missing-player-99999999.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "missing-game-99999999",
+          "path": "/game/99999999",
+          "shot": "055-webkit-visitor-missing-game-99999999.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "missing-nope",
+          "path": "/nope",
+          "shot": "056-webkit-visitor-missing-nope.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        }
+      ],
+      "blockedAt": null
+    },
+    {
+      "engine": "webkit",
+      "persona": "new-player",
+      "name": "New player joins and finds their rating",
+      "goal": "From an invite or a friend: sign up, claim my spot, see my rating.",
+      "ok": true,
+      "taps": 6,
+      "ms": 8438,
+      "steps": [
+        {
+          "label": "join-email",
+          "path": "/join",
+          "shot": "057-webkit-new-player-join-email.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "join-code",
+          "path": "/join",
+          "shot": "058-webkit-new-player-join-code.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "join-profile",
+          "path": "/join",
+          "shot": "059-webkit-new-player-join-profile.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 2
+        },
+        {
+          "label": "me-first-visit",
+          "path": "/me",
+          "shot": "060-webkit-new-player-me-first-visit.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "players",
+          "path": "/players",
+          "shot": "061-webkit-new-player-players.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        },
+        {
+          "label": "settings",
+          "path": "/settings",
+          "shot": "062-webkit-new-player-settings.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 11
+        }
+      ],
+      "blockedAt": null
+    },
+    {
+      "engine": "webkit",
+      "persona": "new-player",
+      "name": "New player opens a game and the stars",
+      "goal": "After a game: did I get a star, can I share it?",
+      "ok": true,
+      "taps": 1,
+      "ms": 2167,
+      "steps": [
+        {
+          "label": "game",
+          "path": "/game/37",
+          "shot": "063-webkit-new-player-game.png",
+          "cls": 0,
+          "axe": 0,
+          "tiny": 0,
+          "small": 1
+        }
+      ],
+      "blockedAt": null
+    }
+  ],
+  "findings": [
+    {
+      "severity": "serious",
+      "kind": "a11y: document-title",
+      "engine": "chromium",
+      "journey": "Signal drops mid-use",
+      "step": "offline-standings",
+      "detail": "/: Documents must have <title> element to aid in navigation (1x) e.g. html",
+      "shot": "041-chromium-conditions-offline-standings.png"
+    },
+    {
+      "severity": "serious",
+      "kind": "a11y: html-has-lang",
+      "engine": "chromium",
+      "journey": "Signal drops mid-use",
+      "step": "offline-standings",
+      "detail": "/: <html> element must have a lang attribute (1x) e.g. html",
+      "shot": "041-chromium-conditions-offline-standings.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "console error",
+      "engine": "chromium",
+      "journey": "Signal drops mid-use",
+      "step": "offline-banner",
+      "detail": "Failed to fetch RSC payload for http://localhost:3097/leagues. Falling back to browser navigation. TypeError: Failed to fetch\n    at y (http://localhost:3097/_next/static/chunks/1255-b84741b894bb9354.js:1:40385)\n    at async _ (http://local",
+      "shot": "040-chromium-conditions-offline-banner.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "no recent games",
+      "engine": "chromium",
+      "journey": "New player opens a game and the stars",
+      "step": "settings",
+      "detail": "Home shows no game to open",
+      "shot": "016-chromium-new-player-settings.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "Visitor browses standings, a team, a player and a game",
+      "step": "home",
+      "detail": "/: a[nav-scan] \"Scan scoresheet\" 71x36",
+      "shot": "001-chromium-visitor-home.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "New player joins and finds their rating",
+      "step": "join-profile",
+      "detail": "/join: input[input-age] \"\" 24x24",
+      "shot": "013-chromium-new-player-join-profile.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "New player joins and finds their rating",
+      "step": "settings",
+      "detail": "/settings: button[switch-lookingForTeam] \"Looking for a team\" 52x32",
+      "shot": "016-chromium-new-player-settings.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "New player joins and finds their rating",
+      "step": "settings",
+      "detail": "/settings: button[switch-willSub] \"Will sub\" 52x32",
+      "shot": "016-chromium-new-player-settings.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "New player joins and finds their rating",
+      "step": "settings",
+      "detail": "/settings: input[input-pref-game-day] \"\" 24x24",
+      "shot": "016-chromium-new-player-settings.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "New player joins and finds their rating",
+      "step": "settings",
+      "detail": "/settings: input[input-pref-result] \"\" 24x24",
+      "shot": "016-chromium-new-player-settings.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "New player joins and finds their rating",
+      "step": "settings",
+      "detail": "/settings: input[input-pref-sub-request] \"\" 24x24",
+      "shot": "016-chromium-new-player-settings.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "New player joins and finds their rating",
+      "step": "settings",
+      "detail": "/settings: input[input-pref-roster] \"\" 24x24",
+      "shot": "016-chromium-new-player-settings.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "New player joins and finds their rating",
+      "step": "settings",
+      "detail": "/settings: input[input-pref-confirm] \"\" 24x24",
+      "shot": "016-chromium-new-player-settings.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "New player joins and finds their rating",
+      "step": "settings",
+      "detail": "/settings: button[switch-hidden] \"Hide my name\" 52x32",
+      "shot": "016-chromium-new-player-settings.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "New player joins and finds their rating",
+      "step": "settings",
+      "detail": "/settings: button[switch-archetype-opt-out] \"Hide my player type\" 52x32",
+      "shot": "016-chromium-new-player-settings.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "Captain takes over a team and adds a player",
+      "step": "manage",
+      "detail": "/team/12/manage: a[link-back-team] \"‹ Back\" 36x44",
+      "shot": "022-chromium-captain-manage.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "Captain takes over a team and adds a player",
+      "step": "manage",
+      "detail": "/team/12/manage: button[button-slot-17] \"–Adam Y.Forward · Not signed up yet3.80›\" 334x36",
+      "shot": "022-chromium-captain-manage.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "Captain takes over a team and adds a player",
+      "step": "manage",
+      "detail": "/team/12/manage: button[button-slot-5] \"–Alex F.Forward · Not signed up yet3.80›\" 334x36",
+      "shot": "022-chromium-captain-manage.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "Captain takes over a team and adds a player",
+      "step": "manage",
+      "detail": "/team/12/manage: button[button-slot-13] \"–Ben M.Forward · Not signed up yet3.80›\" 334x36",
+      "shot": "022-chromium-captain-manage.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "Captain takes over a team and adds a player",
+      "step": "manage",
+      "detail": "/team/12/manage: button[button-slot-8] \"–Claude H.Forward · Not signed up yet3.8\" 334x36",
+      "shot": "022-chromium-captain-manage.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "Captain takes over a team and adds a player",
+      "step": "manage",
+      "detail": "/team/12/manage: button[button-slot-14] \"–Dan M.Forward · Not signed up yet3.80›\" 334x36",
+      "shot": "022-chromium-captain-manage.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "Captain takes over a team and adds a player",
+      "step": "manage",
+      "detail": "/team/12/manage: button[button-slot-4] \"–Graham DeNoyerCCenter · Registered3.80›\" 334x37",
+      "shot": "022-chromium-captain-manage.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "Captain takes over a team and adds a player",
+      "step": "manage",
+      "detail": "/team/12/manage: button[button-slot-1] \"–Jared A.Forward · Not signed up yet3.80\" 334x36",
+      "shot": "022-chromium-captain-manage.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "Captain takes over a team and adds a player",
+      "step": "manage",
+      "detail": "/team/12/manage: button[button-slot-9] \"–Joseph H.Forward · Not signed up yet3.8\" 334x36",
+      "shot": "022-chromium-captain-manage.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "Captain takes over a team and adds a player",
+      "step": "manage",
+      "detail": "/team/12/manage: button[button-slot-3] \"–Joshua B.Forward · Not signed up yet3.8\" 334x36",
+      "shot": "022-chromium-captain-manage.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "Captain takes over a team and adds a player",
+      "step": "manage",
+      "detail": "/team/12/manage: button[button-slot-16] \"–Kristian S.Forward · Not signed up yet3\" 334x36",
+      "shot": "022-chromium-captain-manage.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "Captain takes over a team and adds a player",
+      "step": "manage",
+      "detail": "/team/12/manage: button[button-slot-11] \"–Matt M.Forward · Not signed up yet3.80›\" 334x36",
+      "shot": "022-chromium-captain-manage.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "Captain takes over a team and adds a player",
+      "step": "manage",
+      "detail": "/team/12/manage: button[button-slot-2] \"–Nathan B.Forward · Not signed up yet3.8\" 334x36",
+      "shot": "022-chromium-captain-manage.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "Captain takes over a team and adds a player",
+      "step": "manage",
+      "detail": "/team/12/manage: button[button-slot-15] \"–Rob N.Forward · Not signed up yet3.80›\" 334x36",
+      "shot": "022-chromium-captain-manage.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "Captain takes over a team and adds a player",
+      "step": "manage",
+      "detail": "/team/12/manage: button[button-slot-10] \"–Seth L.Forward · Not signed up yet3.80›\" 334x36",
+      "shot": "022-chromium-captain-manage.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "Captain takes over a team and adds a player",
+      "step": "manage",
+      "detail": "/team/12/manage: button[button-slot-6] \"–Steve G.Forward · Not signed up yet3.80\" 334x36",
+      "shot": "022-chromium-captain-manage.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "Captain takes over a team and adds a player",
+      "step": "manage",
+      "detail": "/team/12/manage: button[button-slot-12] \"–Steven M.Forward · Not signed up yet3.8\" 334x36",
+      "shot": "022-chromium-captain-manage.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "Captain takes over a team and adds a player",
+      "step": "manage",
+      "detail": "/team/12/manage: button[button-slot-7] \"–Tristan H.Forward · Not signed up yet3.\" 334x36",
+      "shot": "022-chromium-captain-manage.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "Captain takes over a team and adds a player",
+      "step": "manage-added",
+      "detail": "/team/12/manage: button[button-slot-162] \"–Pat N.Defense · Not signed up yet3.80›\" 334x36",
+      "shot": "023-chromium-captain-manage-added.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "Captain takes over a team and adds a player",
+      "step": "manage-added",
+      "detail": "/team/12/manage: input[checkbox-spot-sub] \"\" 24x24",
+      "shot": "023-chromium-captain-manage-added.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "Rink manager turns on three-stars voting",
+      "step": "desk-home",
+      "detail": "/desk: input[toggle-weekly-email] \"\" 24x24",
+      "shot": "036-chromium-captain-desk-home.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 40px",
+      "engine": "chromium",
+      "journey": "Rink manager turns on three-stars voting",
+      "step": "desk-season",
+      "detail": "/desk/season: input[toggle-star-voting-3] \"\" 24x24",
+      "shot": "037-chromium-captain-desk-season.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "text under 12px",
+      "engine": "chromium",
+      "journey": "Visitor browses standings, a team, a player and a game",
+      "step": "home",
+      "detail": "/: 5 runs, e.g. 10.08px \"NS\"; 10.08px \"IP\"; 10.08px \"CK\"; 10.08px \"LB\"",
+      "shot": "001-chromium-visitor-home.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "text under 12px",
+      "engine": "chromium",
+      "journey": "Visitor browses standings, a team, a player and a game",
+      "step": "standings",
+      "detail": "/leagues: 4 runs, e.g. 10px \"HH\"; 10px \"IP\"; 10px \"NS\"; 10px \"RR\"",
+      "shot": "002-chromium-visitor-standings.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "text under 12px",
+      "engine": "chromium",
+      "journey": "Visitor browses standings, a team, a player and a game",
+      "step": "player",
+      "detail": "/player/41: 2 runs, e.g. 10px \"86\"; 10px \"HH\"",
+      "shot": "004-chromium-visitor-player.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "text under 12px",
+      "engine": "chromium",
+      "journey": "Visitor browses standings, a team, a player and a game",
+      "step": "game-shared-link",
+      "detail": "/game/12: 2 runs, e.g. 10px \"NS\"; 10px \"IP\"",
+      "shot": "006-chromium-visitor-game-shared-link.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "text under 12px",
+      "engine": "chromium",
+      "journey": "Captain takes over a team and adds a player",
+      "step": "me-captain",
+      "detail": "/me: 1 runs, e.g. 10px \"12\"",
+      "shot": "021-chromium-captain-me-captain.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "text under 12px",
+      "engine": "chromium",
+      "journey": "Captain schedules next game and sets tonight's details",
+      "step": "game-added",
+      "detail": "/team/12: 1 runs, e.g. 10px \"BC\"",
+      "shot": "026-chromium-captain-game-added.png"
+    },
+    {
+      "severity": "moderate",
+      "kind": "text under 12px",
+      "engine": "chromium",
+      "journey": "Captain sets a lineup",
+      "step": "lineup",
+      "detail": "/team/12/lineup/1: 2 runs, e.g. 10px \"LW\"; 10px \"RW\"",
+      "shot": "031-chromium-captain-lineup.png"
+    },
+    {
+      "severity": "minor",
+      "kind": "heading structure",
+      "engine": "chromium",
+      "journey": "Visitor browses standings, a team, a player and a game",
+      "step": "game-shared-link",
+      "detail": "/game/12: 0 top headings []",
+      "shot": "006-chromium-visitor-game-shared-link.png"
+    },
+    {
+      "severity": "minor",
+      "kind": "heading structure",
+      "engine": "chromium",
+      "journey": "Visitor hits a missing page",
+      "step": "missing-nope",
+      "detail": "/nope: 0 top headings []",
+      "shot": "010-chromium-visitor-missing-nope.png"
+    },
+    {
+      "severity": "minor",
+      "kind": "heading structure",
+      "engine": "chromium",
+      "journey": "Signal drops mid-use",
+      "step": "offline-standings",
+      "detail": "/: 0 top headings []",
+      "shot": "041-chromium-conditions-offline-standings.png"
+    },
+    {
+      "severity": "minor",
+      "kind": "passkey offer missing",
+      "engine": "chromium",
+      "journey": "New player joins and finds their rating",
+      "step": "me-first-visit",
+      "detail": "After the email code, the Face ID offer did not appear (browser may not support passkeys)",
+      "shot": "014-chromium-new-player-me-first-visit.png"
+    }
+  ]
+}
