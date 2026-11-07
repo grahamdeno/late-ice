@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { act, useMe } from "@/lib/auth";
 import { Link } from "@/lib/router";
 import { BackBar, Delta, FaceoffDot, LevelPill, Loading, TeamBadge, fmtDate, img } from "@/lib/ui";
+import { Stars } from "@/components/Stars";
+import { ShareCard } from "@/components/ShareCard";
 
 export default function Game({ id, fresh }: { id: string; fresh?: boolean }) {
   const { data: g } = useQuery<any>({ queryKey: [`/api/games/${id}`] });
@@ -16,7 +18,6 @@ export default function Game({ id, fresh }: { id: string; fresh?: boolean }) {
   const timeline = sides
     .flatMap((s) => (g.goals[s.key] || []).map((x: any) => ({ ...x, side: s.key, team: s.team })))
     .sort((a: any, b: any) => (a.period - b.period) || (toSec(b.time) - toSec(a.time)));
-  const stars = [...g.lines].sort((a: any, b: any) => (b.goals * 2 + b.assists) - (a.goals * 2 + a.assists) || (b.delta ?? 0) - (a.delta ?? 0)).slice(0, 3);
   const periods = Math.max(3, (g.periods.home || []).length);
   const imported = g.source === "daysmart";
 
@@ -93,22 +94,15 @@ export default function Game({ id, fresh }: { id: string; fresh?: boolean }) {
               </div>
             );
           })}
+          <Stars g={g} />
         </>
       )}
 
+      <div className="mt-5"><ShareCard kind="game" id={g.id} title={`${g.home.name} ${g.homeScore}-${g.awayScore} ${g.away.name}`} label="Share this result" /></div>
+
       {!imported && <>
 
-      <h2 className="font-black text-[17px] mt-7 mb-3 px-1">Three stars</h2>
-      <div className="grid grid-cols-3 gap-2">
-        {stars.map((p: any, i: number) => (
-          <Link key={p.player_id} href={`/player/${p.player_id}`} className="card p-3 text-center" data-testid={`card-star-${i + 1}`}>
-            <div className="font-display text-xl text-[var(--red)]">{"★".repeat(3 - i)}</div>
-            <div className="font-bold text-sm leading-tight mt-1">{p.name}</div>
-            <div className="text-xs text-[var(--mute)] mt-0.5">{p.goals}G {p.assists}A</div>
-            <Delta d={p.delta} className="text-xs" />
-          </Link>
-        ))}
-      </div>
+      <Stars g={g} />
 
       <h2 className="font-black text-[17px] mt-7 mb-3 px-1">Scoring</h2>
       <div className="card divide-y divide-[var(--line)]">

@@ -7,6 +7,7 @@ import { syncAllFeeds } from "@/server/schedule";
 import { runBackup } from "@/server/backup";
 import { escalateWaitingSheets } from "@/server/sheetconfirm";
 import { deleteOldSheetPhotos } from "@/server/privacy";
+import { computeMilestones } from "@/server/milestones";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -17,6 +18,7 @@ export const GET = handle(async (req) => {
   const people = await sql.begin((tx) => consolidatePeople(tx));
   const r = { ...(await recomputeAll()), people };
   await refreshDisplays(sql, true);
+  const milestones = await sql.begin((tx) => computeMilestones(tx)).catch((e) => ({ error: String(e?.message ?? e) }));
   const merges = await runDueMerges();
   const feeds = await syncAllFeeds();
   // Injured reserve and Away end on their return date, on the player's home rink clock.
@@ -29,5 +31,5 @@ export const GET = handle(async (req) => {
   // Game-day alerts run from /api/cron/gameday at 9:17 am Eastern, after quiet hours.
   // Backup last, so a failure here never blocks the rest; it still shows in the logs.
   const backup = await runBackup().catch((e) => ({ error: String(e?.message ?? e) }));
-  return { ...r, merges, feeds, escalated, photos, backup };
+  return { ...r, milestones, merges, feeds, escalated, photos, backup };
 });

@@ -2,6 +2,8 @@ import { handle, body, num } from "@/server/http";
 import { sql, q, one } from "@/server/db";
 import { gameCard, HttpError } from "@/server/services";
 import { applyViewerNames, userFromRequest } from "@/server/accounts";
+import { gameStars } from "@/server/stars";
+import { milestonesInGame } from "@/server/milestones";
 
 export const dynamic = "force-dynamic";
 export const GET = handle<{ id: string }>(async (req, { id }) => {
@@ -18,7 +20,12 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
      ORDER BY (COALESCE(il.goals,0)*2+COALESCE(il.assists,0)) DESC, p.display_name`, [g.id]);
   const lineupTeams = (await q<{ team_id: number }>(sql, "SELECT DISTINCT team_id FROM imported_game_attendance WHERE game_id=$1", [g.id])).map((r) => r.team_id);
   const viewer = await userFromRequest(req).catch(() => null);
+  const stars = await gameStars(sql, g.id, viewer?.id ?? null);
+  stars.stars = await applyViewerNames(sql, viewer, stars.stars, "player_id");
+  stars.candidates = await applyViewerNames(sql, viewer, stars.candidates, "player_id");
+  const earned = await applyViewerNames(sql, viewer, await milestonesInGame(sql, g.id), "player_id");
   return {
+    stars, milestones: earned,
     ...(await gameCard(sql, g)), periods: parse(g.periods_json), goals: parse(g.goals_json), penalties: parse(g.penalties_json), shots: parse(g.shots_json),
     lines: await applyViewerNames(sql, viewer, lines, "player_id"),
     imported: await applyViewerNames(sql, viewer, imported, "player_id"),

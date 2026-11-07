@@ -4,6 +4,7 @@ import { HttpError } from "@/server/services";
 import * as A from "@/server/accounts";
 import * as P from "@/server/permissions";
 import * as S from "@/server/staff";
+import { computeMilestones } from "@/server/milestones";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,7 @@ export const POST = handle(async (req) => {
   const r = await recomputeAll();
   await A.refreshDisplays(sql, true);
   const merges = await S.runDueMerges();
-  await P.audit(sql, u.id, "ratings.recompute", { type: "system" }, undefined, { ...r, merges });
-  return { ...r, merges };
+  const milestones = await sql.begin((tx) => computeMilestones(tx));
+  await P.audit(sql, u.id, "ratings.recompute", { type: "system" }, undefined, { ...r, merges, milestones });
+  return { ...r, merges, milestones };
 });

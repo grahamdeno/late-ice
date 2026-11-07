@@ -1572,8 +1572,21 @@ async function main() {
   const help = await (await fetch(`${BASE}/help`)).text();
   ok(help.includes("Why did my rating move?") && help.includes("Report a mistake"), "the help page is up");
 
+  console.log("release 3: stars, career, cards");
+  const starsGame = await call("GET", `/api/games/${conf.json.gameId}`);
+  ok(starsGame.status === 200 && starsGame.json.stars && starsGame.json.stars.mode === "numbers", "voting is off by default, so stars come from the numbers");
+  ok(starsGame.json.stars.voting === null, "and there is no voting panel");
+  ok((await call("GET", `/api/desk/stars?rink=${rinkId}`)).status === 401, "the voting switch list needs a sign-in");
+  ok((await call("GET", `/api/desk/stars?rink=${rinkId}`, undefined, boss)).status === 200, "an admin sees the voting switches");
+  ok((await call("PUT", `/api/games/${conf.json.gameId}/stars`, { picks: [mike] })).status === 401, "voting needs a sign-in");
+  const careerRes = await call("GET", `/api/players/${mike}/career`);
+  ok(careerRes.status === 200 && Array.isArray(careerRes.json.seasons) && careerRes.json.totals, "the career page data loads");
+  const gameCard = await fetch(`${BASE}/api/cards/game/${conf.json.gameId}`);
+  ok(gameCard.status === 200 && (gameCard.headers.get("content-type") ?? "").includes("image/png"), "a game card is a PNG");
+  ok((await fetch(`${BASE}/api/cards/player/99999999`)).status === 404, "a card for a missing player is a 404");
+
   console.log("pages render");
-  for (const path of ["/", "/leagues", `/team/${hh}`, `/player/${mike}`, "/players", "/rink", "/scan", "/join", "/privacy", "/terms", `/game/${conf.json.gameId}`, `/league/${lg}`, `/team/${hh}/manage`, `/team/${hh}/lineup/${lgGame.json.id}`]) {
+  for (const path of ["/", "/leagues", `/team/${hh}`, `/player/${mike}`, `/player/${mike}/career`, "/players", "/rink", "/scan", "/join", "/privacy", "/terms", `/game/${conf.json.gameId}`, `/league/${lg}`, `/team/${hh}/manage`, `/team/${hh}/lineup/${lgGame.json.id}`]) {
     const r = await fetch(BASE + path);
     ok(r.status === 200, `${path} renders`);
   }
