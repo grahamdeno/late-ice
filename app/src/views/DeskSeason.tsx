@@ -18,6 +18,35 @@ type Plan = {
 
 const RELOAD = ["/api/desk", "/api/staff", "/api/standings", "/api/teams", "/api/leagues", "/api/bootstrap", "/api/rink", "/api/players"];
 
+/** Per-league switch for player three-stars voting. Off by default. */
+function StarVoting({ rinkId }: { rinkId: number }) {
+  const key = `/api/desk/stars?rink=${rinkId}`;
+  const { data, refetch } = useQuery<{ leagues: { id: number; name: string; level: string; enabled: boolean }[] }>({ queryKey: [key] });
+  const [err, setErr] = useState<string | null>(null);
+  const flip = async (leagueId: number, on: boolean) => {
+    setErr(null);
+    try { await apiRequest("PUT", key, { leagueId, on }); await refetch(); }
+    catch (e: any) { setErr(e?.message ?? "That didn't save."); }
+  };
+  if (!data?.leagues.length) return null;
+  return (
+    <section className="card p-5 mt-5" data-testid="section-star-voting">
+      <div className="label">Optional</div>
+      <h2 className="font-black text-lg mt-0.5">Three stars voting</h2>
+      <p className="text-sm text-[var(--mute)] mt-1 max-w-2xl">Off, every game shows its stars from the numbers. On, players vote for 48 hours after a game; it needs at least 3 voters, otherwise the numbers decide. Captains never see who voted for whom.</p>
+      {err && <p className="text-sm down mt-3" data-testid="text-stars-error">{err}</p>}
+      <div className="divide-y divide-[var(--line)] mt-3">
+        {data.leagues.map((l) => (
+          <label key={l.id} className="flex items-center gap-3 py-2.5">
+            <span className="flex-1 font-bold text-sm">{l.name}</span>
+            <input type="checkbox" className="h-5 w-5" checked={l.enabled} onChange={(e) => flip(l.id, e.target.checked)} data-testid={`toggle-star-voting-${l.id}`} />
+          </label>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function DeskSeason() {
   return <Gate>{(overview) => <SeasonBody overview={overview} />}</Gate>;
 }
@@ -136,6 +165,7 @@ function SeasonBody({ overview }: { overview: any }) {
           </section>
         </div>
       )}
+      {rink && <StarVoting rinkId={rink.id} />}
       <p className="text-xs text-[var(--mute)] mt-6 max-w-3xl">Ratings never reset. A player's rating follows them into the next season and onto a new team.</p>
     </DeskFrame>
   );

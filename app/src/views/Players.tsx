@@ -185,6 +185,8 @@ export function PlayerPage({ id }: { id: string }) {
         </>
       )}
 
+      <Link href={`/player/${id}/career`} className="card mt-7 p-4 flex items-center gap-3 font-bold" data-testid="link-career"><span className="flex-1">Career, milestones and goalie numbers</span><span className="text-[var(--mute)]">›</span></Link>
+
       <h2 id="why" className="font-black text-[17px] mt-7 mb-3 px-1 scroll-mt-24">Why it moved</h2>
       {history.length === 0 ? <Empty title="No rated games yet" body={player.season_rated ? "This rating comes from the rink's season totals: points per game against the league. A scanned sheet or a team lineup starts moving it game by game." : "Ratings start after the first scanned game or recorded lineup. New lineups count after the nightly update."} /> : (
         <div className="space-y-2">
