@@ -3,12 +3,13 @@ import "server-only";
 import { one, q, type Tx } from "./db";
 import { joinProgress, sheetQueue } from "./desk";
 import { gapsForRink } from "./lineups";
+import { reportsForRink } from "./statreports";
 import { sendEmail } from "./staff";
 
 export type Week = {
   rink: string; games: number; scans: number; newPlayers: number;
   joined: number; roster: number; noCaptain: number; noLink: number;
-  scansWaiting: number; lineupsMissing: number;
+  scansWaiting: number; lineupsMissing: number; reports: number;
 };
 
 const since = () => new Date(Date.now() - 7 * 864e5);
@@ -32,12 +33,14 @@ export async function rinkWeek(db: Tx, user: any, rinkId: number): Promise<Week>
   const join = await joinProgress(db, user, rinkId).catch(() => null);
   const queue = await sheetQueue(db, user, rinkId).catch(() => null);
   const gaps = await gapsForRink(db, user, rinkId).catch(() => [] as any[]);
+  const reports = await reportsForRink(db, user, rinkId).then((r) => r.filter((x: any) => x.status === "open").length).catch(() => 0);
   return {
     rink: rink?.name ?? "Your rink", games, scans, newPlayers,
     joined: join?.totals.joined ?? 0, roster: join?.totals.roster ?? 0,
     noCaptain: join?.totals.noCaptain ?? 0, noLink: join?.totals.noLink ?? 0,
     scansWaiting: queue?.open.filter((r: any) => r.status !== "processing").length ?? 0,
     lineupsMissing: gaps.reduce((n: number, g: any) => n + (g.games - g.with_lineup), 0),
+    reports,
   };
 }
 
@@ -53,6 +56,7 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 export function weeklyEmail(w: Week, url = deskUrl()) {
   const pct = w.roster ? Math.round((w.joined / w.roster) * 100) : 0;
   const waiting = [
+    w.reports ? `${plural(w.reports, "reported mistake")} to look at` : null,
     w.scansWaiting ? `${plural(w.scansWaiting, "scoresheet")} to check` : null,
     w.lineupsMissing ? `${plural(w.lineupsMissing, "imported game")} with no lineup` : null,
     w.noCaptain ? `${plural(w.noCaptain, "team")} with no captain` : null,

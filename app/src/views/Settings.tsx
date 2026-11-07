@@ -91,6 +91,9 @@ export default function Settings() {
 
       <Section title="Help">
         <div className="card divide-y divide-[var(--line)]">
+          <Link href="/help" className="flex items-center gap-3 px-4 min-h-[52px]" data-testid="link-help-page">
+            <span className="flex-1 font-bold text-sm">Help and common questions</span><span className="text-[var(--mute)]">›</span>
+          </Link>
           <a href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Late Ice help")}&body=${encodeURIComponent(`\n\n---\nApp: Late Ice\nAccount: ${u.id}`)}`} className="flex items-center gap-3 px-4 min-h-[52px]" data-testid="link-help">
             <span className="flex-1 font-bold text-sm">Email us</span><span className="text-[var(--mute)]">›</span>
           </a>

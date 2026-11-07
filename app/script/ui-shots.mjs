@@ -296,7 +296,7 @@ try {
   if (doneId) {
     await page.goto(BASE + `/desk/sheets/${doneId}`); await page.waitForTimeout(1500); await shoot(page, "desk-sheet-done");
   }
-  for (const [path, name] of [["/desk/joined", "desk-joined"], ["/desk/roster", "desk-roster"], ["/desk/ratings", "desk-ratings"], ["/desk/imports", "desk-imports"]]) {
+  for (const [path, name] of [["/desk/joined", "desk-joined"], ["/desk/season", "desk-season"], ["/desk/usage", "desk-usage"], ["/desk/roster", "desk-roster"], ["/desk/ratings", "desk-ratings"], ["/desk/imports", "desk-imports"]]) {
     await page.goto(BASE + path); await page.waitForTimeout(1800); await shoot(page, name);
   }
   await page.setViewportSize({ width: 375, height: 760 });
