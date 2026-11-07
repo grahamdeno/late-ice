@@ -126,7 +126,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
       {open && (
         <div className="fixed inset-0 z-50 overflow-y-auto overscroll-contain" style={{ touchAction: "pan-y" }} onClick={() => setOpen(false)} data-testid="overlay-switcher">
-          <div className="fixed inset-0 bg-black/60" style={{ touchAction: "none" }} />
+          <div className="fixed inset-0 bg-black/55 sheet-scrim" style={{ touchAction: "none" }} />
           <div className="relative mx-auto max-w-[560px] px-4" style={{ paddingTop: "calc(env(safe-area-inset-top) + 8px)" }} onClick={(e) => e.stopPropagation()}>
             <div className="glass-sheet rounded-[20px] p-4 drop-in">
               <div className="flex items-center justify-between">
@@ -179,6 +179,9 @@ function AppShell({ children }: { children: React.ReactNode }) {
       <main className="mx-auto max-w-[560px] min-w-0 px-4 pb-36 break-words" style={{ paddingTop: "calc(env(safe-area-inset-top) + 84px)" }}>{children}</main>
 
       <BackToTop />
+
+      {/* Fog: page content fades out before it reaches the tab bar. */}
+      <div className="tab-fog fixed bottom-0 inset-x-0 z-30 pointer-events-none" aria-hidden="true" />
 
       <nav className="fixed bottom-0 inset-x-0 z-40" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         <div className="relative mx-auto max-w-[560px] px-4 pb-3">

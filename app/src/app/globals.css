@@ -216,6 +216,20 @@ body {
 @media (prefers-reduced-transparency: reduce) {
   .glass, .glass-sheet { background: var(--glass-solid); -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
+/* Page behind the league sheet: dimmed and lightly blurred so the sheet reads first. */
+.sheet-scrim { -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+/* Fog above the tab bar: scrolling content melts into the page color instead of showing sharp text between the buttons. */
+.tab-fog {
+  height: calc(env(safe-area-inset-bottom) + 140px);
+  background: linear-gradient(to bottom, transparent 0%, color-mix(in srgb, var(--ice) 70%, transparent) 55%, var(--ice) 100%);
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 60%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 60%);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .sheet-scrim, .tab-fog { -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
 .card-hi {
   background: var(--surface-2);
   border: 0;
