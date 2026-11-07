@@ -63,6 +63,23 @@ function BackToTop() {
   );
 }
 
+/** Losing signal is never silent: a small note above the tab bar until the connection is back. */
+function OfflineBanner() {
+  const [off, setOff] = useState(false);
+  useEffect(() => {
+    const sync = () => setOff(!navigator.onLine);
+    sync();
+    window.addEventListener("online", sync); window.addEventListener("offline", sync);
+    return () => { window.removeEventListener("online", sync); window.removeEventListener("offline", sync); };
+  }, []);
+  if (!off) return null;
+  return (
+    <div role="status" className="fixed inset-x-0 z-40 flex justify-center px-4 pointer-events-none" style={{ bottom: "calc(env(safe-area-inset-bottom) + 92px)" }} data-testid="banner-offline">
+      <div className="glass rounded-full px-4 py-2 text-sm font-bold">No connection. Showing what's saved.</div>
+    </div>
+  );
+}
+
 /** Rink Desk (/desk) brings its own desktop frame; everything else gets the phone shell. */
 export function Shell({ children }: { children: React.ReactNode }) {
   useNavTrail();
@@ -178,6 +195,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
       <main className="mx-auto max-w-[560px] min-w-0 px-4 pb-36 break-words" style={{ paddingTop: "calc(env(safe-area-inset-top) + 84px)" }}>{children}</main>
 
+      <OfflineBanner />
       <BackToTop />
 
       {/* Fog: page content fades out before it reaches the tab bar. */}

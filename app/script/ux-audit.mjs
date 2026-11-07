@@ -367,11 +367,12 @@ async function resilience(browser) {
   await journey(p, "Signal drops mid-use", "Lose signal in the locker room, tap Standings.", async (t) => {
     await page.goto(BASE + "/"); await settle(page);
     await ctx.setOffline(true);
+    await page.waitForTimeout(800);
+    await t.step("offline-banner");
+    t.expect(await page.getByTestId("banner-offline").count(), "moderate", "silent failure offline", "Losing signal shows no message");
     await page.locator('nav a[href="/leagues"]').click().catch(() => {});
     await page.waitForTimeout(2500);
     await t.step("offline-standings");
-    const txt = await page.locator("main").innerText().catch(() => "");
-    t.expect(/offline|connection|signal|try again|internet/i.test(txt) || txt.trim().length > 40, "moderate", "silent failure offline", "Offline, Standings shows neither content nor a message about the connection");
     await ctx.setOffline(false);
   });
   await journey(p, "Small phone, light mode, reduced motion", "iPhone SE in daylight with motion turned down.", async (t) => {
