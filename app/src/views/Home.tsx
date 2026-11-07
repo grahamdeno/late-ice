@@ -47,8 +47,9 @@ export default function Home() {
             {(slot.teamRole === "captain" || slot.teamRole === "assistant_captain") && <GoalieNudge g={next} teamId={slot.team_id} />}
             {next.rsvp?.member && <Scout g={next} />}
             <div className="flex gap-4 mt-3 text-sm font-bold">
-              <Link href={`/team/${slot.team_id}/lineup/${next.id}`} className="text-[var(--blue)] min-h-[32px] inline-flex items-center" data-testid="link-home-lineup">Lineup</Link>
-              <Link href={`/team/${slot.team_id}#schedule`} className="text-[var(--blue)] min-h-[32px] inline-flex items-center">Schedule</Link>
+              <Link href={`/team/${slot.team_id}/lineup/${next.id}`} className="text-[var(--blue)] min-h-[40px] inline-flex items-center" data-testid="link-home-lineup">Lineup</Link>
+              {(slot.teamRole === "captain" || slot.teamRole === "assistant_captain") && next.status === "scheduled" && <Link href={`/team/${slot.team_id}?details=${next.id}#game-${next.id}`} className="text-[var(--blue)] min-h-[40px] inline-flex items-center" data-testid="link-home-details">{next.sheet || next.jersey || next.locker_room ? "Edit details" : "Set sheet & room"}</Link>}
+              <Link href={`/team/${slot.team_id}#schedule`} className="text-[var(--blue)] min-h-[40px] inline-flex items-center">Schedule</Link>
             </div>
           </>
         ) : (

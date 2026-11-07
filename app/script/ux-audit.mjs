@@ -281,8 +281,18 @@ async function captain(browser, engine) {
     t.expect(!(await page.getByTestId("text-schedule-error").count()), "serious", "save failed", "Saving the game showed an error");
     await page.goto(BASE + "/"); await t.step("home-next-game");
     t.expect(await page.getByTestId("card-next-game").count(), "serious", "next game missing", "Home did not show the game just scheduled");
-    const details = page.getByRole("button", { name: /details|sheet|locker/i });
-    if (await details.count()) { await t.tap(details); await t.step("details-editor"); }
+    const details = page.getByTestId("link-home-details");
+    if (await details.count()) {
+      await t.tap(details); await t.step("details-editor");
+      const panel = page.locator('[data-testid^="panel-details-"]');
+      t.expect(await panel.count(), "serious", "promise not kept", "Set sheet & room did not open the details form");
+      if (await panel.count()) {
+        await page.locator('[data-testid^="input-sheet-"]').first().fill("2");
+        await page.locator('[data-testid^="input-room-"]').first().fill("4");
+        const save = panel.getByRole("button", { name: /save/i });
+        if (await save.count()) { await t.tap(save); await t.step("details-saved"); }
+      }
+    }
     else find("moderate", "hard to find", p.state, "From Home there is no visible way to set tonight's sheet, jersey or locker room");
   });
   await journey(p, "Captain fixes a missing goalie", "Home says no goalie. Can I get one from here?", async (t) => {

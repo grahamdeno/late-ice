@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@/lib/router";
 import { act } from "@/lib/auth";
@@ -35,7 +35,13 @@ export function DetailsEditor({ teamId, g, roster }: { teamId: number; g: any; r
   const [room, setRoom] = useState(g.locker_room ?? "");
   const [err, setErr] = useState<string | null>(null);
   const keys = ["/api/teams", "/api/me", "/api/feed"];
-  if (!open) return <button className="text-xs text-[var(--blue)] font-bold mt-2 ml-3" onClick={() => setOpen(true)} data-testid={`button-details-${g.id}`}>Tonight's details</button>;
+  // Arriving from Home's "Set sheet & room" opens this game's details straight away.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("details") !== String(g.id)) return;
+    setOpen(true);
+    setTimeout(() => document.getElementById(`game-${g.id}`)?.scrollIntoView({ block: "center" }), 300);
+  }, [g.id]);
+  if (!open) return <button className="text-sm text-[var(--blue)] font-bold min-h-[40px] ml-4" onClick={() => setOpen(true)} data-testid={`button-details-${g.id}`}>Tonight's details</button>;
   return (
     <div className="mt-2 rounded-xl border border-[var(--line)] p-3" data-testid={`panel-details-${g.id}`}>
       <div className="flex items-center justify-between"><span className="label">Tonight's details</span><button className="text-xs text-[var(--mute)]" onClick={() => setOpen(false)}>Close</button></div>
