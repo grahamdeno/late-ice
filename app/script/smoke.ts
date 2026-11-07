@@ -798,9 +798,9 @@ async function main() {
   ].join("\n");
   const lp = await call("POST", "/api/staff/import", { text: leagueReport, rinkId }, mt);
   ok(lp.status === 200 && lp.json.summary.leagueCreated && lp.json.summary.teamsCreated.length === 2 && lp.json.summary.standingsRows === 2 && lp.json.summary.playerTotals === 2, "preview: new league, 2 new teams, standings and totals read");
-  ok(!(await db`SELECT 1 FROM leagues WHERE level='B'`).length, "preview creates nothing");
+  ok(!(await db`SELECT 1 FROM leagues WHERE level='B' AND rink_id=${rinkId}`).length, "preview creates nothing");
   ok((await call("POST", "/api/staff/import", { text: leagueReport, rinkId, apply: true }, mt)).status === 200, "league imported");
-  const bLg = (await db`SELECT id FROM leagues WHERE level='B'`)[0].id;
+  const bLg = (await db`SELECT id FROM leagues WHERE level='B' AND rink_id=${rinkId}`)[0].id;
   const bl2 = (await call("GET", `/api/leagues/${bLg}`)).json;
   const pcp = bl2.standings.find((t: any) => t.name === "Port City Pilots");
   ok(pcp && pcp.gp === 4 && pcp.w === 3 && pcp.l === 1 && pcp.pts === 6 && pcp.diff === 7, "standings come straight from the league page, with DIFF");
@@ -824,7 +824,7 @@ async function main() {
   ok((await db`SELECT level, tag FROM leagues WHERE name='40+ League'`)[0].level === "B" && (await db`SELECT tag FROM leagues WHERE name='40+ League'`)[0].tag === "40+", "stored as level B, tag 40+");
   ok((await call("POST", "/api/staff/import", { text: mk("LEAGUE Monday A League | LEVEL A | SEASON Fall 2026", "ConeHeads", "Mermen"), rinkId, apply: true }, mt)).status === 200, "Monday A League in");
   ok((await call("POST", "/api/staff/import", { text: mk("LEAGUE Sunday A/B League | LEVEL OTHER | SEASON Fall 2026", "Kraken Beers", "Dirty Birds"), rinkId, apply: true, level: "A" }, mt)).status === 200, "Sunday A/B in at A");
-  const aLeagues = await db`SELECT name FROM leagues WHERE level='A' ORDER BY name`;
+  const aLeagues = await db`SELECT name FROM leagues WHERE level='A' AND rink_id=${rinkId} ORDER BY name`;
   ok(aLeagues.length === 2 && aLeagues.some((l: any) => l.name === "Sunday A/B League") && aLeagues.some((l: any) => l.name === "Monday A League"), "two A leagues stay separate, matched by name");
   ok((await call("POST", `/api/rinks/${rinkId}/leagues`, { name: "Wednesday Whatever" }, mt)).status === 400, "adding a league needs a skill level");
 

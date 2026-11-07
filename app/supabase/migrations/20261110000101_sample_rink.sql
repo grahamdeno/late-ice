@@ -49,12 +49,12 @@ begin
       for g in 1..12 loop
         n := n + 1;
         insert into players (name, name_key, position, rating, start_rating, display_name, games_rated)
-          values (firsts[1 + (n * 7) % 24] || ' ' || lasts[1 + (n * 11) % 24],
+          values (firsts[1 + (n * 7) % 24] || ' ' || lasts[1 + (n * 11 + (n / 24) * 5) % 24],
                   'sample-' || n,
                   positions[g],
                   round((lv.base + ((n * 37) % 11 - 5) * 0.06)::numeric, 2),
                   lv.base,
-                  firsts[1 + (n * 7) % 24] || ' ' || left(lasts[1 + (n * 11) % 24], 1) || '.',
+                  firsts[1 + (n * 7) % 24] || ' ' || left(lasts[1 + (n * 11 + (n / 24) * 5) % 24], 1) || '.',
                   0)
           returning id into v_player;
         insert into roster_entries (team_id, player_id, number, source, added_at)
