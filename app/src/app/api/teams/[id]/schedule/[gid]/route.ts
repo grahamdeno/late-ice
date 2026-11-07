@@ -3,6 +3,7 @@ import { sql, q, one } from "@/server/db";
 import { HttpError } from "@/server/services";
 import { requireUser, requireTeam, logAction } from "@/server/accounts";
 import { KINDS, rinkInstant } from "@/server/schedule";
+import { setDetails } from "@/server/gamenight";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,7 @@ export const PATCH = handle<{ id: string; gid: string }>(async (req, { id, gid }
     if (b.status === "canceled" || b.status === "scheduled") {
       await q(tx, "UPDATE scheduled_games SET status=$1, updated_at=now() WHERE id=$2", [b.status, g.id]);
     }
+    if (b.sheet !== undefined || b.jersey !== undefined || b.lockerRoom !== undefined) await setDetails(tx, teamId, g.id, b);
     if (g.source === "manual") {
       const kind = b.kind !== undefined ? (KINDS.has(b.kind) ? b.kind : g.kind) : g.kind;
       const when = b.date !== undefined || b.time !== undefined ? rinkInstant(b.date ?? g.local_date, b.time ?? g.local_time) : null;

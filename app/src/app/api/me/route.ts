@@ -8,6 +8,7 @@ import { cleanAvatar } from "@/lib/avatar";
 import { teamArchetypes, setOwnArchetype, setArchetypeOptOut } from "@/server/archetypes";
 import { subRequestsFor } from "@/server/subs";
 import { logEvent } from "@/server/appevents";
+import { goalieCheck } from "@/server/gamenight";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export const GET = handle(async (req) => {
      WHERE p.user_id=$1 ORDER BY l.sort`, [u.id])) {
     const teamRole = await teamRoleOf(sql, u.id, s.team_id);
     const ng = await nextGame(sql, s.team_id);
-    if (ng) await attendance(sql, s.team_id, [ng], u.id, false);
+    if (ng) { await attendance(sql, s.team_id, [ng], u.id, false); await goalieCheck(sql, s.team_id, [ng]); }
     const arch = (await teamArchetypes(sql, s.team_id, u.id)).won[s.id] ?? null;
     // The last final this team played, with this player's line and rating move, and the move over the last five rated games.
     const last = await one<any>(sql,

@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { act } from "@/lib/auth";
 import { apiRequest, invalidatePrefixes } from "@/lib/queryClient";
 import { Section, TeamBadge, fmtDate } from "@/lib/ui";
+import { DetailsEditor, GameDetails, GoalieNudge } from "@/components/GameNight";
 
 const KIND_LABEL: Record<string, string> = { league: "League", playoff: "Playoff", tournament: "Tournament", exhibition: "Exhibition" };
 
@@ -102,7 +103,7 @@ function SubFinder({ gameId }: { gameId: number }) {
       <div className="flex items-center justify-between"><span className="label">Players who'll sub</span><button className="text-xs text-[var(--mute)]" onClick={() => setOpen(false)}>Close</button></div>
       {!data ? <p className="text-xs text-[var(--mute)] mt-1">Loading…</p> : data.candidates.length === 0 ? <p className="text-xs text-[var(--mute)] mt-1">Nobody at this rink has turned on Will sub yet.</p> : (
         <div className="divide-y divide-[var(--line)] mt-1">
-          {data.candidates.map((c: any) => {
+          {[...data.candidates].sort((a: any, b: any) => Number(b.position === "G") - Number(a.position === "G")).map((c: any) => {
             const a = askedOf(c.id);
             return (
               <div key={c.id} className="flex items-center gap-2 py-2 text-sm">
@@ -145,7 +146,10 @@ export function Schedule({ teamId }: { teamId: number }) {
               {g.status === "scheduled" && g.rsvp?.member && <div className="mt-2.5"><Rsvp g={g} /></div>}
               {g.status === "scheduled" && (g.rsvp?.member || can.manual) && <Counts g={g} />}
               {g.status === "scheduled" && (g.rsvp?.member || can.manual) && <Link href={`/team/${teamId}/lineup/${g.id}`} className="inline-block mt-2 text-xs font-bold text-[var(--blue)]" data-testid={`link-lineup-${g.id}`}>{can.manual ? "Set the lineup" : "Lineup"} ›</Link>}
+              {g.status === "scheduled" && <GameDetails g={g} />}
+              {g.status === "scheduled" && can.manual && <GoalieNudge g={g} teamId={teamId} />}
               {g.status === "scheduled" && can.manual && <SubFinder gameId={g.id} />}
+              {g.status === "scheduled" && can.manual && <DetailsEditor teamId={teamId} g={g} roster={data.roster ?? []} />}
             </div>
           ))}
         </div>
