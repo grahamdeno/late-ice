@@ -3,6 +3,7 @@ import { one, q, sql, type Tx } from "./db";
 import { HttpError } from "./services";
 import * as A from "./accounts";
 import * as P from "./permissions";
+import { SUPPORT_EMAIL } from "@/lib/contact";
 
 /** Optional email through Resend. Without RESEND_API_KEY the notice is in-app only. */
 export async function sendEmail(to: string, subject: string, text: string) {
@@ -12,7 +13,7 @@ export async function sendEmail(to: string, subject: string, text: string) {
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to, subject, text }),
+    body: JSON.stringify({ from, to, subject, text, reply_to: SUPPORT_EMAIL }),
   }).catch(() => null);
   return !!res?.ok;
 }
