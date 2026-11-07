@@ -157,7 +157,7 @@ export function JoinedBody({ overview }: { overview: any }) {
                     {t.lastJoined && <div className="text-xs text-[var(--mute)] mt-0.5">Latest {day(t.lastJoined)}</div>}
                   </td>
                   <td className="px-3 py-3">
-                    {t.captain ? <span className="font-bold">{t.captain}</span> : {overview.captainOnly ? <span className="text-[var(--down)] font-bold">None yet</span> : <Link href={`/staff/league/${t.leagueId}`} className="text-[var(--down)] font-bold">Name a captain</Link>}}
+                    {t.captain ? <span className="font-bold">{t.captain}</span> : overview.captainOnly ? <span className="text-[var(--down)] font-bold">None yet</span> : <Link href={`/staff/league/${t.leagueId}`} className="text-[var(--down)] font-bold">Name a captain</Link>}
                     {t.assistants.length > 0 && <div className="text-xs text-[var(--mute)] truncate max-w-[220px]">Assistants: {t.assistants.join(", ")}</div>}
                   </td>
                   <td className="px-3 py-3"><span className="inline-flex items-center gap-2 font-bold" style={{ color: st.tone }}><span className="h-2 w-2 rounded-full" style={{ background: st.tone }} />{st.label}</span></td>
