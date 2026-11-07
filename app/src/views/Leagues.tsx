@@ -28,8 +28,8 @@ function StandingsTable({ rows, compact = false, mine = [] }: { rows: any[]; com
       <tbody>
         {rows.map((t, i) => (
           <tr key={t.id} className={`border-t border-[var(--line)] ${mine.includes(t.id) ? "bg-[var(--red-dim)]" : ""}`} data-mine={mine.includes(t.id) || undefined}>
-            <td className="py-2.5 pl-4 overflow-hidden">
-              <Link href={`/team/${t.id}`} className="flex items-center gap-2 min-w-0" data-testid={`link-standings-team-${t.id}`}>
+            <td className="py-0.5 pl-4 overflow-hidden">
+              <Link href={`/team/${t.id}`} className="flex items-center gap-2 min-w-0 min-h-[44px]" data-testid={`link-standings-team-${t.id}`}>
                 <span className="w-4 shrink-0 text-[var(--mute)] text-xs">{i + 1}</span>
                 <TeamBadge team={t} size={24} />
                 <span className="truncate font-bold min-w-0">{t.name}</span>
@@ -125,8 +125,8 @@ export function Leagues() {
 export function LeaguePage({ id }: { id: string }) {
   const [seasonId, setSeasonId] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
-  const { data } = useQuery<any>({ queryKey: [seasonId ? `/api/leagues/${id}?season=${seasonId}` : `/api/leagues/${id}`] });
-  if (!data) return <Loading />;
+  const { data, error } = useQuery<any>({ queryKey: [seasonId ? `/api/leagues/${id}?season=${seasonId}` : `/api/leagues/${id}`] });
+  if (!data) return <Loading error={error} />;
   const { league, season, seasons } = data;
   const can = data.can ?? {};
   return (
@@ -185,10 +185,10 @@ export function LeaguePage({ id }: { id: string }) {
 }
 
 export function TeamPage({ id }: { id: string }) {
-  const { data } = useQuery<any>({ queryKey: [`/api/teams/${id}`] });
+  const { data, error } = useQuery<any>({ queryKey: [`/api/teams/${id}`] });
   const [, , swap] = useLocation();
   const [removeErr, setRemoveErr] = useState<string | null>(null);
-  if (!data) return <Loading />;
+  if (!data) return <Loading error={error} />;
   const { team, league, record, roster, games, rating, season, imported } = data;
   return (
     <div>

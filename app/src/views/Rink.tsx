@@ -8,12 +8,12 @@ import { AddButton, AddLeagueForm, AddSeasonForm, EditRinkForm, RinkRequestForm,
 
 export default function Rink() {
   const { rinkId } = useFilter();
-  const { data } = useQuery<any>({ queryKey: [rinkId ? `/api/rink?id=${rinkId}` : "/api/rink"] });
+  const { data, error } = useQuery<any>({ queryKey: [rinkId ? `/api/rink?id=${rinkId}` : "/api/rink"] });
   const [open, setOpen] = useState<string | null>(null);
   const close = () => setOpen(null);
   // The pull-down sheet's "Rink not here? Add it" lands here with the add form open.
   useEffect(() => { if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("add")) setOpen("newrink"); }, []);
-  if (!data) return <Loading />;
+  if (!data) return <Loading error={error} />;
   const { rink, region, leagues, top, season, seasons } = data;
   const can = data.can ?? {};
 

@@ -39,7 +39,7 @@ function StarVoting({ rinkId }: { rinkId: number }) {
         {data.leagues.map((l) => (
           <label key={l.id} className="flex items-center gap-3 py-2.5">
             <span className="flex-1 font-bold text-sm">{l.name}</span>
-            <input type="checkbox" className="h-5 w-5" checked={l.enabled} onChange={(e) => flip(l.id, e.target.checked)} data-testid={`toggle-star-voting-${l.id}`} />
+            <input type="checkbox" className="h-6 w-6" checked={l.enabled} onChange={(e) => flip(l.id, e.target.checked)} data-testid={`toggle-star-voting-${l.id}`} />
           </label>
         ))}
       </div>

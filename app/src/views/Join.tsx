@@ -170,7 +170,7 @@ export default function Join() {
 
       {step === "code" && (
         <form onSubmit={verify} className="card-hi p-5 mt-5 space-y-3">
-          <div className="text-sm">Code sent to <b className="break-all">{normEmail(email)}</b>. <button type="button" className="text-[var(--blue)]" onClick={() => { setStep("email"); setErr(null); }} data-testid="button-change-email">Change</button></div>
+          <div className="text-sm">Code sent to <b className="break-all">{normEmail(email)}</b>. <button type="button" className="text-[var(--blue)] min-h-[40px] px-1" onClick={() => { setStep("email"); setErr(null); }} data-testid="button-change-email">Change</button></div>
           <p className="text-xs text-[var(--mute)]">Check your inbox and spam folder. The code expires in 10 minutes.</p>
           <label className="block">
             <span className="label">Six-digit code</span>
@@ -220,28 +220,26 @@ export function ProfileForm({ onDone, submitLabel = "Join the draft pool" }: { o
         <span className="label">Name</span>
         <input className="input w-full mt-1.5" autoComplete="name" placeholder="First and last" value={name} onChange={(e) => setName(e.target.value)} data-testid="input-name" />
       </label>
-      <div className="grid grid-cols-[96px_1fr] gap-3">
-        <label className="block">
-          <span className="label">Number</span>
-          <input className="input w-full mt-1.5 tnum text-center" inputMode="numeric" maxLength={2} placeholder="#" value={number} onChange={(e) => setNumber(e.target.value.replace(/\D/g, "").slice(0, 2))} data-testid="input-number" />
-        </label>
-        <div>
-          <span className="label">Position</span>
-          <div className="grid grid-cols-4 gap-1.5 mt-1.5">
-            {(["C", "W", "D", "G"] as const).map((p) => (
-              <button type="button" key={p} onClick={() => setPosition(p)} className={`h-11 rounded-xl border text-sm font-bold ${position === p ? "border-[var(--red)] bg-[var(--red-dim)]" : "border-[var(--line)] bg-[var(--ice-3)]"}`} data-testid={`button-position-${p}`}>
-                {POSITION_LABEL[p]}
-              </button>
-            ))}
-          </div>
+      <label className="block">
+        <span className="label">Number</span>
+        <input className="input w-24 mt-1.5 tnum text-center" inputMode="numeric" maxLength={2} placeholder="#" value={number} onChange={(e) => setNumber(e.target.value.replace(/\D/g, "").slice(0, 2))} data-testid="input-number" />
+      </label>
+      <div>
+        <span className="label">Position</span>
+        <div className="grid grid-cols-4 gap-1.5 mt-1.5">
+          {(["C", "W", "D", "G"] as const).map((p) => (
+            <button type="button" key={p} onClick={() => setPosition(p)} aria-pressed={position === p} className={`h-11 rounded-xl border text-sm font-bold whitespace-nowrap ${position === p ? "border-[var(--red)] bg-[var(--red-dim)]" : "border-[var(--line)] bg-[var(--ice-3)]"}`} data-testid={`button-position-${p}`}>
+              {POSITION_LABEL[p]}
+            </button>
+          ))}
         </div>
       </div>
       <div>
         <span className="label">Home rink</span>
         <div className="mt-1.5"><RinkPicker value={rink} onPick={setRink} /></div>
       </div>
-      <label className="flex items-start gap-2 text-sm">
-        <input type="checkbox" className="mt-1" checked={age} onChange={(e) => setAge(e.target.checked)} data-testid="input-age" />
+      <label className="flex items-center gap-3 text-sm min-h-[44px]">
+        <input type="checkbox" className="h-6 w-6 shrink-0" checked={age} onChange={(e) => setAge(e.target.checked)} data-testid="input-age" />
         <span>I&apos;m 18 or older. <Link href="/terms" className="underline" data-testid="link-terms-profile">Terms</Link></span>
       </label>
       {err && <p className="text-sm down" data-testid="text-error">{err}</p>}

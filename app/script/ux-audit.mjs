@@ -50,6 +50,10 @@ async function newPerson(browser, engine, persona, opts = {}) {
     if (!u.startsWith(BASE)) return;
     const s = r.status();
     if (s >= 500) find("blocker", "server error", state, `${s} ${r.request().method()} ${u.replace(BASE, "")}`, `${s} ${u.replace(BASE, "").replace(/\d+/g, "N")}`);
+    const path = u.replace(BASE, "");
+    // A refused request the person didn't cause is usually why a screen sits empty.
+    if (s >= 400 && s < 500 && path.startsWith("/api/") && !/99999999/.test(path) && !(s === 401 && /^\/api\/(me|notifications|push)/.test(path)))
+      find("serious", "request refused", state, `${s} ${r.request().method()} ${path}`, `${s} ${path.replace(/\d+/g, "N")}`);
   });
   page.on("dialog", async (d) => {
     find("minor", "native dialog", state, `Uses the browser's ${d.type()} box: "${d.message().slice(0, 100)}". Feels like a web page, not an app.`, d.message().slice(0, 40));
@@ -225,7 +229,7 @@ async function newPlayer(browser, engine) {
   const { page } = p;
   const email = `newbie.${engine}@example.com`;
   await journey(p, "New player joins and finds their rating", "From an invite or a friend: sign up, claim my spot, see my rating.", async (t) => {
-    await join(t, page, email, `Alex ${engine === "webkit" ? "Safari" : "Chrome"}`, "17", "F");
+    await join(t, page, email, `Alex ${engine === "webkit" ? "Safari" : "Chrome"}`, "17", "W");
     await t.step("me-first-visit");
     const offer = await page.getByTestId("card-passkey-offer").count();
     t.expect(offer, "minor", "passkey offer missing", "After the email code, the Face ID offer did not appear (browser may not support passkeys)");
