@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { imageKey, imageKeyValid } from "@/server/visibility";
+import { rollDays } from "@/server/sample";
 
 describe("scoresheet image keys", () => {
   it("a fresh key is valid", () => { expect(imageKeyValid(imageKey(7))).toBe(true); });
@@ -17,4 +18,9 @@ describe("scoresheet image keys", () => {
     expect(imageKey(7, t)).toBe(imageKey(7, t + 60_000));
   });
   it("junk is refused", () => { expect(imageKeyValid(null)).toBe(false); expect(imageKeyValid("a.b")).toBe(false); });
+});
+
+describe("sample rink dates", () => {
+  it("moves the newest game to three days ago", () => { expect(rollDays("2026-11-01", new Date("2026-11-20T12:00:00Z"))).toBe(16); });
+  it("never moves backward", () => { expect(rollDays("2026-11-19", new Date("2026-11-20T12:00:00Z"))).toBe(0); });
 });
