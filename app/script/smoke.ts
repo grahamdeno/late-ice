@@ -1622,6 +1622,7 @@ async function main() {
   ok(typeof meNow.json.imageKey === "string" && meNow.json.imageKey.split(".").length === 3, "signed in, /api/me carries an image key for scoresheet photos");
   const sampleTeam = outBoot.json.leagues[0].teams[0].id;
   ok((await call("GET", `/api/teams/${sampleTeam}`)).status === 200, "signed out, a sample team loads");
+  await stop();
   await db.end();
   console.log(`\nsmoke: ${passed} checks passed`);
 }
