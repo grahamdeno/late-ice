@@ -44,7 +44,7 @@ export function DetailsEditor({ teamId, g, roster }: { teamId: number; g: any; r
   if (!open) return <button className="text-sm text-[var(--blue)] font-bold min-h-[40px] ml-4" onClick={() => setOpen(true)} data-testid={`button-details-${g.id}`}>Tonight's details</button>;
   return (
     <div className="mt-2 rounded-xl border border-[var(--line)] p-3" data-testid={`panel-details-${g.id}`}>
-      <div className="flex items-center justify-between"><span className="label">Tonight's details</span><button className="text-xs text-[var(--mute)]" onClick={() => setOpen(false)}>Close</button></div>
+      <div className="flex items-center justify-between"><span className="label">Tonight's details</span><button className="text-xs text-[var(--mute)] min-h-[40px] px-2" onClick={() => setOpen(false)}>Close</button></div>
       <div className="grid grid-cols-3 gap-2 mt-2">
         <label className="block min-w-0"><span className="label">Sheet</span><input className="input w-full mt-1" value={sheet} maxLength={40} onChange={(e) => setSheet(e.target.value)} placeholder="2" data-testid={`input-sheet-${g.id}`} /></label>
         <label className="block min-w-0"><span className="label">Jersey</span><input className="input w-full mt-1" value={jersey} maxLength={40} onChange={(e) => setJersey(e.target.value)} placeholder="White" data-testid={`input-jersey-${g.id}`} /></label>
@@ -54,7 +54,7 @@ export function DetailsEditor({ teamId, g, roster }: { teamId: number; g: any; r
       <div className="mt-3 border-t border-[var(--line)] pt-3">
         <span className="label">Cooler</span>
         <div className="flex gap-2 mt-1.5">
-          <select className="input flex-1 min-w-0" value={g.cooler_user_id ?? ""} data-testid={`select-cooler-${g.id}`}
+          <select aria-label="Who brings the cooler" className="input flex-1 min-w-0" value={g.cooler_user_id ?? ""} data-testid={`select-cooler-${g.id}`}
             onChange={async (e) => setErr(await act("PUT", `/api/schedule/${g.id}/cooler`, { userId: e.target.value ? Number(e.target.value) : null }, keys))}>
             <option value="">Nobody yet</option>
             {roster.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
