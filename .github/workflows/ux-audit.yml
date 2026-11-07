@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   audit:
@@ -62,3 +62,16 @@ jobs:
           name: ux-audit
           path: app/audit
           if-no-files-found: ignore
+      # The report also lives on its own branch so it can be read through the GitHub API. Vercel deploys are off there.
+      - name: Publish the report to the ux-audit-results branch
+        if: always()
+        working-directory: .
+        run: |
+          [ -f app/audit/report.md ] || exit 0
+          rm -rf /tmp/r && cp -r app/audit /tmp/r
+          git config user.name "ci" && git config user.email "ci@users.noreply.github.com"
+          git stash -u -q || true
+          git checkout -q --orphan ux-audit-results && git rm -rfq . && rm -rf app
+          cp -r /tmp/r/. . && mkdir -p app && printf '{ "git": { "deploymentEnabled": false } }\n' > app/vercel.json
+          git add -A && git commit -qm "UX audit for ${GITHUB_SHA::7}"
+          git push -f origin ux-audit-results
