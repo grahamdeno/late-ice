@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
 export const GET = handle<{ id: string }>(async (req, { id }) => {
   const g = await one<any>(sql, "SELECT * FROM games WHERE id=$1", [num(id)]);
   if (!g) throw new HttpError(404, "Game not found");
-  await assertGameVisible(sql, await userFromRequest(req).catch(() => null), g.id);
+  const viewer = await userFromRequest(req).catch(() => null);
+  await assertGameVisible(sql, viewer, g.id);
   const lines = await q(sql,
     `SELECT s.*, p.display_name AS name, (SELECT after-before FROM rating_history rh WHERE rh.player_id=s.player_id AND rh.game_id=s.game_id LIMIT 1) delta
      FROM player_game_stats s JOIN players p ON p.id=s.player_id WHERE s.game_id=$1 ORDER BY (s.goals+s.assists) DESC, p.display_name`, [g.id]);
@@ -21,7 +22,6 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
      JOIN players p ON p.id=x.player_id LEFT JOIN imported_game_lines il ON il.game_id=$1 AND il.player_id=x.player_id
      ORDER BY (COALESCE(il.goals,0)*2+COALESCE(il.assists,0)) DESC, p.display_name`, [g.id]);
   const lineupTeams = (await q<{ team_id: number }>(sql, "SELECT DISTINCT team_id FROM imported_game_attendance WHERE game_id=$1", [g.id])).map((r) => r.team_id);
-  const viewer = await userFromRequest(req).catch(() => null);
   const stars = await gameStars(sql, g.id, viewer?.id ?? null);
   stars.stars = await applyViewerNames(sql, viewer, stars.stars, "player_id");
   stars.candidates = await applyViewerNames(sql, viewer, stars.candidates, "player_id");

@@ -11,11 +11,11 @@ export const GET = handle(async (req) => {
   const viewer = await A.userFromRequest(req).catch(() => null);
   const want = (await rinkFor(sql, viewer, Number(new URL(req.url).searchParams.get("id")) || null)) || 0;
   const rink = (want ? await one<any>(sql, "SELECT * FROM rinks WHERE id=$1", [want]) : null) ?? await one<any>(sql, "SELECT * FROM rinks ORDER BY id LIMIT 1");
-  const [region, season, seasons, u] = await Promise.all([
+  const u = viewer;
+  const [region, season, seasons] = await Promise.all([
     one(sql, "SELECT * FROM regions WHERE id=$1", [rink.region_id]),
     currentSeason(sql, rink.id),
     q(sql, "SELECT * FROM seasons WHERE rink_id=$1 ORDER BY starts_on", [rink.id]),
-    A.userFromRequest(req).catch(() => null),
   ]);
   // Leagues (counts and leader) in one query, top players in one query.
   const [leagues, top] = await Promise.all([
