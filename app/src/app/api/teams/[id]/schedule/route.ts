@@ -4,6 +4,7 @@ import { HttpError } from "@/server/services";
 import { requireUser, requireTeam, userFromRequest, logAction, userCan } from "@/server/accounts";
 import { KINDS, attendance, rinkInstant, upcoming } from "@/server/schedule";
 import { goalieCheck } from "@/server/gamenight";
+import { assertRinkVisible } from "@/server/visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,7 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
   const t = await one<any>(sql, "SELECT t.*, l.rink_id FROM teams t JOIN leagues l ON l.id=t.league_id WHERE t.id=$1", [teamId]);
   if (!t) throw new HttpError(404, "Team not found");
   const u = await userFromRequest(req).catch(() => null);
+  await assertRinkVisible(sql, u, t.rink_id);
   const scope = { teamId, leagueId: t.league_id, rinkId: t.rink_id };
   const can = { feed: await userCan(sql, u, "schedule.feed", scope), manual: await userCan(sql, u, "schedule.manual", scope) };
   let feed = null;

@@ -23,7 +23,7 @@ export function ClaimForm({ rinks, initialRink, thanksHref }: { rinks: Rink[]; i
         body: JSON.stringify({
           rinkId: picked?.id ?? null, rinkName: picked?.name ?? get("rinkName"), city: picked ? [picked.city, picked.state].filter(Boolean).join(", ") : get("city"),
           contactName: get("contactName"), role: get("role"), email: get("email"), phone: get("phone"), leagueCount: get("leagueCount"),
-          scheduler: get("scheduler"), notes: get("notes"), founding: f.get("founding") === "on", website: get("website"), source: picked ? "claim" : "new rink",
+          scheduler: get("scheduler"), notes: get("notes"), founding: f.get("founding") === "on", website: get("website"), source: picked || !rinks.length ? "claim" : "new rink",
         }),
       });
       if (!res.ok) { setErr((await res.json().catch(() => null))?.message ?? "That didn't go through. Try again or email us."); return; }
@@ -37,14 +37,16 @@ export function ClaimForm({ rinks, initialRink, thanksHref }: { rinks: Rink[]; i
 
   return (
     <form onSubmit={submit} className="rounded-[26px] bg-[#151c28] p-6 sm:p-8" data-testid="form-claim">
-      <label className={lbl}>Your rink
-        <select className={field} value={rinkId} onChange={(e) => setRinkId(e.target.value)} data-testid="select-claim-rink">
-          <option value="">Not listed, add a new rink</option>
-          {rinks.map((r) => <option key={r.id} value={r.id}>{r.name}{r.city ? ` · ${r.city}` : ""}</option>)}
-        </select>
-      </label>
+      {rinks.length > 0 && (
+        <label className={lbl}>Your rink
+          <select className={field} value={rinkId} onChange={(e) => setRinkId(e.target.value)} data-testid="select-claim-rink">
+            <option value="">Not listed, add a new rink</option>
+            {rinks.map((r) => <option key={r.id} value={r.id}>{r.name}{r.city ? ` · ${r.city}` : ""}</option>)}
+          </select>
+        </label>
+      )}
       {!picked && (
-        <div className="grid gap-4 sm:grid-cols-2 mt-4">
+        <div className={`grid gap-4 sm:grid-cols-2 ${rinks.length ? "mt-4" : ""}`}>
           <label className={lbl}>Rink name<input name="rinkName" required className={field} /></label>
           <label className={lbl}>City and state<input name="city" className={field} placeholder="Wilmington, NC" /></label>
         </div>
@@ -69,7 +71,7 @@ export function ClaimForm({ rinks, initialRink, thanksHref }: { rinks: Rink[]; i
       <label className="flex items-start gap-3 mt-4 text-sm text-[#c3ccd8]"><input type="checkbox" name="founding" defaultChecked className="mt-1 h-4 w-4" /> Count us in as a founding rink: free through this season, price agreed together before the next.</label>
       <input name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 opacity-0" />
       <div className="flex items-center gap-4 mt-6 flex-wrap">
-        <button disabled={busy} className="text-white bg-[#e0262b] hover:bg-[#ec3035] disabled:opacity-60 font-bold rounded-2xl h-12 px-6" data-testid="button-claim-submit">{busy ? "Sending" : picked ? `Claim ${picked.name}` : "Add our rink"}</button>
+        <button disabled={busy} className="text-white bg-[#e0262b] hover:bg-[#ec3035] disabled:opacity-60 font-bold rounded-2xl h-12 px-6" data-testid="button-claim-submit">{busy ? "Sending" : picked ? `Claim ${picked.name}` : rinks.length ? "Add our rink" : "Claim our rink"}</button>
         <span className="text-sm text-[#8b97a8]">We check that you work at the rink before giving anyone staff access.</span>
       </div>
       {err && <p className="text-sm text-[#ff8a8a] mt-3" role="alert" data-testid="text-claim-error">{err}</p>}

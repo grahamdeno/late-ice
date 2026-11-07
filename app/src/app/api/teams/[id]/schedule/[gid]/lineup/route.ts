@@ -3,6 +3,7 @@ import { sql, q, one } from "@/server/db";
 import { HttpError } from "@/server/services";
 import { requireUser, requireTeam, userFromRequest, userCan, logAction, onTeam, applyViewerNames } from "@/server/accounts";
 import { teamArchetypes } from "@/server/archetypes";
+import { assertRinkVisible } from "@/server/visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +72,7 @@ export const GET = handle<{ id: string; gid: string }>(async (req, { id, gid }) 
   const teamId = num(id);
   const { t, g } = await load(teamId, num(gid));
   const u = await userFromRequest(req).catch(() => null);
+  await assertRinkVisible(sql, u, t.rink_id);
   const edit = await userCan(sql, u, "roster.manage", { teamId, leagueId: t.league_id, rinkId: t.rink_id });
   const member = edit || (!!u && (await onTeam(sql, u.id, teamId)));
   const saved = g.lineup_json ? (JSON.parse(g.lineup_json) as Lineup) : null;

@@ -23,6 +23,8 @@ export interface MeSlot {
 export interface MyRole { id: number; role: string; scopeType: string; scopeId: number | null; where: string | null }
 export interface Notice { id: number; kind: string; title: string; body: string | null; link: string | null; team_id: number | null; read_at: string | null; created_at: string }
 export interface Me {
+  /** Short-lived key that lets image tags load scoresheet photos, which need a sign-in. */
+  imageKey?: string;
   user: MeUser; slots: MeSlot[]; captainTeams: { id: number; name: string; color: string; logo: string | null; level: string; rink_id: number; role: "captain" | "assistant_captain" }[];
   subRequests: any[];
   roles: MyRole[]; staff: boolean; handoffs: { id: number; team_id: number; team_name: string; from_name: string }[];
@@ -115,3 +117,9 @@ export const ROLE_LABEL: Record<string, string> = {
   rink_manager: "Rink manager", support: "Support", admin: "Admin",
 };
 export const STATUS_LABEL: Record<string, string> = { active: "Active", available: "Active", ir: "Injured reserve", away: "Away" };
+
+/** Scoresheet photo URL with the signed-in person's image key. Photos of real sheets need a sign-in, and an image tag can't send a token. */
+export function useSheetImage() {
+  const { me } = useMe();
+  return (sheetId: number | string) => `/api/sheets/${sheetId}/image${me?.imageKey ? `?k=${encodeURIComponent(me.imageKey)}` : ""}`;
+}

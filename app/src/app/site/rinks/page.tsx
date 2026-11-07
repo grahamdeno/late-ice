@@ -30,7 +30,7 @@ export default async function ForRinks() {
       <section className="max-w-6xl mx-auto px-6 pt-14 pb-10">
         <div className="font-bold text-[#ff8a8a]">For rink managers and league commissioners</div>
         <Display className="text-[56px] sm:text-[76px] mt-2 max-w-4xl">Your rink may already be on Late Ice.</Display>
-        <p className="text-lg text-[#c3ccd8] leading-relaxed mt-5 max-w-2xl">We build each rink&apos;s leagues from its public standings. Find yours, see it working, and claim it. Then you decide what players see, add your staff, and turn on scoresheets.</p>
+        <p className="text-lg text-[#c3ccd8] leading-relaxed mt-5 max-w-2xl">We build each rink&apos;s leagues from its public standings. Tell us your rink and claim it. Then you decide what players see, add your staff, and turn on scoresheets. Below is a sample rink with made-up teams, so you can see it working.</p>
       </section>
 
       <section className="max-w-6xl mx-auto px-6" aria-label="Rinks on Late Ice">
@@ -39,12 +39,11 @@ export default async function ForRinks() {
             <div key={r.id} className="flex items-center gap-4 rounded-[20px] bg-[#151c28] p-5" data-testid={`site-rink-${r.id}`}>
               <span className="flex-1 min-w-0"><span className="block font-black text-lg truncate">{r.name}</span><span className="block text-sm text-[#8b97a8]">{[r.city, r.state].filter(Boolean).join(", ")} · {r.leagues} leagues · {r.teams} teams · {r.players} players</span></span>
               <a href={`${app}/`} className="font-bold text-sm text-[#8cc4ff] shrink-0">See it</a>
-              <Link href={`${base}/claim?rink=${r.id}`} className="font-bold text-sm text-white bg-[#e0262b] hover:bg-[#ec3035] rounded-xl px-4 py-3 shrink-0">Claim</Link>
             </div>
           ))}
           <Link href={`${base}/claim`} className="flex items-center gap-4 rounded-[20px] bg-[#0d1219] hover:bg-[#151c28] p-5">
-            <span className="flex-1"><span className="block font-black text-lg">Your rink isn&apos;t listed?</span><span className="block text-sm text-[#8b97a8]">Tell us about it and send one DaySmart report. We&apos;ll set it up.</span></span>
-            <span className="font-bold text-[#8cc4ff]">Add your rink ›</span>
+            <span className="flex-1"><span className="block font-black text-lg">Claim your rink</span><span className="block text-sm text-[#8b97a8]">Tell us which rink is yours. If it isn&apos;t on Late Ice yet, send one DaySmart report and we&apos;ll set it up.</span></span>
+            <span className="font-bold text-[#8cc4ff]">Claim your rink ›</span>
           </Link>
         </div>
       </section>

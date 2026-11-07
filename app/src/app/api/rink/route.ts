@@ -4,10 +4,12 @@ import { currentSeason, leagueBoard } from "@/server/services";
 import * as A from "@/server/accounts";
 import { applyLoadedNames, sameRinkSql } from "@/server/accounts";
 import * as P from "@/server/permissions";
+import { rinkFor } from "@/server/visibility";
 
 export const dynamic = "force-dynamic";
 export const GET = handle(async (req) => {
-  const want = Number(new URL(req.url).searchParams.get("id")) || 0;
+  const viewer = await A.userFromRequest(req).catch(() => null);
+  const want = (await rinkFor(sql, viewer, Number(new URL(req.url).searchParams.get("id")) || null)) || 0;
   const rink = (want ? await one<any>(sql, "SELECT * FROM rinks WHERE id=$1", [want]) : null) ?? await one<any>(sql, "SELECT * FROM rinks ORDER BY id LIMIT 1");
   const [region, season, seasons, u] = await Promise.all([
     one(sql, "SELECT * FROM regions WHERE id=$1", [rink.region_id]),

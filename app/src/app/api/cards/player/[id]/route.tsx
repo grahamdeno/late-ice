@@ -2,6 +2,8 @@ import { ImageResponse } from "next/og";
 import { sql } from "@/server/db";
 import { num } from "@/server/http";
 import { SIZES, cardFormat, playerCardData, safeColor } from "@/server/cards";
+import { userFromRequest } from "@/server/accounts";
+import { assertPlayerVisible } from "@/server/visibility";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +12,9 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   const { id } = await ctx.params;
   let d;
   try { d = await playerCardData(sql, num(id)); } catch { return new Response("Not found", { status: 404 }); }
+  // Real names only for people with an account; link previews and strangers get nothing.
+  const viewer = await userFromRequest(req).catch(() => null);
+  try { await assertPlayerVisible(sql, viewer, num(id)); } catch { return new Response("Sign in to see this.", { status: 401 }); }
   const format = cardFormat(new URL(req.url).searchParams.get("format"));
   const { width, height } = SIZES[format];
   const tall = format === "story";

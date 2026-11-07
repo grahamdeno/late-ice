@@ -4,11 +4,13 @@ import { gameCard, HttpError } from "@/server/services";
 import { applyViewerNames, userFromRequest } from "@/server/accounts";
 import { gameStars } from "@/server/stars";
 import { milestonesInGame } from "@/server/milestones";
+import { assertGameVisible } from "@/server/visibility";
 
 export const dynamic = "force-dynamic";
 export const GET = handle<{ id: string }>(async (req, { id }) => {
   const g = await one<any>(sql, "SELECT * FROM games WHERE id=$1", [num(id)]);
   if (!g) throw new HttpError(404, "Game not found");
+  await assertGameVisible(sql, await userFromRequest(req).catch(() => null), g.id);
   const lines = await q(sql,
     `SELECT s.*, p.display_name AS name, (SELECT after-before FROM rating_history rh WHERE rh.player_id=s.player_id AND rh.game_id=s.game_id LIMIT 1) delta
      FROM player_game_stats s JOIN players p ON p.id=s.player_id WHERE s.game_id=$1 ORDER BY (s.goals+s.assists) DESC, p.display_name`, [g.id]);

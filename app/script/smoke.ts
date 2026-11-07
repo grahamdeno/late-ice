@@ -302,6 +302,9 @@ async function main() {
   const mike = await addSlot("Mike Tolliver", "44");
   const mikeVariant = await addSlot("M Tolliver", "4");
 
+  // Signed out, only the sample rink is readable. Most checks below read the test rink signed out, so it
+  // stands in as the sample rink; the visibility checks at the end take that away again.
+  await db`UPDATE rinks SET is_sample=true WHERE name='Polar Ice Wilmington'`;
   await start();
 
   console.log("health");
@@ -1592,6 +1595,28 @@ async function main() {
   }
 
   await pushChecks({ graham, sam, outsider, fan, hh, ids });
+
+  console.log("signed out: sample rink only");
+  await db`UPDATE rinks SET is_sample=false WHERE name='Polar Ice Wilmington'`;
+  await start();
+  const sampleRink = (await db`SELECT id, name FROM rinks WHERE is_sample ORDER BY id LIMIT 1`)[0];
+  ok(!!sampleRink, "the migration made a sample rink");
+  const outBoot = await call("GET", `/api/bootstrap?rink=${rid}`);
+  ok(outBoot.json.rink.id === sampleRink.id && outBoot.json.rinkCount === 1, "signed out, bootstrap gives the sample rink even when a real one is asked for");
+  ok(outBoot.json.leagues.length > 0 && outBoot.json.leagues.every((l: any) => l.teams.length > 0), "the sample rink has leagues and teams");
+  ok((await call("GET", "/api/rinks")).json.rinks.every((r: any) => r.is_sample), "signed out, the rink list holds only the sample rink");
+  ok((await call("GET", `/api/teams/${hh}`)).status === 401, "signed out, a real team page is refused");
+  ok((await call("GET", `/api/teams/${hh}`, undefined, graham)).status === 200, "signed in, it loads");
+  ok((await call("GET", `/api/leagues/${lg}`)).status === 401, "signed out, a real league is refused");
+  ok((await call("GET", `/api/players/${mike}`)).status === 401, "signed out, a real player is refused");
+  ok((await call("GET", `/api/standings?rink=${rid}`)).json.rinkId === sampleRink.id, "signed out, standings fall back to the sample rink");
+  ok((await call("GET", "/api/sheets")).status === 401, "signed out, the scoresheet list is refused");
+  ok((await fetch(`${BASE}/api/cards/game/${conf.json.gameId}`)).status === 401, "signed out, a real game's share card is refused");
+  ok((await fetch(`${BASE}/api/cards/game/${conf.json.gameId}`, { headers: { Authorization: `Bearer ${graham}` } })).status === 200, "signed in, the card renders");
+  const meNow = await call("GET", "/api/me", undefined, graham);
+  ok(typeof meNow.json.imageKey === "string" && meNow.json.imageKey.split(".").length === 3, "signed in, /api/me carries an image key for scoresheet photos");
+  const sampleTeam = outBoot.json.leagues[0].teams[0].id;
+  ok((await call("GET", `/api/teams/${sampleTeam}`)).status === 200, "signed out, a sample team loads");
   await db.end();
   console.log(`\nsmoke: ${passed} checks passed`);
 }

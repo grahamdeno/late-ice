@@ -1,13 +1,14 @@
 "use client";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { act, useMe } from "@/lib/auth";
+import { act, useMe, useSheetImage } from "@/lib/auth";
 import { Link } from "@/lib/router";
-import { BackBar, Delta, FaceoffDot, LevelPill, Loading, TeamBadge, fmtDate, img } from "@/lib/ui";
+import { BackBar, Delta, FaceoffDot, LevelPill, Loading, TeamBadge, fmtDate } from "@/lib/ui";
 import { Stars } from "@/components/Stars";
 import { ShareCard } from "@/components/ShareCard";
 
 export default function Game({ id, fresh }: { id: string; fresh?: boolean }) {
+  const sheetImg = useSheetImage();
   const { data: g, error } = useQuery<any>({ queryKey: [`/api/games/${id}`] });
   if (!g) return <Loading error={error} />;
   const sides = [
@@ -154,8 +155,8 @@ export default function Game({ id, fresh }: { id: string; fresh?: boolean }) {
       </>}
 
       {g.sheetId && (
-        <a href={img(`/api/sheets/${g.sheetId}/image`)} target="_blank" rel="noreferrer" className="card mt-4 p-3 flex items-center gap-3" data-testid="link-source-sheet">
-          <img src={img(`/api/sheets/${g.sheetId}/image`)} alt="Original scoresheet" className="h-14 w-20 object-cover object-top rounded-lg" />
+        <a href={sheetImg(g.sheetId)} target="_blank" rel="noreferrer" className="card mt-4 p-3 flex items-center gap-3" data-testid="link-source-sheet">
+          <img src={sheetImg(g.sheetId)} alt="Original scoresheet" className="h-14 w-20 object-cover object-top rounded-lg" />
           <div className="flex-1"><div className="font-bold text-sm">Source scoresheet</div><div className="text-xs text-[var(--mute)]">Every stat on this page came from this photo</div></div>
         </a>
       )}

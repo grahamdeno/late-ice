@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { authHeaders } from "@/lib/queryClient";
 
 /** Share a result or player card as a picture: the phone's share sheet where there is one, else a download. */
 export function ShareCard({ kind, id, title, label = "Share card" }: { kind: "game" | "player"; id: number | string; title: string; label?: string }) {
@@ -8,7 +9,7 @@ export function ShareCard({ kind, id, title, label = "Share card" }: { kind: "ga
   const share = async () => {
     setBusy(true); setErr(null);
     try {
-      const res = await fetch(`/api/cards/${kind}/${id}?format=story`);
+      const res = await fetch(`/api/cards/${kind}/${id}?format=story`, { headers: authHeaders() });
       if (!res.ok) throw new Error("no card");
       const blob = await res.blob();
       const file = new File([blob], `late-ice-${kind}-${id}.png`, { type: "image/png" });

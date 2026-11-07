@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@/lib/router";
 import { apiRequest, authHeaders, invalidatePrefixes } from "@/lib/queryClient";
+import { useSheetImage } from "@/lib/auth";
 import { BackBar, FaceoffDot, Loading, TeamBadge, img, useFilter } from "@/lib/ui";
 
 type Side = "home" | "away";
@@ -15,6 +16,7 @@ function Cell({ v, onChange, w = "w-12", testid }: { v: any; onChange: (x: strin
 
 
 export default function Sheet({ id }: { id: string }) {
+  const sheetImg = useSheetImage();
   const [, , swap] = useLocation();
   const { boot } = useFilter();
   const { data: s, refetch } = useQuery<any>({
@@ -54,7 +56,7 @@ export default function Sheet({ id }: { id: string }) {
         <BackBar href="/scan" title="Reading sheet" />
         <div className="card-hi p-4">
           <div className="relative rounded-2xl overflow-hidden border border-[var(--line)]">
-            <img src={img(`/api/sheets/${id}/image`)} alt="Scoresheet being read" className="w-full opacity-70" />
+            <img src={sheetImg(id)} alt="Scoresheet being read" className="w-full opacity-70" />
             <div className="scanline" />
           </div>
           <div className="flex items-center gap-3 mt-4">
@@ -322,7 +324,7 @@ export default function Sheet({ id }: { id: string }) {
 
       {zoom && (
         <div className="fixed inset-0 z-[60] bg-black/90 overflow-auto" onClick={() => setZoom(false)} data-testid="overlay-photo">
-          <img src={img(`/api/sheets/${id}/image`)} alt="Scoresheet photo" className="min-w-[900px] w-full" />
+          <img src={sheetImg(id)} alt="Scoresheet photo" className="min-w-[900px] w-full" />
         </div>
       )}
     </div>

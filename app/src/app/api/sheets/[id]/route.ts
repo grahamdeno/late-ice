@@ -9,6 +9,7 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
   const s = await one<any>(sql, "SELECT * FROM sheets WHERE id=$1", [num(id)]);
   if (!s) throw new HttpError(404, "Sheet not found");
   const u = await userFromRequest(req).catch(() => null);
+  if (!u && s.source !== "sample") throw new HttpError(401, "Sign in to see this.");
   const approved = await isApproved(sql, u);
   return { ...(await sheetView(s)), rights: { ...(await confirmRights(approved ? u : null)), approved, sample: s.source === "sample" } };
 });

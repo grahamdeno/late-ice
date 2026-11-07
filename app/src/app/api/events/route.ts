@@ -3,13 +3,17 @@ import { sql, q, one } from "@/server/db";
 import { HttpError } from "@/server/services";
 import { requireApproved, userFromRequest, requireTeam } from "@/server/accounts";
 import { clean } from "@/server/manage";
+import { assertTeamVisible } from "@/server/visibility";
 
 export const dynamic = "force-dynamic";
 
 /** Tournaments: recent and upcoming, or one team's. */
 export const GET = handle(async (req) => {
   const team = new URL(req.url).searchParams.get("team");
-  if (team) return q(sql, "SELECT e.*, et.place FROM events e JOIN event_teams et ON et.event_id=e.id WHERE et.team_id=$1 ORDER BY e.starts_on DESC", [num(team)]);
+  const viewer = await userFromRequest(req).catch(() => null);
+  if (team) { await assertTeamVisible(sql, viewer, num(team)); return q(sql, "SELECT e.*, et.place FROM events e JOIN event_teams et ON et.event_id=e.id WHERE et.team_id=$1 ORDER BY e.starts_on DESC", [num(team)]); }
+  // Signed out: tournaments hosted at the sample rink only.
+  if (!viewer) return q(sql, "SELECT e.*, r.name host_rink FROM events e JOIN rinks r ON r.id=e.host_rink_id WHERE r.is_sample ORDER BY e.starts_on DESC LIMIT 50");
   return q(sql, "SELECT e.*, r.name host_rink FROM events e LEFT JOIN rinks r ON r.id=e.host_rink_id WHERE e.ends_on >= to_char(now() - interval '60 days', 'YYYY-MM-DD') ORDER BY e.starts_on DESC LIMIT 50");
 });
 

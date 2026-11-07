@@ -5,6 +5,7 @@ import { Link, useLocation } from "@/lib/router";
 import { apiRequest, authHeaders, invalidatePrefixes } from "@/lib/queryClient";
 import { TeamBadge, img, useFilter } from "@/lib/ui";
 import { DeskFrame, Gate, RinkSwitch, day, useDeskRink } from "@/views/Desk";
+import { useSheetImage } from "@/lib/auth";
 
 /**
  * Scoresheets on the desk: a queue of scans waiting for a check, and a wide review screen with the
@@ -98,13 +99,14 @@ function QueueBody({ overview }: { overview: any }) {
 }
 
 function QueueRow({ r }: { r: Row }) {
+  const sheetImg = useSheetImage();
   const [, nav] = useLocation();
   const st = STATUS[r.status] ?? STATUS.review;
   const href = r.status === "confirmed" && r.gameId ? `/game/${r.gameId}` : `/desk/sheets/${r.id}`;
   return (
     <tr className="hover:bg-[var(--surface-2)] cursor-pointer" onClick={() => nav(href)} data-testid={`row-sheet-${r.id}`}>
       <td className="px-4 py-2.5">
-        <img src={img(`/api/sheets/${r.id}/image`)} alt="" loading="lazy" className="h-12 w-12 object-cover rounded-lg border border-[var(--line)] bg-[var(--ice-3)]" />
+        <img src={sheetImg(r.id)} alt="" loading="lazy" className="h-12 w-12 object-cover rounded-lg border border-[var(--line)] bg-[var(--ice-3)]" />
       </td>
       <td className="px-3 py-2.5 min-w-[220px]">
         {r.home || r.away ? (
@@ -254,6 +256,7 @@ function SheetBody({ id, overview }: { id: string; overview: any }) {
 
 /** The photo, zoomable and draggable, kept in view while the reading scrolls. */
 function Photo({ id, dim }: { id: string; dim?: boolean }) {
+  const sheetImg = useSheetImage();
   const [zoom, setZoom] = useState(1);
   const [turn, setTurn] = useState(0);
   const box = useRef<HTMLDivElement>(null);
@@ -268,7 +271,7 @@ function Photo({ id, dim }: { id: string; dim?: boolean }) {
         <span className="text-xs tnum w-10 text-center text-[var(--mute)]">{Math.round(zoom * 100)}%</span>
         <button className="btn btn-ghost h-8 w-8 p-0" onClick={() => setZoom((z) => Math.min(4, z + 0.5))} aria-label="Zoom in" data-testid="button-photo-in">+</button>
         <button className="btn btn-ghost h-8 px-2 text-xs" onClick={() => setTurn((t) => (t + 90) % 360)} aria-label="Rotate" data-testid="button-photo-rotate">Rotate</button>
-        <a className="btn btn-ghost h-8 px-2 text-xs" href={img(`/api/sheets/${id}/image`)} target="_blank" rel="noreferrer">Open</a>
+        <a className="btn btn-ghost h-8 px-2 text-xs" href={sheetImg(id)} target="_blank" rel="noreferrer">Open</a>
       </div>
       <div ref={box}
         className="rounded-2xl border border-[var(--line)] bg-black/40 overflow-auto xl:h-[calc(100dvh-140px)] h-[60vh] select-none"
@@ -278,7 +281,7 @@ function Photo({ id, dim }: { id: string; dim?: boolean }) {
         onPointerUp={() => { drag.current = null; }}
         onDoubleClick={() => setZoom((z) => (z >= 2 ? 1 : 2))}>
         <div style={{ width: `${zoom * 100}%` }} className="mx-auto">
-          <img src={img(`/api/sheets/${id}/image`)} alt="Scoresheet photo" draggable={false}
+          <img src={sheetImg(id)} alt="Scoresheet photo" draggable={false}
             className={`w-full transition-transform ${dim ? "opacity-60" : ""}`}
             style={{ transform: `rotate(${turn}deg)${sideways ? " scale(0.75)" : ""}` }} />
         </div>
