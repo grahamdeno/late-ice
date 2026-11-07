@@ -485,10 +485,13 @@ async function main() {
   ok((await call("POST", "/api/sheets", { image: "nope" }, sam)).status === 400, "non-image upload rejected");
   const up = await call("POST", "/api/sheets", { image: tiny }, sam);
   ok(up.status === 202 && up.json.id, "photo upload stored, reading starts in the background");
-  const img = await fetch(`${BASE}/api/sheets/${up.json.id}/image`);
-  ok(img.status === 200 && img.headers.get("content-type") === "image/png", "photo comes back from private storage");
+  ok((await fetch(`${BASE}/api/sheets/${up.json.id}/image`)).status === 401, "signed out, a real scoresheet photo is refused");
+  const samKey = (await call("GET", "/api/me", undefined, sam)).json.imageKey;
+  const img = await fetch(`${BASE}/api/sheets/${up.json.id}/image?k=${encodeURIComponent(samKey)}`);
+  ok(img.status === 200 && img.headers.get("content-type") === "image/png", "photo comes back from private storage with the image key");
+  ok((await fetch(`${BASE}/api/sheets/${up.json.id}/image?k=1.2.forged`)).status === 401, "a forged image key is refused");
   let st: any;
-  for (let i = 0; i < 50; i++) { st = await call("GET", `/api/sheets/${up.json.id}`); if (st.json.status !== "processing") break; await new Promise((r) => setTimeout(r, 300)); }
+  for (let i = 0; i < 50; i++) { st = await call("GET", `/api/sheets/${up.json.id}`, undefined, sam); if (st.json.status !== "processing") break; await new Promise((r) => setTimeout(r, 300)); }
   ok(st.json.status === "failed" && st.json.error, "reader failure is recorded, not lost (no API key in CI)");
 
   // Turn a sheet into a game using the sample's ground truth as the reviewed result.
@@ -849,7 +852,7 @@ async function main() {
       goals: [{ period: 2, time: "4:00", scorer: "5", assist1: null, assist2: null }], penalties: [], shots_by_period: [5, 5, 5], score_by_period: [0, 1, 0], total: 1 },
   };
   await db`UPDATE sheets SET extracted_json=${JSON.stringify(real)} WHERE id=${sh2.id}`;
-  const sv2 = (await call("GET", `/api/sheets/${sh2.id}`)).json;
+  const sv2 = (await call("GET", `/api/sheets/${sh2.id}`, undefined, boss)).json;
   ok(sv2.suggestion.duplicateGameId === null, "an imported game isn't flagged as already scanned");
   ok((await call("POST", `/api/sheets/${sh2.id}/confirm`, { leagueId: lg, homeTeamId: hh, awayTeamId: blId, data: real }, outsider)).status === 403, "a player who isn't a captain of either team can't confirm");
   const sub2 = await call("POST", `/api/sheets/${sh2.id}/submit`, { leagueId: lg, homeTeamId: hh, awayTeamId: blId, data: real }, outsider);
@@ -1241,7 +1244,7 @@ async function main() {
     ok(up.status === 202 && up.json.id, "fake scan accepted");
     let st: any;
     for (let i = 0; i < 50; i++) {
-      st = await call("GET", `/api/sheets/${up.json.id}`);
+      st = await call("GET", `/api/sheets/${up.json.id}`, undefined, boss);
       if (st.json.status !== "processing") break;
       await new Promise((r) => setTimeout(r, 200));
     }
@@ -1304,7 +1307,7 @@ async function main() {
   const saved = await call("POST", `/api/sheets/${failed.id}/manual`, hand, sam);
   ok(saved.status === 200 && saved.json.data?.home?.total === 4 && saved.json.data?.away?.total === 2, "hand entry stores the final score");
   ok(saved.json.data.home.roster.map((p: any) => p.number).join(",") === "81,82" && saved.json.data.is_scoresheet === true, "hand entry stores who dressed and becomes review data");
-  const mid = await call("GET", `/api/sheets/${failed.id}`);
+  const mid = await call("GET", `/api/sheets/${failed.id}`, undefined, sam);
   ok(mid.json.status === "review" && mid.json.gameId == null, "hand entry does not confirm the game");
   const demoId = (await db`SELECT id FROM leagues WHERE level='DEMO'`)[0].id;
   const demoTeams = await db`SELECT t.id FROM teams t WHERE t.league_id=${demoId} ORDER BY t.id LIMIT 2`;
