@@ -1555,7 +1555,7 @@ async function main() {
   ok(cleanup.status === 200 && cleanupBody.photos.deleted >= 1, "nightly cleanup deletes photos confirmed more than 90 days ago");
   const oldRow = (await db`SELECT photo_deleted_at, extracted_json, image_path FROM sheets WHERE id = ${oldSheet.id}`)[0];
   ok(oldRow.photo_deleted_at && String(oldRow.extracted_json).includes("kept") && oldRow.image_path === oldKey, "the old photo is marked deleted only after removal, and the extract stays");
-  ok((await fetch(`${BASE}/api/sheets/${oldSheet.id}/image`)).status === 404, "the deleted photo no longer downloads");
+  ok((await fetch(`${BASE}/api/sheets/${oldSheet.id}/image`, { headers: { Authorization: `Bearer ${boss}` } })).status === 404, "the deleted photo no longer downloads");
   ok((await db`SELECT photo_deleted_at FROM sheets WHERE id = ${edgeSheet.id}`)[0].photo_deleted_at === null, "a sheet just under 90 days confirmed is kept");
   ok((await db`SELECT photo_deleted_at FROM sheets WHERE id = ${freshSheet.id}`)[0].photo_deleted_at === null, "a sheet confirmed 89 days ago is kept");
   const second = await fetch(`${BASE}/api/cron/recompute`, { headers: { Authorization: `Bearer ${env.CRON_SECRET}` } });
