@@ -1209,7 +1209,9 @@ async function main() {
   const inv = await call("POST", `/api/teams/${hh}/invite`, undefined, graham);
   ok(inv.status === 200 && inv.json.invite.token && inv.json.invite.uses === 0, "captain makes an invite link");
   ok((await call("POST", `/api/teams/${hh}/invite`, undefined, fan)).status === 403, "only the team's captains and staff can");
-  ok((await call("GET", `/api/invites/${inv.json.invite.token}`)).json.team === "Hammer'd Heads", "the link says which team");
+  const invOut = (await call("GET", `/api/invites/${inv.json.invite.token}`)).json;
+  ok(invOut.valid === true && invOut.team === undefined, "signed out, the link is valid but names no team");
+  ok((await call("GET", `/api/invites/${inv.json.invite.token}`, undefined, fan)).json.team === "Hammer'd Heads", "signed in, the link says which team");
   const invited = await signUp("invited@example.com", { name: "Ivan Invited", number: "5", position: "D" }, { waitlist: true });
   const acc = await call("POST", "/api/invites/accept", { token: inv.json.invite.token }, invited);
   ok(acc.status === 200 && acc.json.newlyApproved && acc.json.teamId === hh, "signing in through the link lets you in");
