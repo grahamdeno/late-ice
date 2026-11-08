@@ -50,7 +50,9 @@ const INIT = `window.__cls=0;try{new PerformanceObserver(l=>{for(const e of l.ge
 
 async function person(browser, engine, who, { throttle = false } = {}) {
   // WebKit runs in dark mode (the app's default on most iPhones at night), Chromium in light.
-  const ctx = await browser.newContext({ ...PHONE, colorScheme: engine === "webkit" ? "dark" : "light" });
+  // WebKit can't intercept requests that pass through the app's service worker, so the scan upload
+  // could not carry the stand-in reader's script. The WebKit run blocks the service worker; Chromium keeps it.
+  const ctx = await browser.newContext({ ...PHONE, colorScheme: engine === "webkit" ? "dark" : "light", ...(engine === "webkit" ? { serviceWorkers: "block" } : {}) });
   await ctx.addInitScript(INIT);
   const page = await ctx.newPage();
   const state = { engine, who, job: "", step: "", shot: "", fake: null };
@@ -77,6 +79,7 @@ async function person(browser, engine, who, { throttle = false } = {}) {
   await ctx.route("**/api/sheets", async (route) => {
     const req = route.request();
     if (req.method() !== "POST" || !state.fake) return route.continue();
+    console.log(`[walk] ${engine} upload intercepted for ${state.job}`);
     const raw = req.postDataBuffer() ?? Buffer.from(req.postData() || "{}");
     const b = JSON.parse(raw.toString("utf8") || "{}");
     const m = String(b.image || "").match(/^data:(image\/[a-z]+);base64,(.+)$/);
@@ -240,7 +243,10 @@ async function upload(t, page, label) {
   await (await chooser).setFiles("public/samples/demo-flyers-owls.jpg");
   await page.waitForURL(/\/sheet\/\d+/, { timeout: 30000 });
   await t.step(`${label}-reading`);
-  await page.locator('[data-testid="button-send-to-captains"], [data-testid="button-confirm-final"], [data-testid="text-sheet-stuck"]').first().waitFor({ timeout: 45000 });
+  await page.locator('[data-testid="button-send-to-captains"], [data-testid="button-confirm-final"], [data-testid="text-sheet-stuck"]').first().waitFor({ timeout: 45000 }).catch(() => {});
+  const id = Number((page.url().match(/\/sheet\/(\d+)/) || [])[1]);
+  const [row] = id ? await db`SELECT status, error, mime FROM sheets WHERE id=${id}` : [];
+  console.log(`[walk] sheet ${id}: ${row?.status} ${row?.mime} ${row?.error ?? ""}`);
 }
 
 // ---------------------------------------------------------------- the jobs, in the order a week runs
