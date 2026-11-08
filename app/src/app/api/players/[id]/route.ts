@@ -14,7 +14,7 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
   await assertPlayerVisible(sql, me, raw.id);
   const { name_key: _k, name: _n, user_id: uid, display_name, start_rating: _s, ...rest } = raw;
   const owner = uid ? await one<any>(sql, "SELECT avatar FROM users WHERE id=$1", [uid]) : null;
-  const p = { ...rest, name: display_name, registered: !!uid, mine: !!me && me.id === uid, avatar: owner?.avatar ?? null };
+  const p = { ...rest, name: display_name, registered: !!uid, mine: !!me && me.id === uid, avatar: owner?.avatar ?? raw.avatar ?? null };
   const teams = await q<any>(sql, "SELECT t.id, t.name, t.color, t.logo, re.number, l.level, l.id league_id FROM roster_entries re JOIN teams t ON t.id=re.team_id JOIN leagues l ON l.id=t.league_id WHERE re.player_id=$1", [raw.id]);
   const history = [];
   for (const h of await q<any>(sql, "SELECT rh.*, g.played_on FROM rating_history rh JOIN games g ON g.id=rh.game_id WHERE rh.player_id=$1 ORDER BY rh.id", [raw.id])) {

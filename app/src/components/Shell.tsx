@@ -202,7 +202,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
       <main className="mx-auto max-w-[560px] min-w-0 px-4 pb-36 break-words" style={{ paddingTop: "calc(env(safe-area-inset-top) + 84px)" }}>
         {(boot?.rink as any)?.is_sample && !me && !loc.startsWith("/join") && (
           <Link href="/join" className="card mb-4 px-4 min-h-[48px] flex items-center gap-3 text-sm" data-testid="banner-sample-rink">
-            <span className="font-bold shrink-0">Sample rink</span>
+            <span className="font-bold shrink-0">Midnight Pond</span>
             <span className="text-[var(--mute)] flex-1 min-w-0">Made-up teams and players. Sign in to see your league.</span>
             <span className="text-[var(--blue)] font-bold shrink-0">Sign in</span>
           </Link>

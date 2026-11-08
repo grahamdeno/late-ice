@@ -95,7 +95,8 @@ async function viewerScope(db: Tx, viewer: any): Promise<{ wide: boolean; rinks:
  */
 /** True when this viewer may see the short same-rink name for that player. One expression, no extra round trip. */
 export function sameRinkSql(playerId: string, viewerId: string) {
-  return `(${viewerId}::int IS NOT NULL AND (
+  // Midnight Pond's made-up players (name_key sample-N) show their full names to everyone.
+  return `(EXISTS (SELECT 1 FROM players fp WHERE fp.id = ${playerId} AND fp.name_key LIKE 'sample-%') OR ${viewerId}::int IS NOT NULL AND (
     EXISTS (SELECT 1 FROM role_grants g WHERE g.user_id = ${viewerId} AND g.role IN ('support','admin') AND g.revoked_at IS NULL)
     OR EXISTS (
       SELECT 1 FROM roster_entries re
@@ -136,7 +137,7 @@ export async function applyViewerNames<T extends Record<string, any>>(db: Tx, vi
   if (!ids.length) return rows;
   const idJson = JSON.stringify(ids);
   const meta = await q<any>(db, `
-    SELECT p.id, p.name, p.display_name, p.user_id, p.hidden, u.hidden AS user_hidden,
+    SELECT p.id, p.name, p.display_name, p.user_id, p.hidden, u.hidden AS user_hidden, (p.name_key LIKE 'sample-%') AS fictional,
       (SELECT re.number FROM roster_entries re WHERE re.player_id=p.id AND re.number IS NOT NULL AND re.number <> '' ORDER BY re.id LIMIT 1) AS number
     FROM players p LEFT JOIN users u ON u.id=p.user_id
     WHERE p.id IN (SELECT jsonb_array_elements_text($1::text::jsonb)::int)`, [idJson]);
@@ -158,6 +159,7 @@ export async function applyViewerNames<T extends Record<string, any>>(db: Tx, vi
     const hidden = !!p.hidden || !!p.user_hidden;
     let name: string;
     if (hidden) name = jersey ? `Player #${jersey}` : "Hidden player";
+    else if (p.fictional) name = p.display_name || p.name;
     else if (p.user_id) name = p.display_name || row.name || obfuscate(p.name);
     else if (scope.wide || same.has(p.id)) name = p.display_name || obfuscate(p.name);
     else name = publicInitials(p.name, jersey);
