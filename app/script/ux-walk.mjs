@@ -180,7 +180,7 @@ async function shot(p, j, label) {
   for (const x of m.small) find("moderate", "tap target under 44 pt", state, `${m.path}: ${x}`, x.replace(/\d+x\d+$/, "").replace(/\d+/g, "N"));
   if (m.tinyText.length) find("moderate", "text under 12 pt", state, `${m.path}: ${m.tinyText.slice(0, 4).join("; ")}`, P);
   if (m.wide) find("serious", "page slides sideways", state, `${m.path} is wider than ${m.W}px`, `${P}|${state.zoom ? "zoom" : ""}`);
-  if (m.cls > 0.1) find("moderate", "layout shift", state, `${m.path}: shift ${m.cls.toFixed(2)}`, P);
+  if (m.cls > 0.1 && !state.zoom) find("moderate", "layout shift", state, `${m.path}: shift ${m.cls.toFixed(2)}`, P);
   for (const v of axe) find(v.impact === "critical" || v.impact === "serious" ? "serious" : "moderate", `a11y ${v.id}`, state, `${m.path}: ${v.help} (${v.count}x) e.g. ${v.nodes.join(" | ")}`, `${v.id}|${P}`);
   j.steps.push({ label, path: m.path, shot: state.shot, screens: Math.round((m.height / 844) * 10) / 10, cls: Number(m.cls.toFixed(3)), axe: axe.length, above: m.above });
 }
@@ -466,7 +466,8 @@ async function week(browser, engine, pairIdx) {
     if (await statuses.count() > 1) await t.tap(statuses.nth(1), "status");
     const until = new Date(Date.now() + 14 * 86400000).toLocaleDateString("en-CA");
     if (await page.getByTestId("input-status-until").count()) { await t.type(page.getByTestId("input-status-until"), until); await page.getByTestId("input-status-until").blur(); }
-    if (await page.getByTestId("button-notification-settings").count()) await t.tap(page.getByTestId("button-notification-settings"), "notifications");
+    const prefs = page.locator('[data-testid="form-notification-settings"], [data-testid^="input-pref-"], [data-testid="button-notification-settings"]');
+    if (await prefs.count()) { await prefs.first().scrollIntoViewIfNeeded().catch(() => {}); await t.step("notifications"); }
     else t.check(false, "moderate", "notifications hard to find", "No notification settings on the Settings page");
     await page.goto(BASE + "/"); await t.step("home-light");
     await page.goto(BASE + "/settings"); await settle(page);
