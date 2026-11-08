@@ -169,8 +169,11 @@ function Toggle({ label, hint, on, onClick, testid }: { label: string; hint: str
   return (
     <div className="flex items-center gap-3 py-2">
       <span className="flex-1"><span className="block font-bold text-sm">{label}</span><span className="block text-xs text-[var(--mute)]">{hint}</span></span>
-      <button role="switch" aria-checked={on} aria-label={label} onClick={onClick} className={`h-8 w-[52px] shrink-0 rounded-full relative transition-colors ${on ? "bg-[var(--red-btn)]" : "bg-[var(--ice-3)] border border-[var(--line)]"}`} data-testid={testid}>
-        <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-all ${on ? "left-[24px]" : "left-1"}`} />
+      {/* 44 pt tap area around the 32 pt track. */}
+      <button role="switch" aria-checked={on} aria-label={label} onClick={onClick} className="h-11 w-[60px] shrink-0 flex items-center justify-center" data-testid={testid}>
+        <span className={`h-8 w-[52px] rounded-full relative transition-colors ${on ? "bg-[var(--red-btn)]" : "bg-[var(--ice-3)] border border-[var(--line)]"}`} aria-hidden="true">
+          <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-all ${on ? "left-[24px]" : "left-1"}`} />
+        </span>
       </button>
     </div>
   );

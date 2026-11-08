@@ -174,7 +174,7 @@ export function RinkRequestForm({ onDone, admin = false }: { onDone: () => void;
           <div className="font-bold">Is it one of these?</div>
           {matches.map((m) => <div key={m.id} className="text-[var(--mute)]">{m.name}{m.city ? ` · ${m.city}, ${m.state}` : ""}</div>)}
           <p className="text-xs text-[var(--mute)] mt-1">If so, open it from the Rink tab instead.</p>
-          <button type="button" className="btn btn-ghost h-9 mt-2 text-sm" onClick={() => submit(true)} data-testid="button-rink-not-these">No, it's a different rink</button>
+          <button type="button" className="btn btn-ghost h-11 mt-2 text-sm" onClick={() => submit(true)} data-testid="button-rink-not-these">No, it's a different rink</button>
         </div>
       )}
       {err && <p className="text-sm down">{err}</p>}

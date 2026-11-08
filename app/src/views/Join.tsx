@@ -172,7 +172,7 @@ export default function Join() {
 
       {step === "code" && (
         <form onSubmit={verify} className="card-hi p-5 mt-5 space-y-3">
-          <div className="text-sm">Code sent to <b className="break-all">{normEmail(email)}</b>. <button type="button" className="text-[var(--blue)] min-h-[40px] px-1" onClick={() => { setStep("email"); setErr(null); }} data-testid="button-change-email">Change</button></div>
+          <div className="text-sm">Code sent to <b className="break-all">{normEmail(email)}</b>. <button type="button" className="text-[var(--blue)] min-h-[44px] px-1" onClick={() => { setStep("email"); setErr(null); }} data-testid="button-change-email">Change</button></div>
           <p className="text-xs text-[var(--mute)]">Check your inbox and spam folder. The code expires in 10 minutes.</p>
           <label className="block">
             <span className="label">Six-digit code</span>
@@ -180,7 +180,7 @@ export default function Join() {
           </label>
           {err && <p className="text-sm down" data-testid="text-error">{err}</p>}
           <button className="btn btn-red w-full h-12" disabled={busy || code.length !== 6} data-testid="button-verify">{busy ? "Checking…" : "Sign in"}</button>
-          <button type="button" className="btn btn-ghost w-full h-10" onClick={() => send()} disabled={busy || wait > 0} data-testid="button-resend">
+          <button type="button" className="btn btn-ghost w-full h-11" onClick={() => send()} disabled={busy || wait > 0} data-testid="button-resend">
             {wait > 0 ? `Send a new code in ${wait}s` : "Send a new code"}
           </button>
         </form>

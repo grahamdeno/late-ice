@@ -21,9 +21,9 @@ export function CaptainPanel({ team, captain, assistants = [] }: { team: any; ca
       <div className="card mt-3 p-3.5 flex items-center gap-3 text-sm" data-testid="card-captain">
         <span className="label">Captain</span>
         <span className="flex-1 font-bold truncate">{captain ? captain.name : <span className="text-[var(--mute)] font-medium">No captain yet</span>}</span>
-        {!me && <Link href="/join" className="btn btn-ghost h-8 text-xs" data-testid="link-join-team">Your team? Join</Link>}
-        {me && !captain && onRoster && <button className="btn btn-red h-8 text-xs" onClick={() => run("POST", `/api/teams/${team.id}/captain`)} data-testid="button-take-captain">I'm the captain</button>}
-        {me && captain && !runsTeam && onRoster && <button className="btn btn-ghost h-8 text-xs" onClick={() => confirm("Tell the captain you're the real captain?") && run("POST", `/api/teams/${team.id}/captain`)} data-testid="button-contest-captain">Contest</button>}
+        {!me && <Link href="/join" className="btn btn-ghost h-11 text-xs" data-testid="link-join-team">Your team? Join</Link>}
+        {me && !captain && onRoster && <button className="btn btn-red h-11 text-xs" onClick={() => run("POST", `/api/teams/${team.id}/captain`)} data-testid="button-take-captain">I'm the captain</button>}
+        {me && captain && !runsTeam && onRoster && <button className="btn btn-ghost h-11 text-xs" onClick={() => confirm("Tell the captain you're the real captain?") && run("POST", `/api/teams/${team.id}/captain`)} data-testid="button-contest-captain">Contest</button>}
       </div>
       {assistants.length > 0 && (
         <div className="card mt-2 p-3.5 flex items-center gap-3 text-sm" data-testid="card-assistants">

@@ -147,7 +147,9 @@ async function shot(p, j, label) {
     for (const el of document.querySelectorAll('a[href],button,input:not([type=hidden]),select,textarea,[role=button],[role=radio],[role=switch]')) {
       if (!vis(el)) continue;
       if (el.tagName === "A" && getComputedStyle(el).display === "inline" && el.parentElement && /^(P|SPAN|LI)$/.test(el.parentElement.tagName)) continue;
-      const r = el.getBoundingClientRect(), side = Math.min(r.width, r.height);
+      // A checkbox or radio inside its label is tapped through the whole label, so measure the label.
+      const box = el.tagName === "INPUT" && /^(checkbox|radio)$/.test(el.type) && el.closest("label") ? el.closest("label") : el;
+      const r = box.getBoundingClientRect(), side = Math.min(r.width, r.height);
       if (side < 24) tiny.push(`${desc(el)} ${Math.round(r.width)}x${Math.round(r.height)}`);
       else if (side < 44) small.push(`${desc(el)} ${Math.round(r.width)}x${Math.round(r.height)}`);
     }

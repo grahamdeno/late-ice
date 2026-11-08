@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "@/lib/router";
 import { useMe, act, posMatch } from "@/lib/auth";
+import { findPlayers } from "@/lib/search";
 import { Bobble } from "@/components/Bobble";
 import { PlayerCard } from "@/components/PlayerCard";
 import { ARCHETYPE_BLURB, ARCHETYPE_LABEL } from "@/components/Archetypes";
@@ -18,7 +19,9 @@ export function Players() {
   const [all, setAll] = useState(false);
   const { data } = useQuery<any[]>({ queryKey: [leagueId ? `/api/players?league=${leagueId}` : rinkId ? `/api/players?rink=${rinkId}` : "/api/players"] });
   const league = boot?.leagues.find((l) => l.id === leagueId);
-  const rows = (data ?? []).filter((p) => posMatch(pos, p.position) && p.name.toLowerCase().includes(qs.toLowerCase()));
+  const atPos = (data ?? []).filter((p) => posMatch(pos, p.position));
+  const found = findPlayers(atPos, qs);
+  const rows = found.rows;
   const myIds = new Set((me?.slots ?? []).map((s) => s.id));
   const myIndex = rows.findIndex((p) => myIds.has(p.id));
   const shown = all || qs ? rows : rows.slice(0, 10);
@@ -50,16 +53,19 @@ export function Players() {
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
         </button>
       </div>
-      {searching && <input autoFocus value={qs} onChange={(e) => setQs(e.target.value)} placeholder="Find a player" className="mt-3 w-full h-11 rounded-xl bg-[var(--ice-2)] border border-[var(--line)] px-4 focus:outline-none focus:border-[var(--red)]" data-testid="input-player-search" />}
+      {searching && <input autoFocus value={qs} onChange={(e) => setQs(e.target.value)} placeholder="First name, number or team" aria-label="Find a player by first name, jersey number or team" className="mt-3 w-full h-11 rounded-xl bg-[var(--ice-2)] border border-[var(--line)] px-4 focus:outline-none focus:border-[var(--red)]" data-testid="input-player-search" />}
       <div className="flex gap-2 mt-3 overflow-x-auto scrollbar-none -mx-4 px-4">
         {([["skaters", "Skaters"], ["C", "Center"], ["W", "Wing"], ["D", "Defense"], ["G", "Goalie"]] as const).map(([k, label]) => (
-          <button key={k} onClick={() => setPos(k)} data-active={pos === k} className="chip shrink-0 h-9" data-testid={`button-pos-${k}`}>{label}</button>
+          <button key={k} onClick={() => setPos(k)} data-active={pos === k} className="chip shrink-0 h-11" data-testid={`button-pos-${k}`}>{label}</button>
         ))}
       </div>
       {!data ? <PlayersSkeleton /> : rows.length === 0 ? (
-        <div className="mt-4"><Empty title={qs ? "No match" : pos !== "skaters" ? "Nobody at this position yet" : "No players yet"} body={qs ? "Try another spelling." : pos !== "skaters" ? "Players set their position on their profile. Imported spots are just forward until someone claims them." : "Players appear the moment their first scoresheet is scanned."} /></div>
+        <div className="mt-4"><Empty title={qs ? `No player matches "${qs.trim()}"` : pos !== "skaters" ? "Nobody at this position yet" : "No players yet"} body={qs ? "Search a first name, a jersey number or a team. Last names show as an initial." : pos !== "skaters" ? "Players set their position on their profile. Imported spots are just forward until someone claims them." : "Players appear the moment their first scoresheet is scanned."} /></div>
       ) : (
         <>
+          {found.byInitial && (
+            <p className="text-sm text-[var(--mute)] mt-3 px-1" data-testid="text-search-initial">No name matches &ldquo;{qs.trim()}&rdquo;. Last names show as an initial, so here are players whose last initial is {found.byInitial}.</p>
+          )}
           {myIndex >= 10 && !all && !qs && <div className="card mt-4 overflow-hidden">{row(rows[myIndex], myIndex, true)}</div>}
           <div className="card divide-y divide-[var(--line)] mt-3">{shown.map((p, i) => row(p, i))}</div>
           {!all && !qs && rows.length > 10 && (
@@ -238,7 +244,7 @@ function ClaimCard({ player }: { player: any }) {
         <div className="card p-4 flex items-center gap-3" data-testid="card-claim">
           <div className="flex-1"><div className="font-bold">Is this you?</div><div className="text-xs text-[var(--mute)]">{me ? "Claim it and these stats and this rating become yours. Your captain can see the claim." : "Join with your phone number, then claim it."}</div></div>
           <button
-            className="btn btn-red h-10"
+            className="btn btn-red h-11"
             onClick={async () => {
               if (!me) return nav("/join");
               if (!me.user.profileComplete) return nav("/join");
@@ -256,13 +262,13 @@ function ClaimCard({ player }: { player: any }) {
       {!player.registered && !player.hidden && !hidden && (
         <div className="px-1">
           {!hideOpen ? (
-            <button className="text-xs text-[var(--mute)] underline min-h-[40px]" onClick={() => setHideOpen(true)} data-testid="button-hide-open">Don't want your name here? Hide it.</button>
+            <button className="text-xs text-[var(--mute)] underline min-h-[44px]" onClick={() => setHideOpen(true)} data-testid="button-hide-open">Don't want your name here? Hide it.</button>
           ) : (
             <form className="card p-4 space-y-2" onSubmit={async (e) => { e.preventDefault(); const r = await act("POST", `/api/players/${player.id}/hide`, { contact }, ["/api/players", "/api/me"]); setErr(r); if (!r) setHidden(true); }}>
               <div className="text-sm font-bold">Hide this name</div>
               <p className="text-xs text-[var(--mute)]">The name is replaced with the jersey number everywhere. Games still count for the team. No account needed.</p>
               <input className="input w-full" placeholder="Phone or email (optional, so we can reach you)" value={contact} onChange={(e) => setContact(e.target.value)} data-testid="input-hide-contact" />
-              <button className="btn btn-red h-10 w-full" data-testid="button-hide">Hide name</button>
+              <button className="btn btn-red h-11 w-full" data-testid="button-hide">Hide name</button>
             </form>
           )}
         </div>

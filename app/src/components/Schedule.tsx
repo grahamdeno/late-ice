@@ -77,7 +77,7 @@ function Counts({ g }: { g: any }) {
   const names = g.rsvp.names;
   return (
     <div className="mt-2">
-      <button className="text-xs text-[var(--mute)] tnum min-h-[40px] px-1" onClick={() => names && setOpen((o) => !o)} data-testid={`button-rsvp-counts-${g.id}`}>
+      <button className="text-xs text-[var(--mute)] tnum min-h-[44px] px-1" onClick={() => names && setOpen((o) => !o)} data-testid={`button-rsvp-counts-${g.id}`}>
         {parts.map(([n, l], i) => <span key={l as string}>{i ? " · " : ""}<span className={l === "in" ? "up font-bold" : l === "late" ? "text-[var(--amber)] font-bold" : l === "out" ? "down font-bold" : ""}>{n} {l}</span></span>)}{names ? (open ? " ▴" : " ▾") : ""}
       </button>
       {open && names && (
@@ -102,7 +102,7 @@ function SubFinder({ gameId }: { gameId: number }) {
   }, [gameId]);
   const { data } = useQuery<any>({ queryKey: [`/api/schedule/${gameId}/subs`], enabled: open });
   const [err, setErr] = useState<string | null>(null);
-  if (!open) return <button className="text-sm text-[var(--blue)] font-bold min-h-[40px]" onClick={() => setOpen(true)} data-testid={`button-find-sub-${gameId}`}>Find a sub</button>;
+  if (!open) return <button className="text-sm text-[var(--blue)] font-bold min-h-[44px]" onClick={() => setOpen(true)} data-testid={`button-find-sub-${gameId}`}>Find a sub</button>;
   const askedOf = (id: number) => data?.asked?.find((a: any) => a.user_id === id && a.status !== "canceled");
   return (
     <div className="mt-2 rounded-xl border border-[var(--line)] p-3" data-testid={`panel-subs-${gameId}`}>
@@ -115,7 +115,7 @@ function SubFinder({ gameId }: { gameId: number }) {
               <div key={c.id} className="flex items-center gap-2 py-2 text-sm">
                 <span className="flex-1 min-w-0"><span className="block font-bold truncate">{c.name}{c.number ? ` #${c.number}` : ""}</span><span className="block text-xs text-[var(--mute)] truncate">{[c.position, c.rating ? Number(c.rating).toFixed(2) : null, c.teams].filter(Boolean).join(" · ")}</span></span>
                 {a ? <span className={`text-xs font-bold ${a.status === "accepted" ? "up" : a.status === "declined" ? "down" : "text-[var(--mute)]"}`}>{a.status === "accepted" ? "Yes" : a.status === "declined" ? "No" : "Asked"}</span>
-                  : <button className="btn btn-ghost h-10 px-4 text-sm" onClick={async () => setErr(await act("POST", `/api/schedule/${gameId}/subs`, { userId: c.id }, ["/api/schedule", "/api/me"]))} data-testid={`button-ask-sub-${c.id}`}>Ask</button>}
+                  : <button className="btn btn-ghost h-11 px-4 text-sm" onClick={async () => setErr(await act("POST", `/api/schedule/${gameId}/subs`, { userId: c.id }, ["/api/schedule", "/api/me"]))} data-testid={`button-ask-sub-${c.id}`}>Ask</button>}
               </div>
             );
           })}
@@ -136,7 +136,7 @@ export function Schedule({ teamId }: { teamId: number }) {
   const run = async (m: string, u: string, b?: unknown) => { const e = await act(m, u, b, ["/api/teams", "/api/me", "/api/feed"]); setErr(e); return !e; };
 
   return (
-    <Section title="Schedule" action={can.manual && !adding ? <button className="text-sm text-[var(--blue)] font-bold min-h-[40px] px-1" onClick={() => setAdding(true)} data-testid="button-add-game">Add a game</button> : undefined}>
+    <Section title="Schedule" action={can.manual && !adding ? <button className="text-sm text-[var(--blue)] font-bold min-h-[44px] px-1" onClick={() => setAdding(true)} data-testid="button-add-game">Add a game</button> : undefined}>
       {err && <p className="text-sm down mb-2" data-testid="text-schedule-error">{err}</p>}
       {adding && <AddGame teamId={teamId} opponents={data.opponents} onDone={() => setAdding(false)} />}
       {games.length ? (
@@ -146,12 +146,12 @@ export function Schedule({ teamId }: { teamId: number }) {
               <div className="flex items-center gap-2">
               <GameLine g={g} teamId={teamId} />
               {can.manual && (g.source === "manual"
-                ? <button className="text-xs text-[var(--mute)] shrink-0 px-2 min-h-[40px]" onClick={() => confirm("Take this game off the schedule?") && run("DELETE", `/api/teams/${teamId}/schedule/${g.id}`)} data-testid={`button-remove-game-${g.id}`}>Remove</button>
+                ? <button className="text-xs text-[var(--mute)] shrink-0 px-2 min-h-[44px]" onClick={() => confirm("Take this game off the schedule?") && run("DELETE", `/api/teams/${teamId}/schedule/${g.id}`)} data-testid={`button-remove-game-${g.id}`}>Remove</button>
                 : <button className="text-xs text-[var(--mute)] shrink-0 px-1" onClick={() => run("PATCH", `/api/teams/${teamId}/schedule/${g.id}`, { status: g.status === "canceled" ? "scheduled" : "canceled" })} data-testid={`button-cancel-game-${g.id}`}>{g.status === "canceled" ? "Restore" : "Canceled?"}</button>)}
               </div>
               {g.status === "scheduled" && g.rsvp?.member && <div className="mt-2.5"><Rsvp g={g} /></div>}
               {g.status === "scheduled" && (g.rsvp?.member || can.manual) && <Counts g={g} />}
-              {g.status === "scheduled" && (g.rsvp?.member || can.manual) && <Link href={`/team/${teamId}/lineup/${g.id}`} className="inline-flex items-center min-h-[40px] text-sm font-bold text-[var(--blue)]" data-testid={`link-lineup-${g.id}`}>{can.manual ? "Set the lineup" : "Lineup"} ›</Link>}
+              {g.status === "scheduled" && (g.rsvp?.member || can.manual) && <Link href={`/team/${teamId}/lineup/${g.id}`} className="inline-flex items-center min-h-[44px] text-sm font-bold text-[var(--blue)]" data-testid={`link-lineup-${g.id}`}>{can.manual ? "Set the lineup" : "Lineup"} ›</Link>}
               {g.status === "scheduled" && <GameDetails g={g} />}
               {g.status === "scheduled" && can.manual && <GoalieNudge g={g} teamId={teamId} />}
               {g.status === "scheduled" && can.manual && <SubFinder gameId={g.id} />}
@@ -191,9 +191,9 @@ function Feed({ teamId, feed, onError }: { teamId: number; feed: any; onError: (
           <p className="text-sm">Connected to <b>{feed.host}</b>. Checked {ago(feed.lastSyncedAt)}{feed.lastCount != null ? `, ${feed.lastCount} games` : ""}. It updates every night.</p>
           {feed.lastError && <p className="text-xs down mt-1">Last check failed: {feed.lastError}</p>}
           <div className="grid grid-cols-3 gap-2 mt-3">
-            <button className="btn btn-ghost h-10 text-sm" disabled={busy} onClick={() => call("POST")} data-testid="button-feed-sync">{busy ? "Reading…" : "Check now"}</button>
-            <button className="btn btn-ghost h-10 text-sm" disabled={busy} onClick={() => setReplace(true)}>New link</button>
-            <button className="btn btn-ghost h-10 text-sm" disabled={busy} onClick={() => confirm("Disconnect the calendar? Upcoming games from it come off the schedule.") && call("DELETE")} data-testid="button-feed-disconnect">Disconnect</button>
+            <button className="btn btn-ghost h-11 text-sm" disabled={busy} onClick={() => call("POST")} data-testid="button-feed-sync">{busy ? "Reading…" : "Check now"}</button>
+            <button className="btn btn-ghost h-11 text-sm" disabled={busy} onClick={() => setReplace(true)}>New link</button>
+            <button className="btn btn-ghost h-11 text-sm" disabled={busy} onClick={() => confirm("Disconnect the calendar? Upcoming games from it come off the schedule.") && call("DELETE")} data-testid="button-feed-disconnect">Disconnect</button>
           </div>
         </>
       ) : (

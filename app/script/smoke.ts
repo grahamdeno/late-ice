@@ -431,6 +431,8 @@ async function main() {
   ok(mine.name === "Graham DeNoyer" && mine.registered === true, "claimed slot shows full name and registered");
   ok((await call("POST", `/api/teams/${hh}/captain`, undefined, graham)).status === 200, "take the captain role");
   ok(!(await call("GET", "/api/me", undefined, graham)).json.suggestions.some((s: any) => s.team_id === hh), "once you hold a spot, the same team isn't suggested again");
+  const plist = await call("GET", `/api/players?league=${(await db`SELECT league_id FROM teams WHERE id=${hh}`)[0].league_id}`, undefined, graham);
+  ok(plist.status === 200 && plist.json.some((p: any) => p.number === "44"), "the player list carries jersey numbers, so search can find #44");
   const foundSpots = await call("GET", "/api/me/spots?q=hammer", undefined, graham);
   ok(foundSpots.status === 200 && Array.isArray(foundSpots.json.spots), "find your spot by hand, by team name");
   ok((await call("GET", "/api/me/spots?q=x", undefined, graham)).json.spots.length === 0, "one letter isn't a search");

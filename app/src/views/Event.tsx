@@ -38,7 +38,7 @@ export default function EventPage({ id }: { id: string }) {
             ))}
           </div>
         ) : <Empty title="No teams yet" body="Captains enter their team from this page or their team page." />}
-        {me.canEnter?.length > 0 && <div className="mt-2 flex flex-wrap gap-2">{me.canEnter.map((tid: number) => <button key={tid} className="btn btn-ghost h-9 text-sm" onClick={async () => setErr(await act("POST", `/api/events/${ev.id}/teams`, { teamId: tid }, ["/api/events", "/api/me", "/api/teams"]))} data-testid={`button-enter-${tid}`}>Enter my team</button>)}</div>}
+        {me.canEnter?.length > 0 && <div className="mt-2 flex flex-wrap gap-2">{me.canEnter.map((tid: number) => <button key={tid} className="btn btn-ghost h-11 text-sm" onClick={async () => setErr(await act("POST", `/api/events/${ev.id}/teams`, { teamId: tid }, ["/api/events", "/api/me", "/api/teams"]))} data-testid={`button-enter-${tid}`}>Enter my team</button>)}</div>}
       </Section>
 
       <Section title="MVP" action={mvpName ? <span className="label">{mvp.votes} votes</span> : undefined}>

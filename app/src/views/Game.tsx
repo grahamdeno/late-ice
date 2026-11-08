@@ -146,7 +146,7 @@ export default function Game({ id, fresh }: { id: string; fresh?: boolean }) {
           <div className="px-4 py-2.5 border-b border-[var(--line)] font-bold flex items-center gap-2"><TeamBadge team={s.team} size={22} />{s.team.name}</div>
           <div className="divide-y divide-[var(--line)]">
             {g.lines.filter((l: any) => l.team_id === s.team.id).map((l: any) => (
-              <Link key={l.player_id} href={`/player/${l.player_id}`} className="flex items-center gap-3 px-4 py-2.5 text-sm" data-testid={`row-line-${l.player_id}`}>
+              <Link key={l.player_id} href={`/player/${l.player_id}`} className="flex items-center gap-3 px-4 py-2.5 min-h-[44px] text-sm" data-testid={`row-line-${l.player_id}`}>
                 <span className="tnum text-[var(--mute)] w-7">#{l.number}</span>
                 <span className="flex-1 truncate font-medium">{l.name}{l.is_goalie ? <span className="text-[var(--mute)]"> · G</span> : null}</span>
                 <span className="tnum text-[var(--mute)] w-14 text-right">{l.is_goalie && l.shots_against ? `${l.shots_against - l.goals_against} SV` : `${l.goals}G ${l.assists}A`}</span>
@@ -201,8 +201,8 @@ function ReportMistake({ gameId }: { gameId: number }) {
         placeholder="What's wrong, and what should it be? For example: #12 had the second goal, not #19." data-testid="input-report-body" />
       {err && <p className="text-sm down mt-2">{err}</p>}
       <div className="flex gap-2 mt-3">
-        <button className="btn btn-red h-10 px-4 text-sm" onClick={send} disabled={busy || text.trim().length < 5} data-testid="button-report-send">{busy ? "Sending…" : "Send to rink staff"}</button>
-        <button className="btn btn-ghost h-10 px-4 text-sm" onClick={() => setOpen(false)}>Cancel</button>
+        <button className="btn btn-red h-11 px-4 text-sm" onClick={send} disabled={busy || text.trim().length < 5} data-testid="button-report-send">{busy ? "Sending…" : "Send to rink staff"}</button>
+        <button className="btn btn-ghost h-11 px-4 text-sm" onClick={() => setOpen(false)}>Cancel</button>
       </div>
     </div>
   );

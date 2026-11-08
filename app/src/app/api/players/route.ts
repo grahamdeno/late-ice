@@ -12,7 +12,8 @@ export const GET = handle(async (req) => {
   if (lid && !viewer && (await rinkOfLeague(sql, lid)) !== (await sampleRinkId(sql))) lid = null;
   const rid = lid ? null : await rinkFor(sql, viewer, sp.get("rink") ? num(sp.get("rink")) : null);
   return applyViewerNames(sql, viewer, await q(sql,
-    `SELECT p.id, p.display_name AS name, p.position, p.rating, p.games_rated, p.user_id IS NOT NULL AS registered,
+    `SELECT p.id, p.display_name AS name, p.position,
+      (SELECT re2.number FROM roster_entries re2 WHERE re2.player_id=p.id AND re2.number IS NOT NULL AND re2.number <> '' ORDER BY re2.id LIMIT 1) AS number, p.rating, p.games_rated, p.user_id IS NOT NULL AS registered,
       (p.position IS DISTINCT FROM 'G' AND COALESCE((SELECT SUM(gp) FROM player_imports i WHERE i.player_id=p.id),0) > 0) AS season_rated,
       string_agg(DISTINCT t.name, ',') teams, string_agg(DISTINCT l.level, ',') levels,
       (COALESCE((SELECT SUM(goals+assists) FROM player_game_stats s WHERE s.player_id=p.id),0) + COALESCE((SELECT SUM(g+a) FROM player_imports i WHERE i.player_id=p.id),0))::int pts,

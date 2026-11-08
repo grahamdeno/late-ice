@@ -63,7 +63,7 @@ export function PlayerCard({
       </div>
       <div className="mt-4">
         <div className="label mb-1">Late Ice Rating</div>
-        {ratingHref ? <Link href={ratingHref} className="block" data-testid="link-card-rating">{ratingBlock}</Link> : ratingBlock}
+        {ratingHref ? <Link href={ratingHref} className="block min-h-[44px]" data-testid="link-card-rating">{ratingBlock}</Link> : ratingBlock}
       </div>
       {badges.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-3" data-testid="card-badges">

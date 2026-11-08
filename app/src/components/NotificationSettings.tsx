@@ -93,7 +93,7 @@ export function NotificationSettings({ overlay = false }: { overlay?: boolean })
       <div className="font-bold">Notifications</div>
       <div className="mt-2 divide-y divide-[var(--line)]">
         {TOGGLES.map((t) => (
-          <label key={t.key} className="flex items-center justify-between gap-3 py-2.5 min-h-9">
+          <label key={t.key} className="flex items-center justify-between gap-3 py-2.5 min-h-[44px]">
             <span className="min-w-0">
               <span className="block text-sm font-bold">{t.label}</span>
               <span className="block text-xs text-[var(--mute)]">{t.hint}</span>
@@ -108,7 +108,7 @@ export function NotificationSettings({ overlay = false }: { overlay?: boolean })
           </label>
         ))}
       </div>
-      <button type="button" className="btn btn-red mt-3 h-9 px-4 text-sm" data-testid="button-notify-allow" disabled={busy} onClick={() => { allow().catch(() => {}); }}>
+      <button type="button" className="btn btn-red mt-3 h-11 px-4 text-sm" data-testid="button-notify-allow" disabled={busy} onClick={() => { allow().catch(() => {}); }}>
         Allow
       </button>
       {status && <p className="mt-2 text-xs text-[var(--mute)]" data-testid="text-notify-status" role="status">{status}</p>}
