@@ -28,5 +28,25 @@ export const GET = handle(async (req) => {
      JOIN leagues l ON l.id=g.league_id ${where} ORDER BY rh.id DESC LIMIT 200`, [...args, viewer?.id ?? null]))
     .sort((a, b) => b.delta - a.delta).slice(0, 5).map((row) => applyLoadedNames(row));
   const pending = await q(sql, "SELECT id,status,created_at FROM sheets WHERE status IN ('processing','review','failed') ORDER BY id DESC LIMIT 5");
-  return { games, movers, leaders: await leaders(sql, lid, 5, null, rid, viewer?.id ?? null), pending };
+  const waiting = viewer ? await waitingForCaptain(viewer.id) : [];
+  return { games, movers, leaders: await leaders(sql, lid, 5, null, rid, viewer?.id ?? null), pending, waiting };
 });
+
+/** Sheets a player sent in that this viewer, as captain or assistant of either team, can confirm. */
+async function waitingForCaptain(userId: number) {
+  const teams = new Set((await q<any>(sql, "SELECT scope_id FROM role_grants WHERE user_id=$1 AND scope_type='team' AND role IN ('captain','assistant_captain') AND revoked_at IS NULL", [userId])).map((r) => Number(r.scope_id)));
+  if (!teams.size) return [];
+  const rows = await q<any>(sql, "SELECT id, submitted_at, proposed_json FROM sheets WHERE status='awaiting' AND game_id IS NULL AND proposed_json IS NOT NULL ORDER BY submitted_at DESC NULLS LAST, id DESC LIMIT 50");
+  const out: { id: number; submitted_at: string; teams: string }[] = [];
+  for (const r of rows) {
+    let p: any = null;
+    try { p = JSON.parse(r.proposed_json); } catch { continue; }
+    const ids = [p?.homeTeamId, p?.awayTeamId].filter((t) => t != null).map(Number);
+    if (!ids.some((t) => teams.has(t))) continue;
+    const names = (await q<any>(sql, "SELECT id, name FROM teams WHERE id = ANY($1::int[])", [ids]));
+    const nm = (id: number | null) => names.find((t) => Number(t.id) === Number(id))?.name;
+    out.push({ id: r.id, submitted_at: r.submitted_at, teams: [nm(p.homeTeamId), nm(p.awayTeamId)].filter(Boolean).join(" vs ") });
+    if (out.length >= 5) break;
+  }
+  return out;
+}

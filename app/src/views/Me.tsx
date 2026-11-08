@@ -79,14 +79,14 @@ export default function MePage() {
         <div className="card mb-3" data-testid="card-is-this-you">
           <div className="px-4 pt-3 font-bold text-sm">Is this you?</div>
           <div className="divide-y divide-[var(--line)]">
-            {me.suggestions.map((s) => (
+            {me.suggestions.map((s, i) => (
               <div key={s.id} className="flex items-center gap-3 px-4 py-3" data-testid={`row-suggestion-${s.id}`}>
                 <TeamBadge team={{ id: s.team_id, name: s.team_name, color: s.color, logo: s.logo }} size={32} />
                 <span className="flex-1 min-w-0">
                   <span className="block font-bold truncate">{s.number ? `#${s.number} ` : ""}{s.name}</span>
                   <span className="block text-xs text-[var(--mute)] truncate">{s.team_name} · {s.level} League</span>
                 </span>
-                <button className="btn btn-red h-10 text-sm" onClick={() => run("POST", `/api/players/${s.id}/claim`)} data-testid={`button-claim-${s.id}`}>That's me</button>
+                <button className={`btn ${i === 0 ? "btn-red" : "btn-ghost"} h-11 text-sm`} onClick={() => run("POST", `/api/players/${s.id}/claim`)} data-testid={`button-claim-${s.id}`}>That's me</button>
               </div>
             ))}
           </div>
@@ -142,7 +142,8 @@ export default function MePage() {
             ))}
           </div>
         ) : (
-          <Empty title="You're in the draft pool" body={`Captains at ${u.homeRink?.name ?? "your rink"} can see you and pull you onto their team. If a scoresheet already has you, it shows up above as "Is this you?"`} />
+          me.invitedTeam ? <Empty title={`Waiting on ${me.invitedTeam.name}`} body={`You came in on ${me.invitedTeam.name}'s invite. Your captain will match you to your spot. If a scoresheet already has your name, find it under "Find your spot" below.`} />
+          : <Empty title="You're in the draft pool" body={`Captains at ${u.homeRink?.name ?? "your rink"} can see you and pull you onto their team. If a scoresheet already has you, it shows up above as "Is this you?"`} />
         )}
       </Section>
 
@@ -153,9 +154,14 @@ export default function MePage() {
           <AvatarBuilder bare saved={u.avatar} jersey={main.color} number={main.number} archetype={u.archetypeSelf ? { archetype: u.archetypeSelf, votes: 0 } : main.archetype ?? null} goalie={u.position === "G"} />
         </More>
       )}
-      {me.slots.length > 0 && (
+      {me.slots.length > 0 ? (
         <More title="On another team too?" hint="Find your spot on a second team or as a sub" testid="button-find-spot">
           <FindSpot run={run} />
+        </More>
+      ) : u.access !== "waiting" && (
+        // No team yet: the scoresheet may list you as "Graham D.", which "Is this you?" won't guess. Search for it here.
+        <More title="Find your spot" hint="Scoresheets often list a first name and last initial" defaultOpen testid="button-find-spot">
+          <FindSpot run={run} initial={(u.name ?? "").trim().split(/\s+/)[0] ?? ""} />
         </More>
       )}
       {me.captainTeams.length > 0 && <RowLink href="/pool" title="Draft pool" hint="Registered players at your rink" testid="link-pool" />}
@@ -190,8 +196,8 @@ function Notifications({ me }: { me: any }) {
 }
 
 /** Second team, or a sub spot the app didn't suggest: search unclaimed spots by name or team, then claim. */
-function FindSpot({ run }: { run: (m: string, u: string, b?: unknown) => Promise<unknown> }) {
-  const [text, setText] = useState("");
+function FindSpot({ run, initial = "" }: { run: (m: string, u: string, b?: unknown) => Promise<unknown>; initial?: string }) {
+  const [text, setText] = useState(initial);
   const [rows, setRows] = useState<any[] | null>(null);
   useEffect(() => {
     if (text.trim().length < 2) { setRows(null); return; }

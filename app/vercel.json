@@ -9,7 +9,8 @@
       "ci-shots": false,
       "grok/**": false,
       "claude/**": false,
-      "audit/**": false
+      "audit/**": false,
+      "premium-pass": false
     }
   }
 }

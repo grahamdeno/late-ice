@@ -1,0 +1,79 @@
+name: UX walkthrough
+
+# Walks a full week of real jobs (captain, new player, teammate, leaver) against a seeded season
+# in phone-sized WebKit and Chromium, then runs the older UX audit on the same data.
+# Local Supabase only; never touches production. Findings never fail the run.
+on:
+  push:
+    branches: [audit/ux-walk, premium-pass]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  walk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install
+        run: npm ci
+      - name: Start local Supabase
+        run: |
+          started=""
+          for reg in ghcr.io public.ecr.aws docker.io ghcr.io; do
+            if SUPABASE_INTERNAL_IMAGE_REGISTRY=$reg npx supabase start -x studio,imgproxy,realtime,edge-runtime,logflare,vector,postgres-meta; then
+              started=$reg; break
+            fi
+            npx supabase stop --no-backup || true
+            sleep 30
+          done
+          [ -n "$started" ] || { echo "Could not start Supabase"; exit 1; }
+          npx supabase status -o env > /tmp/sb.env
+          get() { grep "^$1=" /tmp/sb.env | head -1 | cut -d= -f2- | tr -d '"'; }
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$(get API_URL)"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(get ANON_KEY)"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$(get SERVICE_ROLE_KEY)"
+            echo "DATABASE_URL=$(get DB_URL)"
+            echo "CRON_SECRET=ci-secret"
+          } >> "$GITHUB_ENV"
+      - name: Build
+        run: npm run build
+      - name: Seed a season with tonight's games
+        run: npx tsx script/ux-seed.ts
+      - name: Browsers and axe
+        run: |
+          npm i --no-save playwright@1 axe-core@4 || npm i --no-save playwright@~1.64.0 axe-core@4
+          npx playwright install --with-deps chromium webkit
+      - name: Walk the week
+        continue-on-error: true
+        run: node script/ux-walk.mjs
+      - name: Older UX audit on the same data
+        continue-on-error: true
+        run: node script/ux-audit.mjs
+      - name: Report in the run summary
+        if: always()
+        run: |
+          [ -f audit/walk.md ] && sed '/^## Screens/,$d' audit/walk.md >> "$GITHUB_STEP_SUMMARY" || true
+          [ -f audit/report.md ] && cat audit/report.md >> "$GITHUB_STEP_SUMMARY" || true
+      # Reports and screens go to their own branch so they can be read through git. No workflows or deploys there.
+      - name: Publish to the ux-walk-results branch
+        if: always()
+        working-directory: .
+        run: |
+          [ -d app/audit ] || exit 0
+          rm -rf /tmp/r && cp -r app/audit /tmp/r
+          git config user.name "ci" && git config user.email "ci@users.noreply.github.com"
+          git stash -u -q || true
+          git checkout -q --orphan ux-walk-results && git rm -rfq . && rm -rf app .github
+          cp -r /tmp/r/. . && mkdir -p app && printf '{ "git": { "deploymentEnabled": false } }\n' > app/vercel.json
+          git add -A && git commit -qm "UX walkthrough for ${GITHUB_SHA::7}"
+          git push -f origin ux-walk-results

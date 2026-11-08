@@ -14,6 +14,7 @@ export const POST = handle<{ teamId: string }>(async (req, { teamId: tid }) => {
     if (!re) throw new HttpError(404, "You're not on that roster.");
     if (re.source !== "draft") throw new HttpError(400, "You're on this roster from a scanned sheet. Ask your captain to remove you.");
     await q(tx, "DELETE FROM roster_entries WHERE id=$1", [re.id]);
+    await q(tx, "UPDATE users SET invited_team_id=NULL WHERE id=$1 AND invited_team_id=$2", [u.id, teamId]);
     await A.logAction(tx, teamId, u.id, "decline", re.player_id, u.id);
     const cap = await A.captainOf(tx, teamId);
     if (cap && cap.id !== u.id) await A.notify(tx, cap.id, { kind: "decline", teamId, link: `/team/${teamId}`, title: `${u.name} declined ${t.name}` });

@@ -67,8 +67,12 @@
   --surface: #151c28;
   --surface-2: #19212e;
   --surface-shadow: none;
-  --hero-mix: 26%;
-  --hero-mute: #b9c6d6;
+  --hero-mix: 18%;
+  --hero-blue: #7bbcff;
+  --hero-up: #4be3a6;
+  --hero-down: #ff8585;
+  --hero-amber: #ffb547;
+  --hero-mute: #c9d4e2;
   --hero-tile: rgba(0, 0, 0, 0.25);
   color-scheme: dark;
 }
@@ -87,9 +91,9 @@
   --mute: #566273;
   --dim: #5f6b7c;
   --blue: #1d64c4;
-  --up: #0f7f52;
-  --down: #c62f2f;
-  --amber: #a35f00;
+  --up: #0a6b43;
+  --down: #ad2424;
+  --amber: #8a5100;
   --bar: rgba(255, 255, 255, 0.88);
   --bar-2: rgba(255, 255, 255, 0.94);
   --glass: rgba(255, 255, 255, 0.66);
@@ -110,8 +114,12 @@
   --surface: #ffffff;
   --surface-2: #ffffff;
   --surface-shadow: 0 1px 2px rgba(13, 20, 32, 0.06), 0 4px 14px rgba(13, 20, 32, 0.05);
-  --hero-mix: 14%;
-  --hero-mute: #4d5a6b;
+  --hero-mix: 10%;
+  --hero-blue: #1858b0;
+  --hero-up: #0a6b43;
+  --hero-down: #ad2424;
+  --hero-amber: #8a5100;
+  --hero-mute: #3f4b5c;
   --hero-tile: rgba(255, 255, 255, 0.6);
   color-scheme: light;
 }
@@ -129,9 +137,9 @@
   --mute: #566273;
   --dim: #5f6b7c;
   --blue: #1d64c4;
-  --up: #0f7f52;
-  --down: #c62f2f;
-  --amber: #a35f00;
+  --up: #0a6b43;
+  --down: #ad2424;
+  --amber: #8a5100;
   --bar: rgba(255, 255, 255, 0.88);
   --bar-2: rgba(255, 255, 255, 0.94);
   --glass: rgba(255, 255, 255, 0.66);
@@ -152,8 +160,12 @@
   --surface: #ffffff;
   --surface-2: #ffffff;
   --surface-shadow: 0 1px 2px rgba(13, 20, 32, 0.06), 0 4px 14px rgba(13, 20, 32, 0.05);
-  --hero-mix: 14%;
-  --hero-mute: #4d5a6b;
+  --hero-mix: 10%;
+  --hero-blue: #1858b0;
+  --hero-up: #0a6b43;
+  --hero-down: #ad2424;
+  --hero-amber: #8a5100;
+  --hero-mute: #3f4b5c;
   --hero-tile: rgba(255, 255, 255, 0.6);
   color-scheme: light;
   }
@@ -241,7 +253,12 @@ body {
   background: color-mix(in srgb, var(--team, #3b82f6) var(--hero-mix), var(--ice));
   border: 0;
   border-radius: 26px;
+  /* The tint can be any team color, so text on it gets its own colors that clear 4.5:1 on all of them. */
   --mute: var(--hero-mute);
+  --blue: var(--hero-blue);
+  --up: var(--hero-up);
+  --down: var(--hero-down);
+  --amber: var(--hero-amber);
 }
 .hero .tile { background: var(--hero-tile); border-radius: 16px; }
 .chip {

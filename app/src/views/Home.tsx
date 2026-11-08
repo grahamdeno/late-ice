@@ -6,7 +6,8 @@ import { GameLine, Rsvp } from "@/components/Schedule";
 import { GameDetails, GoalieNudge, Scout, SharpenCard } from "@/components/GameNight";
 import { Delta, Empty, FaceoffDot, GameRow, HomeFeedSkeleton, More, Section, TeamBadge, fmtDate, fmtRating, useFilter, type GameCard } from "@/lib/ui";
 
-type Feed = { games: GameCard[]; movers: any[]; leaders: any[]; pending: any[] };
+type Waiting = { id: number; submitted_at: string; teams: string };
+type Feed = { games: GameCard[]; movers: any[]; leaders: any[]; pending: any[]; waiting?: Waiting[] };
 
 /** Home answers "am I playing, and how did the last one go" before anything else. */
 export default function Home() {
@@ -22,6 +23,7 @@ export default function Home() {
   const place = league ? `${league.name} · ${boot?.season?.name ?? ""}` : `${boot?.rink?.name ?? ""}${boot?.season ? ` · ${boot.season.name}` : ""}`;
   const slot: MeSlot | undefined = me?.slots?.[0];
   const pending = data?.pending?.filter((p) => p.status === "review") ?? [];
+  const waiting = data?.waiting ?? [];
 
   if (!slot) return <Welcome place={place} data={data} isLoading={isLoading} pending={pending} signedIn={!!me} />;
 
@@ -32,6 +34,14 @@ export default function Home() {
     <div>
       <div className="label">{place}</div>
       <h1 className="text-[28px] leading-tight font-black mt-1" data-testid="text-home-title">{title}</h1>
+
+      {waiting.map((w) => (
+        <Link key={w.id} href={`/sheet/${w.id}`} className="card mt-4 p-3 min-h-[56px] flex items-center gap-3" data-testid={`link-waiting-${w.id}`}>
+          <span className="h-2.5 w-2.5 rounded-full bg-[var(--amber)]" aria-hidden="true" />
+          <span className="flex-1 min-w-0"><span className="block text-sm font-bold">A sheet is waiting for you to confirm</span>{w.teams && <span className="block text-xs text-[var(--mute)] truncate">{w.teams}</span>}</span>
+          <span className="text-sm font-bold text-[var(--amber)]">Confirm</span>
+        </Link>
+      ))}
 
       <div className="hero mt-4 p-5" style={{ ["--team" as any]: slot.color || undefined }} data-testid="card-next-game">
         <div className="flex items-center gap-2 mb-3">

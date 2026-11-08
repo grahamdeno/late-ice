@@ -8,6 +8,8 @@ import postgres from "postgres";
 import { createClient } from "@supabase/supabase-js";
 // @ts-expect-error plain JS helper, outside the TypeScript program
 import { latestCode, lastMailId } from "./mail.mjs";
+// @ts-expect-error plain JS helper, outside the TypeScript program
+import { contrastProblems } from "./contrast.mjs";
 
 const PORT = 3099;
 const BASE = `http://localhost:${PORT}`;
@@ -292,6 +294,9 @@ async function pushChecks(ctx: { graham: string; sam: string; outsider: string; 
 }
 
 async function main() {
+  console.log("color contrast");
+  const contrastBad = contrastProblems();
+  ok(contrastBad.length === 0, `U6: every text color in both themes, and on any team-colored game card, clears 4.5:1${contrastBad.length ? "\n    " + contrastBad.slice(0, 12).join("\n    ") : ""}`);
   // Sheet-style slots with full names, the way a scan creates them (display name not yet set).
   const hh = (await db`SELECT id FROM teams WHERE name=${"Hammer'd Heads"}`)[0].id as number;
   const addSlot = async (name: string, num: string) => {
@@ -413,8 +418,9 @@ async function main() {
     ok(again.json.user.name === "Graham DeNoyer", "signing in again (any letter case) reaches the same account");
   }
   let me = await call("GET", "/api/me", undefined, graham);
-  const sug = me.json.suggestions.find((s: any) => s.name === "Graham D.");
-  ok(sug && sug.team_id === hh, "suggests the posted 'Graham D.' on Hammer'd Heads");
+  ok(!me.json.suggestions.some((s: any) => s.name === "Graham D."), "U4: a posted 'Graham D.' isn't offered, a shared last initial is not a match");
+  const sug = (await db`SELECT p.id, re.team_id FROM players p JOIN roster_entries re ON re.player_id=p.id WHERE re.team_id=${hh} AND p.name ILIKE 'Graham D%' AND p.user_id IS NULL ORDER BY p.id LIMIT 1`)[0];
+  ok(sug && sug.team_id === hh, "the posted 'Graham D.' is still on the roster to claim by hand");
 
   console.log("claim and captain");
   ok((await call("POST", `/api/teams/${hh}/captain`, undefined, graham)).status === 403, "can't take captain before claiming a spot");
@@ -860,6 +866,9 @@ async function main() {
   const aw = (await call("GET", `/api/sheets/${sh2.id}`, undefined, graham)).json;
   ok(aw.status === "awaiting" && aw.submitted?.by === "Otto Side" && aw.suggestion.home.teamId === hh && aw.rights.teams.includes(hh), "the captain sees it waiting, with the sender's picks, and can confirm");
   ok((await call("GET", "/api/me", undefined, graham)).json.notifications.some((n: any) => n.kind === "sheet" && n.link === `/sheet/${sh2.id}`), "and got a notice");
+  ok((await call("GET", "/api/feed", undefined, graham)).json.waiting?.some((w: any) => w.id === sh2.id), "U1: the captain's Home feed lists the sheet waiting for confirmation");
+  ok(!(await call("GET", "/api/feed", undefined, outsider)).json.waiting?.some((w: any) => w.id === sh2.id), "U1: a player who can't confirm it doesn't see it there");
+  ok(((await call("GET", "/api/feed")).json.waiting ?? []).length === 0, "U1: signed out sees no waiting sheets");
   const deskQ = await call("GET", `/api/desk/sheets?rink=${rinkId}`, undefined, mt);
   const deskRow = deskQ.json.open?.find((r: any) => r.id === sh2.id);
   ok(deskQ.status === 200 && deskRow?.status === "awaiting" && deskRow.leagueId === lg && deskRow.homeScore === 3 && deskRow.submittedBy === "Otto Side", "Rink Desk lists the waiting scan with its league, score and sender");
@@ -1210,16 +1219,27 @@ async function main() {
   ok(inv.status === 200 && inv.json.invite.token && inv.json.invite.uses === 0, "captain makes an invite link");
   ok((await call("POST", `/api/teams/${hh}/invite`, undefined, fan)).status === 403, "only the team's captains and staff can");
   const invOut = (await call("GET", `/api/invites/${inv.json.invite.token}`)).json;
-  ok(invOut.valid === true && invOut.team === undefined, "signed out, the link is valid but names no team");
+  ok(invOut.valid === true && invOut.team === "Hammer'd Heads" && invOut.league === undefined && invOut.rink === undefined, "U3: signed out, the link names the team and nothing else");
   ok((await call("GET", `/api/invites/${inv.json.invite.token}`, undefined, fan)).json.team === "Hammer'd Heads", "signed in, the link says which team");
   const invited = await signUp("invited@example.com", { name: "Ivan Invited", number: "5", position: "D" }, { waitlist: true });
   const acc = await call("POST", "/api/invites/accept", { token: inv.json.invite.token }, invited);
   ok(acc.status === 200 && acc.json.newlyApproved && acc.json.teamId === hh, "signing in through the link lets you in");
-  ok((await call("GET", "/api/me", undefined, invited)).json.user.access === "approved", "no waiting");
+  const ivMe = (await call("GET", "/api/me", undefined, invited)).json;
+  ok(ivMe.user.access === "approved", "no waiting");
+  ok(ivMe.slots.some((s: any) => s.team_id === hh) && ivMe.invitedTeam === null, "U3: joining through the link puts them on that roster, not in the draft pool");
+  ok((await db`SELECT COUNT(*)::int c FROM roster_entries re JOIN players p ON p.id=re.player_id JOIN users u ON u.id=p.user_id WHERE re.team_id=${hh} AND u.email='invited@example.com'`)[0].c === 1, "U3: exactly one roster spot, and accepting again doesn't add another");
+  await call("POST", "/api/invites/accept", { token: inv.json.invite.token }, invited);
+  ok((await db`SELECT COUNT(*)::int c FROM roster_entries re JOIN players p ON p.id=re.player_id JOIN users u ON u.id=p.user_id WHERE re.team_id=${hh} AND u.email='invited@example.com'`)[0].c === 1, "U3: a second accept leaves one spot");
   ok((await call("GET", `/api/teams/${hh}/invite`, undefined, graham)).json.invite.uses === 1, "the link counts the use");
   ok((await call("DELETE", `/api/teams/${hh}/invite`, undefined, graham)).status === 200 && !(await call("GET", `/api/invites/${inv.json.invite.token}`)).json.valid, "turning the link off stops it");
   for (let i = 0; i < 2; i++) { await call("POST", `/api/teams/${hh}/invite`, undefined, graham); await call("DELETE", `/api/teams/${hh}/invite`, undefined, graham); }
   ok((await call("POST", `/api/teams/${hh}/invite`, undefined, graham)).status === 429, "three new links a week per team, then it waits");
+  const [ffp] = await db`INSERT INTO players (name,name_key,position,rating,start_rating,display_name) VALUES ('Frank Fullname','frankfullname','F',3.8,3.8,'Frank F.') RETURNING id`;
+  const [fip] = await db`INSERT INTO players (name,name_key,position,rating,start_rating,display_name) VALUES ('Frank F.','frankf','F',3.8,3.8,'Frank F.') RETURNING id`;
+  await db`INSERT INTO roster_entries (team_id,player_id,number) VALUES (${hh}, ${ffp.id}, '88'), (${hh}, ${fip.id}, '89')`;
+  const frank = await signUp("frank@example.com", { name: "Frank Fullname", number: "88", position: "F" });
+  const frankSug = (await call("GET", "/api/me", undefined, frank)).json.suggestions;
+  ok(frankSug.length === 1 && frankSug[0].id === ffp.id, "U4: 'Is this you?' offers the full-name spot only, never the one that shares a last initial");
   ok((await call("PUT", "/api/staff/settings", { signupsPaused: true }, sam)).status === 403, "only an admin can pause sign-ups");
   ok((await call("PUT", "/api/staff/settings", { signupsPaused: true }, boss)).json.signupsPaused === true, "admin pauses sign-ups");
   ok((await call("GET", "/api/signup-status")).json.paused === true, "the join page knows");

@@ -25,6 +25,7 @@ export interface Notice { id: number; kind: string; title: string; body: string 
 export interface Me {
   /** Short-lived key that lets image tags load scoresheet photos, which need a sign-in. */
   imageKey?: string;
+  invitedTeam?: { id: number; name: string } | null;
   user: MeUser; slots: MeSlot[]; captainTeams: { id: number; name: string; color: string; logo: string | null; level: string; rink_id: number; role: "captain" | "assistant_captain" }[];
   subRequests: any[];
   roles: MyRole[]; staff: boolean; handoffs: { id: number; team_id: number; team_name: string; from_name: string }[];
