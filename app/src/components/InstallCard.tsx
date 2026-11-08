@@ -78,7 +78,7 @@ export function InstallCard() {
         {!ios && prompt && (
           <button
             type="button"
-            className="btn btn-red h-9 px-4 text-sm"
+            className="btn btn-red h-11 px-4 text-sm"
             data-testid="button-install"
             onClick={async () => {
               await prompt.prompt();
@@ -90,7 +90,7 @@ export function InstallCard() {
             Install
           </button>
         )}
-        <button type="button" className="btn btn-ghost h-9 px-4 text-sm" data-testid="button-install-dismiss" onClick={dismiss}>Not now</button>
+        <button type="button" className="btn btn-ghost h-11 px-4 text-sm" data-testid="button-install-dismiss" onClick={dismiss}>Not now</button>
       </div>
     </div>
   );

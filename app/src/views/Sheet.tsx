@@ -8,9 +8,10 @@ import { BackBar, FaceoffDot, Loading, TeamBadge, img, useFilter } from "@/lib/u
 
 type Side = "home" | "away";
 
-function Cell({ v, onChange, w = "w-12", testid }: { v: any; onChange: (x: string) => void; w?: string; testid?: string }) {
+/** One editable value on the sheet. `label` is what a screen reader says ("Goal 2 scorer number, Home"). */
+function Cell({ v, onChange, w = "w-12", testid, label, numeric }: { v: any; onChange: (x: string) => void; w?: string; testid?: string; label: string; numeric?: boolean }) {
   return (
-    <input className={`field tnum text-center ${w}`} value={v ?? ""} onChange={(e) => onChange(e.target.value)} data-testid={testid} />
+    <input className={`field tnum text-center min-h-[44px] ${w}`} aria-label={label} inputMode={numeric ? "numeric" : undefined} value={v ?? ""} onChange={(e) => onChange(e.target.value)} data-testid={testid} />
   );
 }
 
@@ -115,9 +116,10 @@ export default function Sheet({ id }: { id: string }) {
         <div className="flex-1 min-w-0">
           <div className="label">{side === "home" ? "Home" : "Visitor"}{ocrName && <span className="normal-case tracking-normal font-medium"> · sheet says “{ocrName}”</span>}</div>
           <select
+            aria-label={`${side === "home" ? "Home" : "Visitor"} team`}
             value={teamIds[side] ?? "new"}
             onChange={(e) => setTeamIds((t) => ({ ...t, [side]: e.target.value === "new" ? null : Number(e.target.value) }))}
-            className="mt-1 w-full bg-[var(--ice-3)] border border-[var(--line)] rounded-lg h-10 px-2 font-bold"
+            className="mt-1 w-full bg-[var(--ice-3)] border border-[var(--line)] rounded-lg h-11 px-2 font-bold"
             data-testid={`select-team-${side}`}
           >
             {options.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -173,7 +175,7 @@ export default function Sheet({ id }: { id: string }) {
             <span className="h-2 w-2 rounded-full" style={{ background: conf >= 85 ? "var(--up)" : "var(--amber)" }} />
             <span data-testid="text-confidence">Read with {conf}% confidence{ s.ms ? ` in ${(s.ms / 1000).toFixed(1)}s` : ""}</span>
           </div>
-          <button className="text-xs font-bold text-[var(--blue)]" onClick={() => setZoom(true)} data-testid="button-view-photo">View photo</button>
+          <button className="text-xs font-bold text-[var(--blue)] min-h-[44px] px-2 -mx-2" onClick={() => setZoom(true)} data-testid="button-view-photo">View photo</button>
         </div>
         <div className="space-y-4">{teamPicker("home")}{teamPicker("away")}</div>
         <div className="mt-4 flex items-center gap-2 overflow-x-auto scrollbar-none">
@@ -201,8 +203,8 @@ export default function Sheet({ id }: { id: string }) {
           <div className="font-bold">Someone already scanned this game.</div>
           <p className="text-sm text-[var(--mute)] mt-1">Same teams, same date. No need to count it twice.</p>
           <div className="flex gap-2 mt-3">
-            <Link href={`/game/${s.suggestion.duplicateGameId}`} className="btn btn-red h-10" data-testid="link-duplicate-game">See the game</Link>
-            <button className="btn btn-ghost h-10" onClick={discard} data-testid="button-discard-dup">Discard this scan</button>
+            <Link href={`/game/${s.suggestion.duplicateGameId}`} className="btn btn-red h-11" data-testid="link-duplicate-game">See the game</Link>
+            <button className="btn btn-ghost h-11" onClick={discard} data-testid="button-discard-dup">Discard this scan</button>
           </div>
         </div>
       )}
@@ -231,6 +233,7 @@ export default function Sheet({ id }: { id: string }) {
 
       {(["home", "away"] as Side[]).map((side) => {
         const t = d[side];
+        const sideName = `${side === "home" ? "Home" : "Visitor"}${t.name ? ` (${t.name})` : ""}`;
         const byNum = (n: string | null) => t.roster.find((p: any) => p.number === n)?.name;
         return (
           <div key={side} className="card mt-3 overflow-hidden">
@@ -244,17 +247,17 @@ export default function Sheet({ id }: { id: string }) {
                 {t.goals.map((g: any, i: number) => (
                   <div key={i} className="flex items-center gap-1 px-2 py-2 text-sm">
                     <span className="label w-8 text-center">P{g.period}</span>
-                    <Cell v={g.time} w="w-16" onChange={(v) => set((x) => (x[side].goals[i].time = v))} testid={`input-goal-time-${side}-${i}`} />
+                    <Cell v={g.time} w="w-16" label={`Goal ${i + 1} time, ${sideName}`} onChange={(v) => set((x) => (x[side].goals[i].time = v))} testid={`input-goal-time-${side}-${i}`} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1">
                         <span className="text-[var(--mute)]">#</span>
-                        <Cell v={g.scorer} w="w-10" onChange={(v) => set((x) => (x[side].goals[i].scorer = v))} testid={`input-goal-scorer-${side}-${i}`} />
+                        <Cell v={g.scorer} w="w-10" numeric label={`Goal ${i + 1} scorer number, ${sideName}`} onChange={(v) => set((x) => (x[side].goals[i].scorer = v))} testid={`input-goal-scorer-${side}-${i}`} />
                         <span className="font-bold truncate">{byNum(g.scorer) ?? <span className="text-[var(--amber)]">not on roster</span>}</span>
                       </div>
                       <div className="flex items-center gap-1 text-xs text-[var(--mute)]">
                         <span>A</span>
-                        <Cell v={g.assist1} w="w-10" onChange={(v) => set((x) => (x[side].goals[i].assist1 = v || null))} testid={`input-goal-a1-${side}-${i}`} />
-                        <Cell v={g.assist2} w="w-10" onChange={(v) => set((x) => (x[side].goals[i].assist2 = v || null))} testid={`input-goal-a2-${side}-${i}`} />
+                        <Cell v={g.assist1} w="w-10" numeric label={`Goal ${i + 1} first assist number, ${sideName}`} onChange={(v) => set((x) => (x[side].goals[i].assist1 = v || null))} testid={`input-goal-a1-${side}-${i}`} />
+                        <Cell v={g.assist2} w="w-10" numeric label={`Goal ${i + 1} second assist number, ${sideName}`} onChange={(v) => set((x) => (x[side].goals[i].assist2 = v || null))} testid={`input-goal-a2-${side}-${i}`} />
                         <span className="truncate">{[byNum(g.assist1), byNum(g.assist2)].filter(Boolean).join(", ") || "Unassisted"}</span>
                       </div>
                     </div>
@@ -267,10 +270,10 @@ export default function Sheet({ id }: { id: string }) {
                 {t.roster.map((p: any, i: number) => (
                   <div key={i} className="flex items-center gap-1 px-2 py-1.5 text-sm">
                     <span className="text-[var(--mute)] w-3">#</span>
-                    <Cell v={p.number} w="w-11" onChange={(v) => set((x) => (x[side].roster[i].number = v))} testid={`input-roster-num-${side}-${i}`} />
-                    <input className="field flex-1 w-full font-bold" value={p.name ?? ""} onChange={(e) => set((x) => (x[side].roster[i].name = e.target.value))} data-testid={`input-roster-name-${side}-${i}`} />
+                    <Cell v={p.number} w="w-11" numeric label={`Row ${i + 1} jersey number, ${sideName}`} onChange={(v) => set((x) => (x[side].roster[i].number = v))} testid={`input-roster-num-${side}-${i}`} />
+                    <input className="field flex-1 w-full font-bold min-h-[44px]" aria-label={`Row ${i + 1} player name, ${sideName}`} value={p.name ?? ""} onChange={(e) => set((x) => (x[side].roster[i].name = e.target.value))} data-testid={`input-roster-name-${side}-${i}`} />
                     {(p.position || "").toUpperCase().startsWith("G") && <span className="chip h-6 text-xs">G</span>}
-                    <button className="h-8 w-8 text-[var(--mute)] hover:text-[var(--down)]" onClick={() => set((x) => x[side].roster.splice(i, 1))} aria-label="Remove misread row" data-testid={`button-remove-roster-${side}-${i}`}>×</button>
+                    <button className="h-11 w-11 text-[var(--mute)] hover:text-[var(--down)]" onClick={() => set((x) => x[side].roster.splice(i, 1))} aria-label={`Remove row ${i + 1}, ${sideName}`} data-testid={`button-remove-roster-${side}-${i}`}>×</button>
                   </div>
                 ))}
               </div>
@@ -292,7 +295,7 @@ export default function Sheet({ id }: { id: string }) {
         );
       })}
 
-      <button className="mt-4 text-sm text-[var(--mute)] underline underline-offset-4 px-1" onClick={discard} data-testid="button-discard">Wrong photo? Discard this scan</button>
+      <button className="mt-4 text-sm text-[var(--mute)] underline underline-offset-4 px-1 min-h-[44px]" onClick={discard} data-testid="button-discard">Wrong photo? Discard this scan</button>
 
       {d.notes?.length > 0 && (
         <div className="mt-3 text-xs text-[var(--mute)] px-1">Reader notes: {d.notes.join(" ")}</div>

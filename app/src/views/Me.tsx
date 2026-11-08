@@ -51,8 +51,8 @@ export default function MePage() {
               <span className="flex-1 min-w-0"><span className="block font-bold truncate">{r.team_name}</span><span className="block text-xs text-[var(--mute)] truncate">{r.local_date}{r.local_time ? ` · ${r.local_time}` : ""}{r.opponent ? ` · ${r.is_home === false ? "@" : "vs"} ${r.opponent}` : ""}</span></span>
               {r.status === "accepted" ? <span className="text-xs font-bold up">You're in</span> : (
                 <>
-                  <button className="btn btn-ghost h-10 text-xs" onClick={() => run("PUT", `/api/sub-requests/${r.id}`, { answer: "no" })} data-testid={`button-sub-no-${r.id}`}>No</button>
-                  <button className="btn btn-red h-10 text-xs" onClick={() => run("PUT", `/api/sub-requests/${r.id}`, { answer: "yes" })} data-testid={`button-sub-yes-${r.id}`}>Yes</button>
+                  <button className="btn btn-ghost h-11 text-xs" onClick={() => run("PUT", `/api/sub-requests/${r.id}`, { answer: "no" })} data-testid={`button-sub-no-${r.id}`}>No</button>
+                  <button className="btn btn-red h-11 text-xs" onClick={() => run("PUT", `/api/sub-requests/${r.id}`, { answer: "yes" })} data-testid={`button-sub-yes-${r.id}`}>Yes</button>
                 </>
               )}
             </div>
@@ -133,9 +133,9 @@ export default function MePage() {
                 {s.next && <div className="mt-3 pt-3 border-t border-[var(--line)]" data-testid={`next-game-${s.team_id}`}><GameLine g={s.next} /></div>}
                 {(s.teamRole || !s.captain || (s.source === "draft" && !s.isCaptain)) && (
                   <div className="flex flex-wrap gap-2 mt-3">
-                    {s.teamRole && <Link href={`/team/${s.team_id}/manage`} className="btn btn-red h-10 text-sm" data-testid={`button-manage-${s.team_id}`}>Manage team</Link>}
-                    {!s.captain && <button className="btn btn-ghost h-10 text-sm" onClick={() => run("POST", `/api/teams/${s.team_id}/captain`)} data-testid={`button-become-captain-${s.team_id}`}>I'm the captain</button>}
-                    {s.source === "draft" && !s.isCaptain && <button className="btn btn-ghost h-10 text-sm" onClick={() => confirm(`Leave ${s.team_name}?`) && run("POST", `/api/me/decline/${s.team_id}`)} data-testid={`button-decline-${s.team_id}`}>Not my team</button>}
+                    {s.teamRole && <Link href={`/team/${s.team_id}/manage`} className="btn btn-red h-11 text-sm" data-testid={`button-manage-${s.team_id}`}>Manage team</Link>}
+                    {!s.captain && <button className="btn btn-ghost h-11 text-sm" onClick={() => run("POST", `/api/teams/${s.team_id}/captain`)} data-testid={`button-become-captain-${s.team_id}`}>I'm the captain</button>}
+                    {s.source === "draft" && !s.isCaptain && <button className="btn btn-ghost h-11 text-sm" onClick={() => confirm(`Leave ${s.team_name}?`) && run("POST", `/api/me/decline/${s.team_id}`)} data-testid={`button-decline-${s.team_id}`}>Not my team</button>}
                   </div>
                 )}
               </div>
@@ -216,7 +216,7 @@ function FindSpot({ run, initial = "" }: { run: (m: string, u: string, b?: unkno
             <div key={`${s.id}-${s.team_id}`} className="flex items-center gap-3 py-2.5" data-testid={`row-spot-${s.id}`}>
               <TeamBadge team={{ id: s.team_id, name: s.team_name, color: s.color, logo: s.logo }} size={28} />
               <span className="flex-1 min-w-0"><span className="block font-bold text-sm truncate">{s.number ? `#${s.number} ` : ""}{s.name}</span><span className="block text-xs text-[var(--mute)] truncate">{s.team_name} · {s.rink}</span></span>
-              <button className="btn btn-red h-8 text-xs" onClick={() => confirm(`Claim ${s.name} on ${s.team_name}? Their captain sees it.`) && run("POST", `/api/players/${s.id}/claim`)} data-testid={`button-claim-spot-${s.id}`}>That's me</button>
+              <button className="btn btn-red h-11 text-xs" onClick={() => confirm(`Claim ${s.name} on ${s.team_name}? Their captain sees it.`) && run("POST", `/api/players/${s.id}/claim`)} data-testid={`button-claim-spot-${s.id}`}>That's me</button>
             </div>
           ))}
         </div>

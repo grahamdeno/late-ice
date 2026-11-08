@@ -114,12 +114,12 @@ function Lifecycle({ what, name, archived, canArchive, canDelete, deleteBlocked,
             <span className="flex-1 text-xs text-[var(--mute)]">{archived
               ? `Hidden from players. Restoring puts ${name} back in lists and standings.`
               : `Hides ${name} from pickers, lists and standings. Games, stats and ratings stay, and you can restore it.`}</span>
-            <button className="btn btn-ghost h-10 shrink-0" onClick={() => (archived || confirm(`Archive ${name}?`)) && onArchive(!archived)} data-testid={`button-${archived ? "restore" : "archive"}-${what}`}>{archived ? "Restore" : "Archive"}</button>
+            <button className="btn btn-ghost h-11 shrink-0" onClick={() => (archived || confirm(`Archive ${name}?`)) && onArchive(!archived)} data-testid={`button-${archived ? "restore" : "archive"}-${what}`}>{archived ? "Restore" : "Archive"}</button>
           </div>
         )}
         <div className="flex items-center gap-3 border-t border-[var(--line)] pt-3">
           <span className="flex-1 text-xs text-[var(--mute)]">{canDelete ? `Nothing is attached to this ${what}, so it can be deleted for good.` : deleteBlocked}</span>
-          <button className="btn btn-ghost h-10 shrink-0 down" disabled={!canDelete} onClick={() => prompt(`Type ${name} to delete it for good.`)?.trim() === name && onDelete()} data-testid={`button-delete-${what}`}>Delete</button>
+          <button className="btn btn-ghost h-11 shrink-0 down" disabled={!canDelete} onClick={() => prompt(`Type ${name} to delete it for good.`)?.trim() === name && onDelete()} data-testid={`button-delete-${what}`}>Delete</button>
         </div>
       </div>
     </Section>
@@ -188,11 +188,11 @@ function SeasonRow({ season, run }: { season: any; run: Run }) {
         <label className="text-xs text-[var(--mute)]">Ends<input type="date" className="input w-full mt-1" value={ends} onChange={(e) => setEnds(e.target.value)} /></label>
       </div>
       <div className="flex gap-2">
-        <button type="button" className="btn btn-ghost h-10 down" disabled={season.games > 0}
+        <button type="button" className="btn btn-ghost h-11 down" disabled={season.games > 0}
           onClick={() => confirm(`Delete ${season.name}?`) && run("DELETE", `/api/seasons/${season.id}`)} data-testid={`button-delete-season-${season.id}`}>Delete</button>
         <span className="flex-1" />
-        <button type="button" className="btn btn-ghost h-10" onClick={() => setEdit(false)}>Cancel</button>
-        <button className="btn btn-red h-10" data-testid={`button-save-season-${season.id}`}>Save</button>
+        <button type="button" className="btn btn-ghost h-11" onClick={() => setEdit(false)}>Cancel</button>
+        <button className="btn btn-red h-11" data-testid={`button-save-season-${season.id}`}>Save</button>
       </div>
       {season.games > 0 && <p className="text-xs text-[var(--mute)]">{season.games} games belong to this season, so it can't be deleted. You can still rename it or change its dates.</p>}
     </form>
@@ -275,8 +275,8 @@ function TeamRow({ team: t, others, canEdit, run }: { team: any; others: any[]; 
       {open && (
         <div className="px-4 pb-4 space-y-3">
           <div className="flex gap-2">
-            <Link href={`/team/${t.id}`} className="btn btn-ghost h-10 flex-1" data-testid={`link-team-page-${t.id}`}>Team page</Link>
-            <Link href={`/team/${t.id}/manage`} className="btn btn-ghost h-10 flex-1" data-testid={`link-team-roster-${t.id}`}>Roster and captain</Link>
+            <Link href={`/team/${t.id}`} className="btn btn-ghost h-11 flex-1" data-testid={`link-team-page-${t.id}`}>Team page</Link>
+            <Link href={`/team/${t.id}/manage`} className="btn btn-ghost h-11 flex-1" data-testid={`link-team-roster-${t.id}`}>Roster and captain</Link>
           </div>
           {canEdit && (
             <>
@@ -296,8 +296,8 @@ function TeamRow({ team: t, others, canEdit, run }: { team: any; others: any[]; 
                 ) : <p className="text-xs text-[var(--mute)]">Teams with games stay in their league. To move one, archive it and add it to the other league.</p>
               )}
               <div className="flex gap-2">
-                <button className="btn btn-ghost h-10 flex-1" onClick={() => (t.archived_at || confirm(`Archive ${t.name}? It leaves standings and lists; its history stays.`)) && run("PATCH", `/api/teams/${t.id}`, { archived: !t.archived_at })} data-testid={`button-${t.archived_at ? "restore" : "archive"}-team-${t.id}`}>{t.archived_at ? "Restore" : "Archive"}</button>
-                <button className="btn btn-ghost h-10 flex-1 down" disabled={!t.removable} onClick={() => confirm(`Delete ${t.name} for good?`) && run("DELETE", `/api/teams/${t.id}`)} data-testid={`button-remove-team-${t.id}`}>Delete</button>
+                <button className="btn btn-ghost h-11 flex-1" onClick={() => (t.archived_at || confirm(`Archive ${t.name}? It leaves standings and lists; its history stays.`)) && run("PATCH", `/api/teams/${t.id}`, { archived: !t.archived_at })} data-testid={`button-${t.archived_at ? "restore" : "archive"}-team-${t.id}`}>{t.archived_at ? "Restore" : "Archive"}</button>
+                <button className="btn btn-ghost h-11 flex-1 down" disabled={!t.removable} onClick={() => confirm(`Delete ${t.name} for good?`) && run("DELETE", `/api/teams/${t.id}`)} data-testid={`button-remove-team-${t.id}`}>Delete</button>
               </div>
               {!t.removable && <p className="text-xs text-[var(--mute)]">Delete is only for empty teams. This one has games or players, so archive it instead.</p>}
             </>
@@ -318,7 +318,7 @@ function RinkStaff({ rink, run }: { rink: any; run: Run }) {
         {rink.staff.length ? rink.staff.map((s: any) => (
           <div key={s.id} className="flex items-center gap-2 text-sm py-1.5">
             <span className="flex-1 min-w-0 truncate">{s.name ?? s.email} · {ROLE_LABEL[s.role]}{s.league ? ` (${s.league})` : ""}</span>
-            <button className="btn btn-ghost h-8 text-xs" onClick={() => confirm(`Remove ${s.name ?? s.email} as ${ROLE_LABEL[s.role].toLowerCase()}?`) && run("DELETE", `/api/staff/grants?id=${s.id}`)}>Remove</button>
+            <button className="btn btn-ghost h-11 text-xs" onClick={() => confirm(`Remove ${s.name ?? s.email} as ${ROLE_LABEL[s.role].toLowerCase()}?`) && run("DELETE", `/api/staff/grants?id=${s.id}`)}>Remove</button>
           </div>
         )) : <p className="text-xs text-[var(--mute)]">No scorekeepers or commissioners yet.</p>}
         <div className="grid grid-cols-2 gap-2 mt-3">
@@ -358,8 +358,8 @@ export function Requests({ run }: { run: Run }) {
               {r.message ? ` Note: "${r.message}"` : ""}
             </p>
             <div className="grid grid-cols-2 gap-2 mt-3">
-              <button className="btn btn-ghost h-10" onClick={() => run("POST", `/api/staff/requests/${r.id}`, { decision: "decline" })} data-testid={`button-decline-request-${r.id}`}>Decline</button>
-              <button className="btn btn-red h-10" onClick={() => run("POST", `/api/staff/requests/${r.id}`, { decision: "approve" })} data-testid={`button-approve-request-${r.id}`}>Approve</button>
+              <button className="btn btn-ghost h-11" onClick={() => run("POST", `/api/staff/requests/${r.id}`, { decision: "decline" })} data-testid={`button-decline-request-${r.id}`}>Decline</button>
+              <button className="btn btn-red h-11" onClick={() => run("POST", `/api/staff/requests/${r.id}`, { decision: "approve" })} data-testid={`button-approve-request-${r.id}`}>Approve</button>
             </div>
           </div>
           )
@@ -438,8 +438,8 @@ export function Signups({ run }: { run: Run }) {
               <span className="block font-bold text-sm truncate">{u.name ?? "No name yet"}{u.number ? ` #${u.number}` : ""}</span>
               <span className="block text-xs text-[var(--mute)] truncate">{u.email}{u.rink ? ` · ${u.rink}` : ""}{u.teams ? ` · ${u.teams}` : ""}</span>
             </span>
-            <button className="btn btn-ghost h-9 text-xs" onClick={() => confirm(`Remove ${u.name ?? u.email}? They can't get in after this.`) && run("POST", `/api/staff/signups/${u.id}`, { decision: "remove" })} data-testid={`button-remove-signup-${u.id}`}>Remove</button>
-            <button className="btn btn-red h-9 text-xs" onClick={() => run("POST", `/api/staff/signups/${u.id}`, { decision: "approve" })} data-testid={`button-approve-signup-${u.id}`}>Let in</button>
+            <button className="btn btn-ghost h-11 text-xs" onClick={() => confirm(`Remove ${u.name ?? u.email}? They can't get in after this.`) && run("POST", `/api/staff/signups/${u.id}`, { decision: "remove" })} data-testid={`button-remove-signup-${u.id}`}>Remove</button>
+            <button className="btn btn-red h-11 text-xs" onClick={() => run("POST", `/api/staff/signups/${u.id}`, { decision: "approve" })} data-testid={`button-approve-signup-${u.id}`}>Let in</button>
           </div>
         ))}
       </div>
@@ -488,9 +488,9 @@ function RinkRequestCard({ r, run }: { r: any; run: Run }) {
         )}
       </div>
       <div className={`grid gap-2 mt-3 ${isNew && wantsManager ? "grid-cols-3" : "grid-cols-2"}`}>
-        <button className="btn btn-ghost h-10 text-sm" onClick={() => run("POST", `/api/staff/requests/${r.id}`, { decision: "decline" })} data-testid={`button-decline-request-${r.id}`}>Decline</button>
-        {isNew && wantsManager && <button className="btn btn-ghost h-10 text-sm" onClick={() => run("POST", `/api/staff/requests/${r.id}`, { decision: "approve_rink" })} data-testid={`button-approve-rink-only-${r.id}`}>Rink only</button>}
-        <button className="btn btn-red h-10 text-sm" disabled={wantsManager && !onDomain && !phoneOk} onClick={() => run("POST", `/api/staff/requests/${r.id}`, { decision: "approve" })} data-testid={`button-approve-request-${r.id}`}>{wantsManager ? "Approve manager" : "Add rink"}</button>
+        <button className="btn btn-ghost h-11 text-sm" onClick={() => run("POST", `/api/staff/requests/${r.id}`, { decision: "decline" })} data-testid={`button-decline-request-${r.id}`}>Decline</button>
+        {isNew && wantsManager && <button className="btn btn-ghost h-11 text-sm" onClick={() => run("POST", `/api/staff/requests/${r.id}`, { decision: "approve_rink" })} data-testid={`button-approve-rink-only-${r.id}`}>Rink only</button>}
+        <button className="btn btn-red h-11 text-sm" disabled={wantsManager && !onDomain && !phoneOk} onClick={() => run("POST", `/api/staff/requests/${r.id}`, { decision: "approve" })} data-testid={`button-approve-request-${r.id}`}>{wantsManager ? "Approve manager" : "Add rink"}</button>
       </div>
       {wantsManager && !onDomain && !phoneOk && <p className="text-xs text-[var(--mute)] mt-2">Approving a manager needs one check: their email on the rink's domain, or your call to the rink.</p>}
     </div>
@@ -539,8 +539,8 @@ function SupportDesk({ run, isAdmin }: { run: Run; isAdmin: boolean }) {
             {acct.slots.length ? acct.slots.map((s: any) => (
               <div key={`${s.id}-${s.team_id}`} className="flex items-center gap-2 text-sm py-1.5">
                 <span className="flex-1 min-w-0 truncate">{s.number ? `#${s.number} ` : ""}{s.name} · {s.team_name} <span className="text-[var(--mute)]">({s.source})</span></span>
-                <button className="btn btn-ghost h-8 text-xs" onClick={() => confirm(`Release this claim? ${acct.user.name} is told.`) && run("POST", "/api/staff/fix", { action: "release", playerId: s.id })} data-testid={`button-support-release-${s.id}`}>Release</button>
-                <button className="btn btn-ghost h-8 text-xs" onClick={() => run("POST", "/api/staff/fix", { action: s.hidden ? "unhide" : "hide", playerId: s.id })}>{s.hidden ? "Unhide" : "Hide"}</button>
+                <button className="btn btn-ghost h-11 text-xs" onClick={() => confirm(`Release this claim? ${acct.user.name} is told.`) && run("POST", "/api/staff/fix", { action: "release", playerId: s.id })} data-testid={`button-support-release-${s.id}`}>Release</button>
+                <button className="btn btn-ghost h-11 text-xs" onClick={() => run("POST", "/api/staff/fix", { action: s.hidden ? "unhide" : "hide", playerId: s.id })}>{s.hidden ? "Unhide" : "Hide"}</button>
               </div>
             )) : <p className="text-xs text-[var(--mute)]">None.</p>}
           </div>
@@ -566,8 +566,8 @@ function SupportDesk({ run, isAdmin }: { run: Run; isAdmin: boolean }) {
           {merges.filter((m) => m.status === "pending").map((m) => (
             <div key={m.id} className="flex items-center gap-2 text-sm py-1.5">
               <span className="flex-1 min-w-0 truncate">{m.from_email} → {m.to_email} <span className="text-[var(--mute)]">after {when(m.run_after)}</span></span>
-              {isAdmin && <button className="btn btn-ghost h-8 text-xs" onClick={() => confirm("Move this account now, skipping the 24-hour hold?") && run("POST", "/api/staff/merges", { runId: m.id })}>Run now</button>}
-              <button className="btn btn-ghost h-8 text-xs" onClick={() => run("DELETE", `/api/staff/merges?id=${m.id}`)}>Cancel</button>
+              {isAdmin && <button className="btn btn-ghost h-11 text-xs" onClick={() => confirm("Move this account now, skipping the 24-hour hold?") && run("POST", "/api/staff/merges", { runId: m.id })}>Run now</button>}
+              <button className="btn btn-ghost h-11 text-xs" onClick={() => run("DELETE", `/api/staff/merges?id=${m.id}`)}>Cancel</button>
             </div>
           ))}
         </div>
@@ -596,7 +596,7 @@ function AdminSection({ data, run }: { data: any; run: Run }) {
         {data.systemStaff.map((s: any) => (
           <div key={s.id} className="flex items-center gap-2 text-sm py-1.5">
             <span className="flex-1 min-w-0 truncate">{s.name ?? s.email} · {ROLE_LABEL[s.role]}</span>
-            {s.user_id !== data.me.id && <button className="btn btn-ghost h-8 text-xs" onClick={() => confirm(`Remove ${s.name ?? s.email} as ${ROLE_LABEL[s.role].toLowerCase()}?`) && run("DELETE", `/api/staff/grants?id=${s.id}`)}>Remove</button>}
+            {s.user_id !== data.me.id && <button className="btn btn-ghost h-11 text-xs" onClick={() => confirm(`Remove ${s.name ?? s.email} as ${ROLE_LABEL[s.role].toLowerCase()}?`) && run("DELETE", `/api/staff/grants?id=${s.id}`)}>Remove</button>}
           </div>
         ))}
         <div className="grid grid-cols-2 gap-2 mt-3">
@@ -619,7 +619,7 @@ function AdminSection({ data, run }: { data: any; run: Run }) {
       </div>
       <div className="card p-4 mt-3 flex items-center gap-3">
         <span className="flex-1"><span className="block font-bold text-sm">Recalculate ratings</span><span className="block text-xs text-[var(--mute)]">Replays every game. Runs nightly on its own.</span></span>
-        <button className="btn btn-ghost h-10" disabled={busy} onClick={async () => { setBusy(true); const ok = await run("POST", "/api/staff/recompute"); setResult(ok ? "Done." : null); setBusy(false); }} data-testid="button-recompute">{busy ? "Running…" : "Run"}</button>
+        <button className="btn btn-ghost h-11" disabled={busy} onClick={async () => { setBusy(true); const ok = await run("POST", "/api/staff/recompute"); setResult(ok ? "Done." : null); setBusy(false); }} data-testid="button-recompute">{busy ? "Running…" : "Run"}</button>
       </div>
       {result && <p className="text-xs text-[var(--mute)] mt-2 px-1">{result}</p>}
     </Section>

@@ -75,7 +75,7 @@ export default function ManageTeam({ id }: { id: string }) {
             {data.joined.map((j: any) => (
               <div key={j.id} className="flex items-center gap-2 text-sm py-1">
                 <span className="flex-1 truncate">{j.name}{j.number ? ` #${j.number}` : ""}{j.position ? ` · ${POSITION_LABEL[j.position] ?? j.position}` : ""}</span>
-                <button className="btn btn-ghost h-8 text-xs" onClick={() => run("POST", `/api/teams/${teamId}/draft`, { userId: j.id })} data-testid={`button-draft-joined-${j.id}`}>Add to roster</button>
+                <button className="btn btn-ghost h-11 text-xs" onClick={() => run("POST", `/api/teams/${teamId}/draft`, { userId: j.id })} data-testid={`button-draft-joined-${j.id}`}>Add to roster</button>
               </div>
             ))}
           </div>
@@ -93,7 +93,7 @@ export default function ManageTeam({ id }: { id: string }) {
                 <div key={a.id} className="flex items-center gap-2 text-sm">
                   <span className="h-5 w-5 rounded-full bg-[var(--ice-3)] border border-[var(--line)] text-[10px] font-black flex items-center justify-center">A</span>
                   <span className="flex-1 truncate">{a.name}</span>
-                  <button className="btn btn-ghost h-8 text-xs" onClick={() => run("DELETE", `/api/teams/${teamId}/assistants?userId=${a.id}`)} data-testid={`button-remove-assistant-${a.id}`}>Remove</button>
+                  <button className="btn btn-ghost h-11 text-xs" onClick={() => run("DELETE", `/api/teams/${teamId}/assistants?userId=${a.id}`)} data-testid={`button-remove-assistant-${a.id}`}>Remove</button>
                 </div>
               ))}
             </div>
@@ -134,7 +134,7 @@ export default function ManageTeam({ id }: { id: string }) {
           </div>
         </details>
       )}
-      {myRole === "captain" && <button className="text-xs text-[var(--mute)] mt-4 px-1 min-h-[40px]" onClick={() => confirm(assistants.length ? `Step down? ${assistants[0].name} becomes captain.` : "Step down as captain? Anyone on the roster can take the role.") && run("POST", `/api/teams/${teamId}/captain/step-down`)} data-testid="button-step-down">Step down as captain</button>}
+      {myRole === "captain" && <button className="text-xs text-[var(--mute)] mt-4 px-1 min-h-[44px]" onClick={() => confirm(assistants.length ? `Step down? ${assistants[0].name} becomes captain.` : "Step down as captain? Anyone on the roster can take the role.") && run("POST", `/api/teams/${teamId}/captain/step-down`)} data-testid="button-step-down">Step down as captain</button>}
     </div>
   );
 }
@@ -174,15 +174,15 @@ function Group({ title, rows, teamId, me, isCaptain, canMerge, run }: { title: s
         <div className="card mb-2 p-3 text-sm" data-testid="card-merge-confirm">
           <p>Merge {who(preview.moving)} into {who(preview.kept)}. This moves {preview.games} games and {preview.points} points. It can&apos;t be undone.</p>
           <div className="flex gap-2 mt-2">
-            <button className="btn btn-red h-9 text-xs" data-testid="button-merge-confirm" onClick={async () => { if (await run("POST", `/api/teams/${teamId}/merge`, { fromId: preview.moving.id, intoId: preview.kept.id })) { setPreview(null); setMergeFrom(null); } }}>Merge these players</button>
-            <button type="button" className="btn btn-ghost h-9 text-xs" onClick={() => setPreview(null)} data-testid="button-merge-cancel">Cancel</button>
+            <button className="btn btn-red h-11 text-xs" data-testid="button-merge-confirm" onClick={async () => { if (await run("POST", `/api/teams/${teamId}/merge`, { fromId: preview.moving.id, intoId: preview.kept.id })) { setPreview(null); setMergeFrom(null); } }}>Merge these players</button>
+            <button type="button" className="btn btn-ghost h-11 text-xs" onClick={() => setPreview(null)} data-testid="button-merge-cancel">Cancel</button>
           </div>
         </div>
       )}
       <div className="card divide-y divide-[var(--line)]">
         {rows.map((s: any) => (
           <div key={s.id} className={`p-3 ${mergeFrom === s.id ? "bg-[var(--red-dim)]" : ""}`} data-testid={`row-slot-${s.id}`}>
-            <button type="button" className="w-full flex items-center gap-3 text-sm text-left" onClick={() => { setOpenId(openId === s.id ? null : s.id); setEdit(null); }} aria-expanded={openId === s.id} data-testid={`button-slot-${s.id}`}>
+            <button type="button" className="w-full min-h-[44px] flex items-center gap-3 text-sm text-left" onClick={() => { setOpenId(openId === s.id ? null : s.id); setEdit(null); }} aria-expanded={openId === s.id} data-testid={`button-slot-${s.id}`}>
               <span className="tnum text-[var(--mute)] w-8">{s.number ? `#${s.number}` : "–"}</span>
               <span className="flex-1 min-w-0">
                 <span className="block font-bold truncate">{s.name}{s.badge ? <span className="ml-1.5 text-[10px] font-black text-[var(--mute)]">{s.badge}</span> : null}</span>
@@ -197,7 +197,7 @@ function Group({ title, rows, teamId, me, isCaptain, canMerge, run }: { title: s
             {(openId === s.id || (mergeFrom && mergeFrom !== s.id)) && (
               <div className="mt-2 pl-11">
                 {mergeFrom && mergeFrom !== s.id ? (
-                  <button className="btn btn-red h-8 text-xs" onClick={() => askMerge(s.id)} data-testid={`button-merge-into-${s.id}`}>Same person</button>
+                  <button className="btn btn-red h-11 text-xs" onClick={() => askMerge(s.id)} data-testid={`button-merge-into-${s.id}`}>Same person</button>
                 ) : edit && edit.id === s.id ? (
                   <form className="flex flex-wrap gap-1.5 items-center" onSubmit={async (e) => { e.preventDefault(); const cur = edit; if (!cur) return; if (await run("PATCH", `/api/teams/${teamId}/slots/${s.id}`, { number: cur.number, ...(s.registered ? {} : { position: cur.position }) })) setEdit(null); }}>
                     <input className="input h-9 w-16 text-center tnum" inputMode="numeric" maxLength={2} value={edit.number} onChange={(e) => setEdit({ ...edit, number: e.target.value.replace(/\D/g, "").slice(0, 2) })} aria-label="Number" data-testid={`input-edit-number-${s.id}`} />
@@ -206,17 +206,17 @@ function Group({ title, rows, teamId, me, isCaptain, canMerge, run }: { title: s
                         {(["C", "W", "D", "G"] as const).map((p) => <option key={p} value={p}>{POSITION_LABEL[p]}</option>)}
                       </select>
                     )}
-                    <button className="btn btn-red h-9 text-xs" data-testid={`button-save-edit-${s.id}`}>Save</button>
-                    <button type="button" className="btn btn-ghost h-9 text-xs" onClick={() => setEdit(null)}>Cancel</button>
+                    <button className="btn btn-red h-11 text-xs" data-testid={`button-save-edit-${s.id}`}>Save</button>
+                    <button type="button" className="btn btn-ghost h-11 text-xs" onClick={() => setEdit(null)}>Cancel</button>
                   </form>
                 ) : (
                   <div className="flex flex-wrap gap-1.5">
-                    <button className="btn btn-ghost h-8 text-xs" onClick={() => setEdit({ id: s.id, number: s.number ?? "", position: ["C", "W", "D", "G"].includes(s.position) ? s.position : "W" })} data-testid={`button-edit-${s.id}`}>Edit</button>
-                    {!s.registered && <Link href={`/pool/${teamId}/match/${s.id}`} className="btn btn-ghost h-8 text-xs" data-testid={`button-match-${s.id}`}>Match to a player</Link>}
-                    {s.registered && s.user_id !== me.user.id && <button className="btn btn-ghost h-8 text-xs" onClick={() => confirm(`Release ${s.name}'s claim on this spot?`) && run("POST", `/api/teams/${teamId}/slots/${s.id}/release`)} data-testid={`button-release-${s.id}`}>Release</button>}
-                    {canMerge && <button className="btn btn-ghost h-8 text-xs" onClick={() => { setMergeFrom(s.id); setPreview(null); setOpenId(null); }} data-testid={`button-merge-${s.id}`}>Same person as…</button>}
-                    {s.user_id !== me.user.id && !s.badge && <button className="btn btn-ghost h-8 text-xs" onClick={() => run("PATCH", `/api/teams/${teamId}/slots/${s.id}/sub`, { sub: !s.is_sub })} data-testid={`button-sub-${s.id}`}>{s.is_sub ? "Full roster" : "Make a sub"}</button>}
-                    {s.user_id !== me.user.id && (isCaptain || !s.badge) && <button className="btn btn-ghost h-8 text-xs down" onClick={() => confirm(`Take ${s.name} off the roster? Games already played keep their lines.`) && run("POST", `/api/teams/${teamId}/slots/${s.id}/remove`)} data-testid={`button-remove-${s.id}`}>Remove</button>}
+                    <button className="btn btn-ghost h-11 text-xs" onClick={() => setEdit({ id: s.id, number: s.number ?? "", position: ["C", "W", "D", "G"].includes(s.position) ? s.position : "W" })} data-testid={`button-edit-${s.id}`}>Edit</button>
+                    {!s.registered && <Link href={`/pool/${teamId}/match/${s.id}`} className="btn btn-ghost h-11 text-xs" data-testid={`button-match-${s.id}`}>Match to a player</Link>}
+                    {s.registered && s.user_id !== me.user.id && <button className="btn btn-ghost h-11 text-xs" onClick={() => confirm(`Release ${s.name}'s claim on this spot?`) && run("POST", `/api/teams/${teamId}/slots/${s.id}/release`)} data-testid={`button-release-${s.id}`}>Release</button>}
+                    {canMerge && <button className="btn btn-ghost h-11 text-xs" onClick={() => { setMergeFrom(s.id); setPreview(null); setOpenId(null); }} data-testid={`button-merge-${s.id}`}>Same person as…</button>}
+                    {s.user_id !== me.user.id && !s.badge && <button className="btn btn-ghost h-11 text-xs" onClick={() => run("PATCH", `/api/teams/${teamId}/slots/${s.id}/sub`, { sub: !s.is_sub })} data-testid={`button-sub-${s.id}`}>{s.is_sub ? "Full roster" : "Make a sub"}</button>}
+                    {s.user_id !== me.user.id && (isCaptain || !s.badge) && <button className="btn btn-ghost h-11 text-xs down" onClick={() => confirm(`Take ${s.name} off the roster? Games already played keep their lines.`) && run("POST", `/api/teams/${teamId}/slots/${s.id}/remove`)} data-testid={`button-remove-${s.id}`}>Remove</button>}
                   </div>
                 )}
               </div>
@@ -266,7 +266,7 @@ function TeamForm({ teamId, team, run }: { teamId: number; team: any; run: (m: s
         <div className="flex items-center gap-3">
           <span className="h-6 w-6 rounded-full" style={{ background: team.color }} />
           <span className="flex-1 text-sm font-bold">{team.name}</span>
-          <button className="btn btn-ghost h-8 text-xs" onClick={() => setEditing(true)} data-testid="button-edit-team">Edit</button>
+          <button className="btn btn-ghost h-11 text-xs" onClick={() => setEditing(true)} data-testid="button-edit-team">Edit</button>
         </div>
       ) : (
         <form className="space-y-3" onSubmit={async (e) => { e.preventDefault(); if (await run("PATCH", `/api/teams/${teamId}`, { name, color })) setEditing(false); }}>
@@ -277,8 +277,8 @@ function TeamForm({ teamId, team, run }: { teamId: number; team: any; run: (m: s
             ))}
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <button type="button" className="btn btn-ghost h-10" onClick={() => setEditing(false)}>Cancel</button>
-            <button className="btn btn-red h-10" data-testid="button-save-team">Save</button>
+            <button type="button" className="btn btn-ghost h-11" onClick={() => setEditing(false)}>Cancel</button>
+            <button className="btn btn-red h-11" data-testid="button-save-team">Save</button>
           </div>
         </form>
       )}
@@ -309,12 +309,12 @@ export function InviteLink({ teamId, teamName, invites }: { teamId: number; team
           <div className="mt-2 rounded-xl bg-[var(--ice-3)] px-3 py-2 text-xs break-all tnum" data-testid="text-invite-url">{url}</div>
           <div className="text-xs text-[var(--mute)] mt-1">{inv.uses} of {inv.maxUses ?? inv.max_uses} uses</div>
           <div className="grid grid-cols-2 gap-2 mt-2">
-            <button className="btn btn-red h-10 text-sm" onClick={share} data-testid="button-share-invite">{copied ? "Copied" : "Share link"}</button>
-            <button className="btn btn-ghost h-10 text-sm" onClick={async () => { if (!confirm("Turn this link off? Anyone who has it won't get in.")) return; setErr(await act("DELETE", `/api/teams/${teamId}/invite`, undefined, ["/api/teams"])); }} data-testid="button-revoke-invite">Turn off link</button>
+            <button className="btn btn-red h-11 text-sm" onClick={share} data-testid="button-share-invite">{copied ? "Copied" : "Share link"}</button>
+            <button className="btn btn-ghost h-11 text-sm" onClick={async () => { if (!confirm("Turn this link off? Anyone who has it won't get in.")) return; setErr(await act("DELETE", `/api/teams/${teamId}/invite`, undefined, ["/api/teams"])); }} data-testid="button-revoke-invite">Turn off link</button>
           </div>
         </>
       ) : (
-        <button className="btn btn-red h-10 text-sm mt-2" onClick={async () => setErr(await act("POST", `/api/teams/${teamId}/invite`, undefined, ["/api/teams"]))} data-testid="button-make-invite">Make an invite link</button>
+        <button className="btn btn-red h-11 text-sm mt-2" onClick={async () => setErr(await act("POST", `/api/teams/${teamId}/invite`, undefined, ["/api/teams"]))} data-testid="button-make-invite">Make an invite link</button>
       )}
       {err && <p className="text-xs down mt-2">{err}</p>}
       <Link href="/desk" className="hidden md:block text-xs font-bold text-[var(--blue)] mt-3" data-testid="link-desk-joined">On a computer? See who's joined on Rink Desk</Link>

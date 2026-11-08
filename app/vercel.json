@@ -10,7 +10,7 @@
       "grok/**": false,
       "claude/**": false,
       "audit/**": false,
-      "polish-2": false
+      "polish-3": false
     }
   }
 }

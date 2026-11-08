@@ -85,16 +85,16 @@ export default function Lineup({ teamId, gameId }: { teamId: string; gameId: str
             <Row title="Goalie" cells={L.g} kind="g" line={0} labels={["G"]} byId={byId} pick={pick} setPick={setPick} />
           </div>
           <div className="flex flex-wrap gap-2 mt-2">
-            {L.f.length < 3 && <button type="button" className="btn btn-ghost h-9 text-xs" onClick={() => { setL({ f: [...L.f.map((l) => [...l]), [null, null, null]], d: L.d.map((l) => [...l]), g: [...L.g], extras: [...L.extras] }); setDirty(true); }} data-testid="button-add-forward-line">Add a forward line</button>}
-            {L.d.length < 3 && <button type="button" className="btn btn-ghost h-9 text-xs" onClick={() => { setL({ f: L.f.map((l) => [...l]), d: [...L.d.map((l) => [...l]), [null, null]], g: [...L.g], extras: [...L.extras] }); setDirty(true); }} data-testid="button-add-defense-pair">Add a defense pair</button>}
+            {L.f.length < 3 && <button type="button" className="btn btn-ghost h-11 text-xs" onClick={() => { setL({ f: [...L.f.map((l) => [...l]), [null, null, null]], d: L.d.map((l) => [...l]), g: [...L.g], extras: [...L.extras] }); setDirty(true); }} data-testid="button-add-forward-line">Add a forward line</button>}
+            {L.d.length < 3 && <button type="button" className="btn btn-ghost h-11 text-xs" onClick={() => { setL({ f: L.f.map((l) => [...l]), d: [...L.d.map((l) => [...l]), [null, null]], g: [...L.g], extras: [...L.extras] }); setDirty(true); }} data-testid="button-add-defense-pair">Add a defense pair</button>}
           </div>
           {pick && (
             <div className="card mt-3 p-3" data-testid="card-pick-player">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-bold">{slotLabel(pick)}</span>
                 <div className="flex gap-1.5">
-                  <button className="btn btn-ghost h-8 text-xs" onClick={() => place(pick, null)} data-testid="button-clear-slot">Clear</button>
-                  <button className="btn btn-ghost h-8 text-xs" onClick={() => setPick(null)}>Cancel</button>
+                  <button className="btn btn-ghost h-11 text-xs" onClick={() => place(pick, null)} data-testid="button-clear-slot">Clear</button>
+                  <button className="btn btn-ghost h-11 text-xs" onClick={() => setPick(null)}>Cancel</button>
                 </div>
               </div>
               <div className="mt-2 divide-y divide-[var(--line)]">

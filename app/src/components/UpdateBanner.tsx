@@ -78,7 +78,7 @@ export function UpdateBanner() {
           data-testid="banner-update"
         >
           <span className="text-sm font-bold">Update ready</span>
-          <button type="button" className="btn btn-red h-9 px-4 text-sm" data-testid="button-update-reload" onClick={() => { reload().catch(() => {}); }}>Reload</button>
+          <button type="button" className="btn btn-red h-11 px-4 text-sm" data-testid="button-update-reload" onClick={() => { reload().catch(() => {}); }}>Reload</button>
         </div>
       )}
     </>

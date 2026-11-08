@@ -30,7 +30,7 @@ export default async function ForRinks() {
       <section className="max-w-6xl mx-auto px-6 pt-14 pb-10">
         <div className="font-bold text-[#ff8a8a]">For rink managers and league commissioners</div>
         <Display className="text-[56px] sm:text-[76px] mt-2 max-w-4xl">Your rink may already be on Late Ice.</Display>
-        <p className="text-lg text-[#c3ccd8] leading-relaxed mt-5 max-w-2xl">We build each rink&apos;s leagues from its public standings. Tell us your rink and claim it. Then you decide what players see, add your staff, and turn on scoresheets. Below is a sample rink with made-up teams, so you can see it working.</p>
+        <p className="text-lg text-[#c3ccd8] leading-relaxed mt-5 max-w-2xl">We build each rink&apos;s leagues from its public standings. Tell us your rink and claim it. Then you decide what players see, add your staff, and turn on scoresheets. Below is Midnight Pond, our made-up rink, so you can see it working.</p>
       </section>
 
       <section className="max-w-6xl mx-auto px-6" aria-label="Rinks on Late Ice">

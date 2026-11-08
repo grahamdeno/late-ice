@@ -104,7 +104,7 @@ export default function Rink() {
             <div className="font-bold">Rinks in the US and Canada</div>
             <div className="text-xs text-[var(--mute)]">Switch rinks from the pill at the top. Rink missing? Add it and an admin checks it's real.</div>
           </div>
-          {data.signedIn ? (open !== "newrink" && <button className="btn btn-ghost h-9 text-sm shrink-0" onClick={() => setOpen("newrink")} data-testid="button-add-missing-rink">Add a rink</button>) : <Link href="/join" className="btn btn-ghost h-9 text-sm shrink-0">Join to add</Link>}
+          {data.signedIn ? (open !== "newrink" && <button className="btn btn-ghost h-11 text-sm shrink-0" onClick={() => setOpen("newrink")} data-testid="button-add-missing-rink">Add a rink</button>) : <Link href="/join" className="btn btn-ghost h-11 text-sm shrink-0">Join to add</Link>}
         </div>
         {open === "newrink" && <div className="mt-3"><RinkRequestForm admin={!!can.addRink} onDone={close} /></div>}
       </Section>
@@ -131,9 +131,9 @@ function RinkAccess({ rinkId, rinkName }: { rinkId: number; rinkName: string }) 
       {done ? (
         <p className="text-xs mt-3" data-testid="text-rink-access-sent">Request sent. If you signed in with your work email at the rink's web address, that confirms it. Otherwise we call the rink's listed number. Then Manage shows up on your profile.</p>
       ) : !me ? (
-        <Link href="/join" className="btn btn-ghost h-10 mt-3 inline-flex">Join first</Link>
+        <Link href="/join" className="btn btn-ghost h-11 mt-3 inline-flex">Join first</Link>
       ) : !open ? (
-        <button className="btn btn-ghost h-10 mt-3" onClick={() => setOpen(true)} data-testid="button-rink-access">Request access</button>
+        <button className="btn btn-ghost h-11 mt-3" onClick={() => setOpen(true)} data-testid="button-rink-access">Request access</button>
       ) : (
         <form className="mt-3 space-y-2" onSubmit={async (e) => { e.preventDefault(); const r = await act("POST", "/api/rink-access", { rinkId, message: msg, role }, ["/api/rink", "/api/me", "/api/staff"]); setErr(r); if (!r) setDone(true); }}>
           <select className="input w-full" value={role} onChange={(e) => setRole(e.target.value)} data-testid="select-rink-role">
@@ -141,7 +141,7 @@ function RinkAccess({ rinkId, rinkName }: { rinkId: number; rinkName: string }) 
           </select>
           <textarea className="input w-full h-20 py-2" placeholder="Anything that helps us confirm (optional)" value={msg} onChange={(e) => setMsg(e.target.value)} data-testid="input-rink-access" />
           {err && <p className="text-sm down">{err}</p>}
-          <button className="btn btn-red h-10 w-full" data-testid="button-rink-access-send">Send request</button>
+          <button className="btn btn-red h-11 w-full" data-testid="button-rink-access-send">Send request</button>
         </form>
       )}
     </div>

@@ -16,7 +16,7 @@ export const GET = handle<{ id: string }>(async (req, { id }) => {
   await assertRinkVisible(sql, viewer, league.rink_id);
   const roster = await q(sql,
     `SELECT p.id, p.display_name AS name, p.position, p.rating, p.games_rated, p.user_id IS NOT NULL AS registered, re.number, re.is_sub,
-      (SELECT u.avatar FROM users u WHERE u.id=p.user_id) avatar,
+      COALESCE((SELECT u.avatar FROM users u WHERE u.id=p.user_id), p.avatar) avatar,
       (SELECT CASE WHEN bool_or(r.role='captain') THEN 'C' WHEN bool_or(r.role='assistant_captain') THEN 'A' END FROM role_grants r
          WHERE r.user_id=p.user_id AND r.scope_type='team' AND r.scope_id=re.team_id AND r.revoked_at IS NULL) badge,
       (COALESCE((SELECT SUM(goals) FROM player_game_stats s WHERE s.player_id=p.id AND s.team_id=re.team_id),0) + COALESCE((SELECT SUM(g) FROM player_imports i WHERE i.player_id=p.id AND i.team_id=re.team_id),0))::int g,

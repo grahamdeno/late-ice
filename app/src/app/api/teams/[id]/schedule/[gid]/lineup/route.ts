@@ -20,11 +20,11 @@ async function load(teamId: number, gid: number) {
 /** Who can dress for this game: the roster (with their answer for the night) plus subs who said yes. */
 async function available(teamId: number, g: any) {
   const roster = await q<any>(sql,
-    `SELECT p.id, p.display_name AS name, p.position, p.rating, re.number, re.id AS roster_id, re.is_sub, u.id user_id, u.avatar, u.status, u.status_until,
+    `SELECT p.id, p.display_name AS name, p.position, p.rating, re.number, re.id AS roster_id, re.is_sub, u.id user_id, COALESCE(u.avatar, p.avatar) avatar, u.status, u.status_until,
        (SELECT answer FROM rsvps r WHERE r.scheduled_game_id=$2 AND r.user_id=u.id) answer
      FROM roster_entries re JOIN players p ON p.id=re.player_id LEFT JOIN users u ON u.id=p.user_id WHERE re.team_id=$1`, [teamId, g.id]);
   const subs = await q<any>(sql,
-    `SELECT p.id, p.display_name AS name, p.position, p.rating, NULL::text number, NULL::int roster_id, true is_sub, u.id user_id, u.avatar, 'in' answer
+    `SELECT p.id, p.display_name AS name, p.position, p.rating, NULL::text number, NULL::int roster_id, true is_sub, u.id user_id, COALESCE(u.avatar, p.avatar) avatar, 'in' answer
      FROM sub_requests sr JOIN users u ON u.id=sr.user_id JOIN players p ON p.user_id=u.id
      WHERE sr.scheduled_game_id=$1 AND sr.status='accepted'`, [g.id]);
   const arch = await teamArchetypes(sql, teamId, null);

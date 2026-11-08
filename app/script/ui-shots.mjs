@@ -266,6 +266,14 @@ try {
   if (myTeam) { await page.goto(`${BASE}/team/${myTeam}`); await page.waitForTimeout(1200); await shoot(page, "team-schedule"); }
   await page.goto(`${BASE}/players`); await page.waitForTimeout(1000);
   await page.getByTestId("button-pos-D").click(); await shoot(page, "players-defense");
+  // Search: a hidden surname never matches; it says so and offers the shown last initial.
+  await page.getByTestId("button-pos-skaters").click();
+  await page.getByTestId("button-player-search").click();
+  await page.getByTestId("input-player-search").fill("Zzyzx");
+  await page.waitForTimeout(300);
+  if (!(await page.getByTestId("text-search-initial").count()) && !(await page.getByText(/No player matches/).count())) errors.push("a surname search gives no explanation");
+  await shoot(page, "players-search-surname");
+  await page.getByTestId("input-player-search").fill("");
   await api(page, "PATCH", "/api/me", { avatar: { skin: 3, hair: 1, helmet: "team", guard: "cage", beard: "full", style: "flow", eyeBlack: false } });
   await page.goto(`${BASE}/me`); await page.waitForTimeout(1200);
   await page.getByTestId("row-avatar").click(); await page.waitForTimeout(400);
