@@ -28,6 +28,8 @@ async function hiddenLabel(db: Tx, playerId: number) {
 
 async function displayFor(db: Tx, p: any): Promise<string> {
   if (p.hidden) return hiddenLabel(db, p.id);
+  // Midnight Pond's made-up players keep their full (punny) names.
+  if (String(p.name_key ?? "").startsWith("sample-")) return p.name;
   if (p.user_id) {
     const u = await one<any>(db, "SELECT name, hidden FROM users WHERE id=$1", [p.user_id]);
     if (u?.hidden) return hiddenLabel(db, p.id);
@@ -159,7 +161,7 @@ export async function applyViewerNames<T extends Record<string, any>>(db: Tx, vi
     const hidden = !!p.hidden || !!p.user_hidden;
     let name: string;
     if (hidden) name = jersey ? `Player #${jersey}` : "Hidden player";
-    else if (p.fictional) name = p.display_name || p.name;
+    else if (p.fictional) name = p.name || p.display_name;
     else if (p.user_id) name = p.display_name || row.name || obfuscate(p.name);
     else if (scope.wide || same.has(p.id)) name = p.display_name || obfuscate(p.name);
     else name = publicInitials(p.name, jersey);

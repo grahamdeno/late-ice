@@ -1640,14 +1640,15 @@ async function main() {
     ok(pondTeams.some((t: any) => t.name === "Five Hole Donuts") && pondTeams.every((t: any) => /^\/sample-logos\/[a-z-]+\.svg$/.test(t.logo ?? "")), "its teams have the new names and a logo each");
     const pondTeam = pondTeams.find((t: any) => t.name === "Mighty Mullets");
     const roster = (await call("GET", `/api/teams/${pondTeam.id}`)).json.roster;
-    ok(roster.some((r: any) => /^[A-Z][a-z]+ [A-Z]/.test(r.name) && !/^[A-Z]\. [A-Z]\./.test(r.name)), `signed out, made-up players show full names (${roster.slice(0, 3).map((r: any) => r.name).join(", ")})`);
+    ok(roster.every((r: any) => /^[A-Z][a-z]+ \S{2,}/.test(r.name) && !/ [A-Z]\.$/.test(r.name) && !/^[A-Z]\. /.test(r.name)), `signed out, made-up players show full names, even after the nightly refresh (${roster.slice(0, 3).map((r: any) => r.name).join(", ")})`);
     ok(roster.every((r: any) => r.avatar && r.avatar.style === "flow"), "every Mighty Mullet has a bobblehead with the flow");
     const looks = new Set(roster.map((r: any) => JSON.stringify(r.avatar)));
     ok(looks.size >= 8, `bobbleheads vary across a team (${looks.size} different on 12 players)`);
     const pondPlayer = roster[1];
     const pp = (await call("GET", `/api/players/${pondPlayer.id}`)).json.player;
     ok(pp.name === pondPlayer.name && pp.avatar, "a made-up player's page shows the full name and bobblehead");
-    ok(!/[A-Z]\. [A-Z]\./.test(JSON.stringify((await call("GET", `/api/players?rink=${sampleRink.id}`)).json.slice(0, 5).map((p: any) => p.name))), "the players list shows full made-up names too");
+    const pondList = (await call("GET", `/api/players?rink=${sampleRink.id}`)).json.slice(0, 8).map((p: any) => p.name);
+    ok(pondList.length > 0 && pondList.every((n: string) => !/ [A-Z]\.$/.test(n) && !/^[A-Z]\. /.test(n)), `the players list shows full made-up names too (${pondList.slice(0, 4).join(", ")})`);
   }
   ok((await call("GET", "/api/rinks")).json.rinks.every((r: any) => r.is_sample), "signed out, the rink list holds only the sample rink");
   ok((await call("GET", `/api/teams/${hh}`)).status === 401, "signed out, a real team page is refused");
