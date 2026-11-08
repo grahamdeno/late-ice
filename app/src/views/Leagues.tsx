@@ -194,9 +194,10 @@ export function TeamPage({ id }: { id: string }) {
     <div>
       <BackBar href={`/league/${league.id}`} to={league.name} />
       <div className="hero p-5" style={{ ["--team" as any]: team.color || undefined }}>
-        <div className="flex items-center gap-4">
+        {/* Wraps under the badge when text is set large, so the name never breaks letter by letter. */}
+        <div className="flex flex-wrap items-center gap-4">
           <TeamBadge team={team} size={64} />
-          <div className="min-w-0">
+          <div className="min-w-[min(100%,12rem)] flex-1">
             <div className="flex items-center gap-2"><LevelPill level={league.level === "DEMO" ? "Demo" : league.level} /><span className="label">{season?.name ?? "Polar Ice"}</span></div>
             <h1 className="font-black text-2xl leading-tight mt-1" data-testid="text-team-name">{team.name}</h1>
           </div>

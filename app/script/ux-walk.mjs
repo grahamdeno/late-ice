@@ -478,10 +478,11 @@ async function week(browser, engine, pairIdx) {
   });
 
   // 12. Sign out and back in.
-  await job(pl, "sign-out-in", "Sign out, then back in", "Hand the phone to my kid; come back later.", { taps: 6, human: 45 }, async (t) => {
+  await job(pl, "sign-out-in", "Sign out, then back in", "Hand the phone to my kid; come back later.", { taps: 7, human: 47 }, async (t) => {
     const page = pl.page;
     await page.goto(BASE + "/settings"); await settle(page);
-    await t.tap(page.getByTestId("button-sign-out"), "signed-out");
+    await t.tap(page.getByTestId("button-sign-out"), "ask-sign-out");
+    await t.tap(page.getByTestId("button-confirm-sign-out"), "signed-out");
     t.check(!(await page.locator(`[data-testid="card-my-team-${team.id}"]`).count()), "blocker", "still signed in", "Team still showing after sign out");
     await t.tap(page.getByTestId("nav-me"), "join");
     await emailCode(t, page, plEmail);
@@ -507,7 +508,10 @@ async function week(browser, engine, pairIdx) {
   await job(mate, "shared-game-link", "Teammate opens the shared game link, not signed in", "The captain posts last night's game in the group chat. Does it open?", { taps: 1, human: 10 }, async (t) => {
     const page = mate.page;
     const [g] = await db`SELECT game_id FROM sheets WHERE id=${sheetId}`;
-    await page.goto(`${BASE}/game/${g?.game_id}`); await t.step("game-link");
+    const { createHmac } = await import("node:crypto");
+    const secret = process.env.IMAGE_KEY_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.CRON_SECRET || "dev-only";
+    const key = createHmac("sha256", secret).update(`game-share.${g?.game_id}`).digest("base64url").slice(0, 22);
+    await page.goto(`${BASE}/game/${g?.game_id}?s=${key}`); await t.step("game-link");
     const txt = (await page.locator("main").innerText().catch(() => "")).replace(/\s+/g, " ");
     t.check(await page.getByTestId("text-final-score").count(), "serious", "shared link shows nothing", `A shared game link opened signed out shows: "${txt.slice(0, 120)}"`);
     t.check(/sign in|join/i.test(txt) || (await page.locator('a[href="/join"]').count()), "moderate", "no way in", "Signed-out game page gives no path to sign in");
@@ -522,11 +526,12 @@ async function week(browser, engine, pairIdx) {
     await emailCode(t, page, `leaver.${engine}@example.com`);
     await profile(t, page, "Dana Leaving", "44", "D");
   });
-  await job(gone, "delete-account", "Delete my account", "I'm done with it; take my name off.", { taps: 3, human: 15 }, async (t) => {
+  await job(gone, "delete-account", "Delete my account", "I'm done with it; take my name off.", { taps: 4, human: 17 }, async (t) => {
     const page = gone.page;
     await page.goto(BASE + "/me"); await t.step("me");
     await t.tap(page.getByTestId("link-settings"), "settings");
-    await t.tap(page.getByTestId("button-delete-account"), "deleted");
+    await t.tap(page.getByTestId("button-delete-account"), "ask-delete");
+    await t.tap(page.getByTestId("button-confirm-delete"), "deleted");
     const r = await page.evaluate(async () => (await fetch("/api/me", { headers: { authorization: "Bearer " + (JSON.parse(localStorage.getItem(Object.keys(localStorage).find((k) => k === "lateice.auth" || /-auth-token$/.test(k)) || "null") || "{}").access_token || "") } })).status);
     t.check(r === 401 || r === 403 || r === 404, "blocker", "account not deleted", `After delete, /api/me answers ${r}`);
     const [u] = await db`SELECT id FROM users WHERE email=${`leaver.${engine}@example.com`}`;

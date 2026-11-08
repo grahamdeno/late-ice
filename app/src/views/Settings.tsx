@@ -19,10 +19,17 @@ export default function Settings() {
   const [theme, setTheme] = useTheme();
   const [err, setErr] = useState<string | null>(null);
   const [until, setUntil] = useState("");
+  // Sign out and delete each ask once, on the page, before acting.
+  const [asking, setAsking] = useState<"signout" | "delete" | null>(null);
   useEffect(() => { if (!loading && !me) swap("/join"); }, [loading, me, swap]);
   useEffect(() => { setUntil(me?.user.statusUntil ?? ""); }, [me?.user.statusUntil]);
   if (loading || !me) return <Loading />;
   const u = me.user;
+  const deleteAccount = async () => {
+    const r = await fetch(apiUrl("/api/me/delete"), { method: "POST", headers: { ...authHeaders(), "Content-Type": "application/json" }, body: JSON.stringify({ confirm: true }) });
+    if (!r.ok) { setErr((await r.json().catch(() => null))?.message ?? `Couldn't delete the account. Email ${SUPPORT_EMAIL} and we'll do it.`); setAsking(null); return; }
+    await signOut(); swap("/");
+  };
   const run = async (method: string, url: string, body?: unknown) => setErr(await act(method, url, body, ["/api/me", "/api/players", "/api/feed", "/api/teams"]));
 
   return (
@@ -115,8 +122,18 @@ export default function Settings() {
 
       <div className="card mt-7 p-4 flex items-center gap-3">
         <span className="flex-1 min-w-0 text-xs text-[var(--mute)] truncate">Signed in as {u.email ?? u.phone}</span>
-        <button className="btn btn-ghost h-11 text-sm" onClick={async () => { await signOut(); swap("/"); }} data-testid="button-sign-out">Sign out</button>
+        {asking !== "signout" && <button className="btn btn-ghost h-11 text-sm" onClick={() => setAsking("signout")} data-testid="button-sign-out">Sign out</button>}
       </div>
+      {asking === "signout" && (
+        <div className="card mt-2 p-4" role="alertdialog" aria-labelledby="ask-signout" data-testid="card-confirm-sign-out">
+          <div id="ask-signout" className="font-bold text-sm">Sign out of Late Ice on this phone?</div>
+          <p className="text-xs text-[var(--mute)] mt-0.5">Your teams and stats stay. Sign back in with your email code{u.email ? ` (${u.email})` : ""}.</p>
+          <div className="grid grid-cols-2 gap-2 mt-3">
+            <button className="btn btn-ghost h-11 text-sm" onClick={() => setAsking(null)} data-testid="button-cancel-sign-out" autoFocus>Cancel</button>
+            <button className="btn btn-red h-11 text-sm" onClick={async () => { await signOut(); swap("/"); }} data-testid="button-confirm-sign-out">Sign out</button>
+          </div>
+        </div>
+      )}
 
       <Section title="Your data">
         <div className="card divide-y divide-[var(--line)]">
@@ -128,14 +145,19 @@ export default function Settings() {
           }} data-testid="button-export">
             <span className="flex-1"><span className="block font-bold text-sm">Download my data</span><span className="block text-xs text-[var(--mute)]">Profile, teams, games, ratings and notices as a file</span></span>
           </button>
-          <button className="w-full flex items-center gap-3 px-4 min-h-[52px] text-left" onClick={async () => {
-            if (!confirm("Delete your Late Ice account? Your name comes off every roster and game, and your old game lines stay as \"Player\" and your number. This can't be undone.")) return;
-            const r = await fetch(apiUrl("/api/me/delete"), { method: "POST", headers: { ...authHeaders(), "Content-Type": "application/json" }, body: JSON.stringify({ confirm: true }) });
-            if (!r.ok) { setErr((await r.json().catch(() => null))?.message ?? `Couldn't delete the account. Email ${SUPPORT_EMAIL} and we'll do it.`); return; }
-            await signOut(); swap("/");
-          }} data-testid="button-delete-account">
+          <button className="w-full flex items-center gap-3 px-4 min-h-[52px] text-left" onClick={() => setAsking("delete")} data-testid="button-delete-account">
             <span className="flex-1"><span className="block font-bold text-sm down">Delete my account</span><span className="block text-xs text-[var(--mute)]">Removes your name; past scores stay</span></span>
           </button>
+          {asking === "delete" && (
+            <div className="p-4" role="alertdialog" aria-labelledby="ask-delete" data-testid="card-confirm-delete">
+              <div id="ask-delete" className="font-bold text-sm">Delete your Late Ice account?</div>
+              <p className="text-xs text-[var(--mute)] mt-0.5">Your name comes off every roster and game. Old game lines stay as &ldquo;Player&rdquo; and your number. This can&apos;t be undone.</p>
+              <div className="grid grid-cols-2 gap-2 mt-3">
+                <button className="btn btn-ghost h-11 text-sm" onClick={() => setAsking(null)} data-testid="button-cancel-delete" autoFocus>Keep my account</button>
+                <button className="btn btn-red h-11 text-sm" onClick={deleteAccount} data-testid="button-confirm-delete">Delete it</button>
+              </div>
+            </div>
+          )}
         </div>
         <p className="text-xs text-[var(--mute)] mt-2 px-1"><Link href="/terms" className="underline" data-testid="link-terms-settings">Terms</Link></p>
       </Section>

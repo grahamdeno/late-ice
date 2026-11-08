@@ -283,6 +283,35 @@ try {
   if ((await page.evaluate(() => document.documentElement.dataset.theme)) !== "light") errors.push("picking Light on the profile didn't stick");
   await shoot(page, "light-me-override");
   await page.getByTestId("button-theme-auto").click();
+  // Sign out asks first; Cancel keeps you signed in.
+  await page.getByTestId("button-sign-out").click();
+  if (!(await page.getByTestId("card-confirm-sign-out").count())) errors.push("Sign out didn't ask first");
+  await shoot(page, "settings-confirm-sign-out");
+  await page.getByTestId("button-cancel-sign-out").click();
+  if (!(await page.getByTestId("button-sign-out").count())) errors.push("Cancel on sign out didn't bring the button back");
+  await page.getByTestId("button-delete-account").click();
+  if (!(await page.getByTestId("card-confirm-delete").count())) errors.push("Delete account didn't ask first");
+  await page.getByTestId("button-cancel-delete").click();
+  // Text at 200 percent: the bars keep their size and the tab labels don't run into each other.
+  for (const path of ["/", myTeam ? `/team/${myTeam}` : "/leagues"]) {
+    await page.goto(BASE + path); await page.waitForTimeout(1000);
+    await page.addStyleTag({ content: "html{font-size:200% !important;-webkit-text-size-adjust:200% !important}" });
+    await page.waitForTimeout(300);
+    const m = await page.evaluate(() => {
+      const top = document.querySelector("header, .bar-px")?.getBoundingClientRect();
+      const labels = [...document.querySelectorAll('nav [data-testid^="nav-"] span.text-xs')].map((e) => e.getBoundingClientRect());
+      let overlap = false;
+      for (let i = 1; i < labels.length; i++) if (labels[i].left < labels[i - 1].right - 1) overlap = true;
+      const name = document.querySelector('[data-testid="text-team-name"]');
+      const nameLines = name ? Math.round(name.getBoundingClientRect().height / parseFloat(getComputedStyle(name).lineHeight || "40")) : 0;
+      return { topH: top?.height ?? 0, overlap, nameLines, wide: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1 };
+    });
+    if (m.topH > 90) errors.push(`200% text: top bar grows to ${Math.round(m.topH)}px on ${path}`);
+    if (m.overlap) errors.push(`200% text: tab labels overlap on ${path}`);
+    if (m.wide) errors.push(`200% text: page slides sideways on ${path}`);
+    if (m.nameLines > 3) errors.push(`200% text: team name breaks over ${m.nameLines} lines on ${path}`);
+    await shoot(page, `text-200${path.replace(/\W+/g, "-")}`);
+  }
   await page.goto(BASE + "/staff"); await shoot(page, "staff-375");
   // Rink Desk, at laptop size.
   await page.setViewportSize({ width: 1440, height: 900 });

@@ -17,6 +17,7 @@ const env = process.env;
 const db = postgres(env.DATABASE_URL!, { prepare: false, max: 2, onnotice: () => {} });
 let srv: ChildProcess | null = null;
 let passed = 0;
+let shareGameId: number | null = null;
 
 function ok(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(`FAIL: ${msg}`);
@@ -876,6 +877,7 @@ async function main() {
   ok((await call("GET", `/api/desk/sheets?rink=${rinkId}`, undefined, graham)).status === 403, "a captain can't open the rink's scoresheet queue");
   const c2 = await call("POST", `/api/sheets/${sh2.id}/confirm`, { leagueId: lg, homeTeamId: hh, awayTeamId: blId, data: real }, graham);
   ok(c2.status === 200, "the real sheet goes in");
+  shareGameId = c2.json.gameId;
   const deskQ2 = (await call("GET", `/api/desk/sheets?rink=${rinkId}`, undefined, mt)).json;
   ok(!deskQ2.open.some((r: any) => r.id === sh2.id) && deskQ2.done.find((r: any) => r.id === sh2.id)?.status === "confirmed", "once confirmed it moves to the last 30 days");
   after = (await call("GET", `/api/teams/${hh}`)).json;
@@ -1634,6 +1636,22 @@ async function main() {
   ok((await call("GET", `/api/teams/${hh}`, undefined, graham)).status === 200, "signed in, it loads");
   ok((await call("GET", `/api/leagues/${lg}`)).status === 401, "signed out, a real league is refused");
   ok((await call("GET", `/api/players/${mike}`)).status === 401, "signed out, a real player is refused");
+  {
+    // Shared result link: one game, signed out, initials only.
+    const gid = shareGameId!;
+    ok((await call("GET", `/api/games/${gid}`)).status === 401, "signed out with no share key, a real game stays closed");
+    ok((await call("GET", `/api/games/${gid}?s=not-the-key`)).status === 401, "a wrong share key doesn't open it");
+    const full = (await call("GET", `/api/games/${gid}`, undefined, graham)).json;
+    ok(typeof full.shareKey === "string" && full.shareKey.length >= 16 && !full.shared, "signed in, the game carries its share key");
+    const pub = await call("GET", `/api/games/${gid}?s=${full.shareKey}`);
+    ok(pub.status === 200 && pub.json.shared === true && pub.json.homeScore === 3 && pub.json.awayScore === 1, "the share link opens the score signed out");
+    ok(pub.json.lines.length > 0 && pub.json.lines.every((l: any) => /^([A-Z]\. ?)+( #\w+)?$|^Player( #\w+)?$|^Hidden player$/.test(l.name)), `every name on the shared view is initials (${pub.json.lines.map((l: any) => l.name).join(", ")})`);
+    ok(!pub.text.includes("Adam Young") && !pub.text.includes("Graham DeNoyer") && !pub.text.includes("Jared"), "no full or first names leak into the shared view");
+    ok(pub.json.lines.every((l: any) => l.player_id === undefined && l.delta === undefined) && pub.json.stars === undefined && pub.json.goalies === undefined && pub.json.sheetId === null && pub.json.shareKey === undefined, "no player links, rating moves, stars, goalie reports or sheet photo");
+    const other = (await db`SELECT id FROM games WHERE id <> ${gid} AND league_id = ${lg} ORDER BY id DESC LIMIT 1`)[0];
+    if (other) ok((await call("GET", `/api/games/${other.id}?s=${full.shareKey}`)).status === 401, "one game's key doesn't open another game");
+    ok((await call("GET", `/api/teams/${hh}?s=${full.shareKey}`)).status === 401, "and doesn't open the team page");
+  }
   ok((await call("GET", `/api/standings?rink=${rid}`)).json.rinkId === sampleRink.id, "signed out, standings fall back to the sample rink");
   ok((await call("GET", "/api/sheets")).status === 401, "signed out, the scoresheet list is refused");
   ok((await fetch(`${BASE}/api/cards/game/${conf.json.gameId}`)).status === 401, "signed out, a real game's share card is refused");
