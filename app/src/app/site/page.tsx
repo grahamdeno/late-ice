@@ -20,10 +20,10 @@ export default async function SiteHome() {
         </div>
         <div className="flex-[1_1_380px] flex gap-4 justify-center">
           <Phone>
-            <div className="rounded-[22px] bg-[#14294a] p-4"><div className="text-xs text-[#b9c6d6] font-bold">Next game</div><div className="font-black text-lg mt-1">Sun · 6:00 PM</div><div className="text-sm text-[#b9c6d6]">vs Whiskey Dekes</div>
+            <div className="rounded-[22px] bg-[#14294a] p-4"><div className="text-xs text-[#b9c6d6] font-bold">Next game</div><div className="font-black text-lg mt-1">Sun · 6:00 PM</div><div className="text-sm text-[#b9c6d6]">vs Zamboni Zombies</div>
               <div className="grid grid-cols-3 gap-1 mt-3 text-xs font-bold text-center"><span className="rounded-lg py-2 bg-[rgba(56,217,150,.2)] text-[#38d996]">In</span><span className="rounded-lg py-2 bg-[#1f2836]">Late</span><span className="rounded-lg py-2 bg-[#1f2836]">Out</span></div></div>
-            <div className="rounded-[18px] bg-[#151c28] p-3.5 mt-2.5 text-sm"><div className="text-xs text-[#8b97a8] font-bold">C League</div>
-              <div className="flex justify-between mt-2"><span>Hammer&apos;d Heads</span><b>16</b></div><div className="flex justify-between mt-1.5 text-[#c3ccd8]"><span>Seal Team Sticks</span><b>14</b></div><div className="flex justify-between mt-1.5 text-[#c3ccd8]"><span>Whiskey Dekes</span><b>12</b></div></div>
+            <div className="rounded-[18px] bg-[#151c28] p-3.5 mt-2.5 text-sm"><div className="text-xs text-[#8b97a8] font-bold">Midnight Pond · C League</div>
+              <div className="flex justify-between mt-2"><span>Five Hole Donuts</span><b>16</b></div><div className="flex justify-between mt-1.5 text-[#c3ccd8]"><span>Mighty Mullets</span><b>14</b></div><div className="flex justify-between mt-1.5 text-[#c3ccd8]"><span>Backcheck Bandits</span><b>12</b></div></div>
           </Phone>
           <div className="mt-12 hidden sm:block"><Phone>
             <div className="rounded-[22px] bg-[#14294a] p-4"><div className="text-xs text-[#b9c6d6] font-bold">Late Ice rating</div><div className="font-display text-[52px] leading-none">4.00</div><div className="text-xs text-[#b9c6d6]">C level · 10 games</div></div>
