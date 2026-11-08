@@ -198,7 +198,7 @@ export function TeamPage({ id }: { id: string }) {
         <div className="flex flex-wrap items-center gap-4">
           <TeamBadge team={team} size={64} />
           <div className="min-w-[min(100%,12rem)] flex-1">
-            <div className="flex items-center gap-2"><LevelPill level={league.level === "DEMO" ? "Demo" : league.level} /><span className="label">{season?.name ?? "Polar Ice"}</span></div>
+            <div className="flex items-center gap-2"><LevelPill level={league.level === "DEMO" ? "Demo" : league.level} /><span className="label">{season?.name ?? league.name}</span></div>
             <h1 className="font-black text-2xl leading-tight mt-1" data-testid="text-team-name">{team.name}</h1>
           </div>
         </div>
