@@ -1,0 +1,19 @@
+name: OCR real sheets
+on:
+  push:
+    branches: [audit/ocr-real]
+  workflow_dispatch:
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Discover box score layout (letters masked)
+        run: node ocr-real/discover.mjs "https://www.tcahcstats.com/boxscores.php?GameID=5339"
