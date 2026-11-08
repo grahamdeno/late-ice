@@ -1,4 +1,6 @@
 name: OCR real sheets
+# Scores the scoresheet reader on real adult-league sheets against the league's posted box scores.
+# Photos and box scores are fetched at run time; the report holds percentages only, no names.
 on:
   push:
     branches: [audit/ocr-real]
@@ -6,7 +8,7 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     defaults:
       run:
         working-directory: app
@@ -15,5 +17,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Discover box score layout (letters masked)
-        run: node ocr-real/discover.mjs "https://www.tcahcstats.com/boxscores.php?GameID=5339"
+      - name: Install the reader SDK and image tools
+        run: cd ocr-real && npm init -y >/dev/null && npm i --no-audit --no-fund @anthropic-ai/sdk@^1.5.0 sharp
+      - name: Score the reader
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node ocr-real/eval.mjs
+      - name: Summary
+        if: always()
+        run: '[ -f ocr-real/report.md ] && cat ocr-real/report.md >> "$GITHUB_STEP_SUMMARY" || true'
