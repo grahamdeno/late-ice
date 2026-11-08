@@ -82,7 +82,9 @@ async function person(browser, engine, who, { throttle = false } = {}) {
     const m = String(b.image || "").match(/^data:(image\/[a-z]+);base64,(.+)$/);
     if (!m) return route.continue();
     const bytes = Buffer.concat([Buffer.from(m[2], "base64"), Buffer.from("LATEICE_FAKE:" + JSON.stringify(state.fake))]);
-    return route.continue({ postData: JSON.stringify({ ...b, image: `data:${m[1]};base64,${bytes.toString("base64")}` }) });
+    // Sent from here and handed back, because WebKit ignores a rewritten body on continue().
+    const resp = await route.fetch({ postData: JSON.stringify({ ...b, image: `data:${m[1]};base64,${bytes.toString("base64")}` }) });
+    return route.fulfill({ response: resp });
   });
   if (throttle && engine === "chromium") {
     const c = await ctx.newCDPSession(page);
