@@ -18,7 +18,7 @@ const PROMPT = readFileSync("src/server/ocr.ts", "utf8").match(/const PROMPT = `
 const client = new Anthropic();
 const UA = { "User-Agent": "late-ice-reader-test (one fetch per game)" };
 
-const sheets = readFileSync("ocr-real/sheets.csv", "utf8").trim().split("\n").slice(1).map((l) => {
+const sheets = readFileSync("ocr-real/sheets.csv", "utf8").replace(/\r/g, "").trim().split("\n").slice(1).map((l) => {
   const [file, box, image, group] = l.split(",");
   return { file, box, image, group };
 });
