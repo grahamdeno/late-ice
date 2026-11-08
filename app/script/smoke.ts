@@ -1282,7 +1282,7 @@ async function main() {
     { op: "text", text: "I cannot read it", inputTokens: 5, outputTokens: 1, expectFollowup: false },
     { op: "json", body: ocrBody({ confidence: 0.91 }), inputTokens: 7, outputTokens: 2, expectFollowup: true },
   ]);
-  ok(retried.status === "review" && retried.row.model === "claude-sonnet-5-5", "a parse failure retries the same model once");
+  ok(retried.status === "review" && retried.row.model === "claude-opus-5-5", "a parse failure retries the same model once");
   ok(Number(retried.row.input_tokens) === 12 && Number(retried.row.output_tokens) === 3, "token counts from the read and the retry are stored");
   ok(retried.warnings.length === 0, `the retried read has no warnings (${retried.warnings.join("; ")})`);
   const twice = await readFake([
@@ -1299,29 +1299,29 @@ async function main() {
     { op: "json", body: ocrBody({ confidence: 0.4, date: null }), inputTokens: 10, outputTokens: 4, expectFollowup: false },
     { op: "json", body: ocrBody({ confidence: 0.95 }), inputTokens: 8, outputTokens: 3, expectFollowup: false },
   ]);
-  ok(fell.status === "review" && fell.row.model === "claude-opus-5-5", "confidence under 0.6 calls the fallback model");
+  ok(fell.status === "review" && fell.row.model === "claude-sonnet-5-5", "confidence under 0.6 calls the fallback model");
   ok(fell.warnings.length === 0, `the read with fewer warnings is kept (${fell.warnings.join("; ")})`);
   ok(Number(fell.row.input_tokens) === 18 && Number(fell.row.output_tokens) === 7, "fallback tokens are added to the sheet");
   const worse = await readFake([
     { op: "json", body: ocrBody({ confidence: 0.5 }), inputTokens: 10, outputTokens: 2, expectFollowup: false },
     { op: "json", body: ocrBody({ confidence: 0.2, date: null, home: side("Owls", false), away: side("Flyers", false) }), inputTokens: 6, outputTokens: 2, expectFollowup: false },
   ]);
-  ok(worse.row.model === "claude-sonnet-5-5" && worse.warnings.length === 0 && Number(worse.row.input_tokens) === 16, "a fallback with more warnings is dropped");
+  ok(worse.row.model === "claude-opus-5-5" && worse.warnings.length === 0 && Number(worse.row.input_tokens) === 16, "a fallback with more warnings is dropped");
   const tie = await readFake([
     { op: "json", body: ocrBody({ confidence: 0.4, date: null }), inputTokens: 4, outputTokens: 1, expectFollowup: false },
     { op: "json", body: ocrBody({ confidence: 0.99, date: null }), inputTokens: 4, outputTokens: 1, expectFollowup: false },
   ]);
-  ok(tie.row.model === "claude-sonnet-5-5" && tie.warnings.length === 1, `equal warnings keep the first read (${tie.warnings.join("; ")})`);
+  ok(tie.row.model === "claude-opus-5-5" && tie.warnings.length === 1, `equal warnings keep the first read (${tie.warnings.join("; ")})`);
   const boundary = await readFake([
     { op: "json", body: ocrBody({ confidence: 0.6, home: side("Owls", false), away: side("Flyers", false) }), inputTokens: 9, outputTokens: 2, expectFollowup: false },
   ]);
-  ok(boundary.status === "review" && boundary.row.model === "claude-sonnet-5-5" && Number(boundary.row.input_tokens) === 9, "confidence 0.6 with fewer than 3 warnings does not call the fallback");
+  ok(boundary.status === "review" && boundary.row.model === "claude-opus-5-5" && Number(boundary.row.input_tokens) === 9, "confidence 0.6 with fewer than 3 warnings does not call the fallback");
   ok(boundary.warnings.length === 2, `those two warnings are the goalies (${boundary.warnings.join("; ")})`);
   const three = await readFake([
     { op: "json", body: ocrBody({ confidence: 0.99, date: null, home: side("Owls", false), away: side("Flyers", false) }), inputTokens: 11, outputTokens: 3, expectFollowup: false },
     { op: "json", body: ocrBody({ confidence: 0.9 }), inputTokens: 5, outputTokens: 1, expectFollowup: false },
   ]);
-  ok(three.row.model === "claude-opus-5-5" && three.warnings.length === 0, `three warnings call the fallback even when confidence is high (${three.warnings.join("; ")})`);
+  ok(three.row.model === "claude-sonnet-5-5" && three.warnings.length === 0, `three warnings call the fallback even when confidence is high (${three.warnings.join("; ")})`);
 
   console.log("hand entry");
   const failed = await readFake([{ op: "error", message: "unreadable", expectFollowup: false }]);

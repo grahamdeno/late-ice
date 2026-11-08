@@ -152,10 +152,11 @@ function resultFromText(text: string): OcrResult {
 }
 
 export async function readScoresheet(imageBase64: string, mime: string): Promise<{ result: OcrResult; model: string; inputTokens: number; outputTokens: number }> {
-  // Primary model, then one fallback. The list is LATE_ICE_OCR_MODELS; the default stays sonnet then opus.
+  // Primary model, then one fallback. The list is LATE_ICE_OCR_MODELS; the default is opus then sonnet.
+  // Opus reads real handwritten sheets best (82% of scorers vs 76% for Sonnet, November 8 test on 22 real sheets).
   // A JSON parse failure retries the same model once. The fallback runs only after a read succeeded
   // and (confidence < 0.6 or checkSheet reports 3 or more warnings). Network, auth, and a second parse failure do not.
-  const models = (process.env.LATE_ICE_OCR_MODELS || "claude-sonnet-5-5,claude-opus-5-5").split(",").map((m) => m.trim()).filter(Boolean);
+  const models = (process.env.LATE_ICE_OCR_MODELS || "claude-opus-5-5,claude-sonnet-5-5").split(",").map((m) => m.trim()).filter(Boolean);
   const primary = models[0];
   if (!primary) throw new Error("No OCR model configured");
   const usage: Usage = { input: 0, output: 0 };

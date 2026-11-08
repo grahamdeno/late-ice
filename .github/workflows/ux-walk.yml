@@ -5,7 +5,7 @@ name: UX walkthrough
 # Local Supabase only; never touches production. Findings never fail the run.
 on:
   push:
-    branches: [audit/ux-walk, polish-3]
+    branches: [audit/ux-walk]
   workflow_dispatch:
 
 permissions:
