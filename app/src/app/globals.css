@@ -1,0 +1,348 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 220 38% 3%;
+  --foreground: 210 33% 95%;
+  --border: 220 18% 16%;
+  --card: 220 26% 7%;
+  --card-foreground: 210 33% 95%;
+  --card-border: 220 18% 14%;
+  --popover: 220 26% 8%;
+  --popover-foreground: 210 33% 95%;
+  --popover-border: 220 18% 16%;
+  --primary: 0 100% 62%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 20% 12%;
+  --secondary-foreground: 210 33% 95%;
+  --muted: 220 20% 11%;
+  --muted-foreground: 215 14% 62%;
+  --accent: 220 20% 13%;
+  --accent-foreground: 210 33% 95%;
+  --destructive: 0 84% 55%;
+  --destructive-foreground: 0 0% 98%;
+  --input: 220 18% 20%;
+  --ring: 0 100% 62%;
+  --radius: 0.75rem;
+  --font-sans: var(--font-satoshi), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display-face), var(--font-satoshi), sans-serif;
+
+  --ice: #05070b;
+  --ice-2: #0b0f16;
+  --ice-3: #1f2836;
+  --line: #243041;
+  --red: #ff3b3b;
+  --red-dim: rgba(255, 59, 59, 0.14);
+  --white: #eef3f8;
+  --mute: #8b97a8;
+  --blue: #5aa9ff;
+  --up: #38d996;
+  --down: #ff6b6b;
+  --amber: #ffb547;
+
+  /* Dark is the default look. */
+  --line-2: #2a3446;
+  --grip: #263042;
+  --dim: #8b97a8;
+  --bar: rgba(11, 15, 22, 0.86);
+  --bar-2: rgba(11, 15, 22, 0.92);
+  /* Ice glass: only the top bar, bottom nav and pull-down sheet. Content stays solid. */
+  --glass: rgba(16, 22, 33, 0.62);
+  --glass-sheet: rgba(16, 22, 33, 0.80);
+  --glass-edge: rgba(255, 255, 255, 0.10);
+  --glass-hi: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  --glass-solid: #0b0f16;
+  --hi-a: #111723;
+  --hi-b: #0b0f16;
+  --hi-line: #222b3a;
+  --ghost-hover: #263142;
+  --rink: #0e141e;
+  --rink-line: #2a3446;
+  --glow: rgba(255, 59, 59, 0.09);
+  /* Deeper red behind white button text so it stays readable (4.7:1). */
+  --red-btn: #e0262b;
+  --red-btn-hover: #ec3035;
+  --surface: #151c28;
+  --surface-2: #19212e;
+  --surface-shadow: none;
+  --hero-mix: 18%;
+  --hero-blue: #7bbcff;
+  --hero-up: #4be3a6;
+  --hero-down: #ff8585;
+  --hero-amber: #ffb547;
+  --hero-mute: #c9d4e2;
+  --hero-tile: rgba(0, 0, 0, 0.25);
+  color-scheme: dark;
+}
+
+/* Light look: follows the phone's setting unless the player picked one on their profile. */
+:root[data-theme="light"] {
+  --ice: #f3f5f8;
+  --ice-2: #ffffff;
+  --ice-3: #eaeef3;
+  --line: #d9dfe7;
+  --line-2: #c3ccd8;
+  --grip: #c9d1dc;
+  --red: #e0262b;
+  --red-dim: rgba(224, 38, 43, 0.10);
+  --white: #0d1420;
+  --mute: #566273;
+  --dim: #5f6b7c;
+  --blue: #1d64c4;
+  --up: #0a6b43;
+  --down: #ad2424;
+  --amber: #8a5100;
+  --bar: rgba(255, 255, 255, 0.88);
+  --bar-2: rgba(255, 255, 255, 0.94);
+  --glass: rgba(255, 255, 255, 0.66);
+  --glass-sheet: rgba(255, 255, 255, 0.84);
+  --glass-edge: rgba(13, 20, 32, 0.08);
+  --glass-hi: rgba(255, 255, 255, 0.9);
+  --glass-shadow: 0 8px 24px rgba(13, 20, 32, 0.08);
+  --glass-solid: #ffffff;
+  --hi-a: #ffffff;
+  --hi-b: #f7f9fb;
+  --hi-line: #d3dae3;
+  --ghost-hover: #e1e6ed;
+  --rink: #f7fafc;
+  --rink-line: #c3ccd8;
+  --glow: rgba(224, 38, 43, 0.06);
+  --red-btn: #d42127;
+  --red-btn-hover: #c01d22;
+  --surface: #ffffff;
+  --surface-2: #ffffff;
+  --surface-shadow: 0 1px 2px rgba(13, 20, 32, 0.06), 0 4px 14px rgba(13, 20, 32, 0.05);
+  --hero-mix: 10%;
+  --hero-blue: #1858b0;
+  --hero-up: #0a6b43;
+  --hero-down: #ad2424;
+  --hero-amber: #8a5100;
+  --hero-mute: #3f4b5c;
+  --hero-tile: rgba(255, 255, 255, 0.6);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+  --ice: #f3f5f8;
+  --ice-2: #ffffff;
+  --ice-3: #eaeef3;
+  --line: #d9dfe7;
+  --line-2: #c3ccd8;
+  --grip: #c9d1dc;
+  --red: #e0262b;
+  --red-dim: rgba(224, 38, 43, 0.10);
+  --white: #0d1420;
+  --mute: #566273;
+  --dim: #5f6b7c;
+  --blue: #1d64c4;
+  --up: #0a6b43;
+  --down: #ad2424;
+  --amber: #8a5100;
+  --bar: rgba(255, 255, 255, 0.88);
+  --bar-2: rgba(255, 255, 255, 0.94);
+  --glass: rgba(255, 255, 255, 0.66);
+  --glass-sheet: rgba(255, 255, 255, 0.84);
+  --glass-edge: rgba(13, 20, 32, 0.08);
+  --glass-hi: rgba(255, 255, 255, 0.9);
+  --glass-shadow: 0 8px 24px rgba(13, 20, 32, 0.08);
+  --glass-solid: #ffffff;
+  --hi-a: #ffffff;
+  --hi-b: #f7f9fb;
+  --hi-line: #d3dae3;
+  --ghost-hover: #e1e6ed;
+  --rink: #f7fafc;
+  --rink-line: #c3ccd8;
+  --glow: rgba(224, 38, 43, 0.06);
+  --red-btn: #d42127;
+  --red-btn-hover: #c01d22;
+  --surface: #ffffff;
+  --surface-2: #ffffff;
+  --surface-shadow: 0 1px 2px rgba(13, 20, 32, 0.06), 0 4px 14px rgba(13, 20, 32, 0.05);
+  --hero-mix: 10%;
+  --hero-blue: #1858b0;
+  --hero-up: #0a6b43;
+  --hero-down: #ad2424;
+  --hero-amber: #8a5100;
+  --hero-mute: #3f4b5c;
+  --hero-tile: rgba(255, 255, 255, 0.6);
+  color-scheme: light;
+  }
+}
+
+* { -webkit-tap-highlight-color: transparent; }
+/* Long-pressing a link or button opened iOS's web-page preview and the copy menu. In an app,
+   resting a thumb on a card should do nothing. Text fields and plain text stay selectable. */
+a, button, [role="button"], [role="switch"], summary, label, img, svg {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+input, textarea, select, [contenteditable="true"] { -webkit-user-select: text; user-select: text; }
+html, body { background: var(--ice); color: var(--white); }
+/* The page never pans sideways. Wide content (the scoresheet photo) scrolls inside its own box. */
+html { overflow-x: hidden; touch-action: pan-y pinch-zoom; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+@supports (overflow: clip) { html, body { overflow-x: clip; } }
+/* iPhones zoom in (and the page slides sideways) when a field under 16px gets focus. */
+input, select, textarea { font-size: max(16px, 1em) !important; }
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  overscroll-behavior: none;
+  width: 100%;
+  position: relative;
+}
+.font-display { font-family: var(--font-display); letter-spacing: 0.01em; }
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* Rink markings in the background: faint center red line and blue lines. */
+.rink-bg {
+  background:
+    radial-gradient(1200px 500px at 50% -200px, var(--glow), transparent 60%),
+    linear-gradient(180deg, transparent 0, transparent 100%),
+    var(--ice);
+}
+
+/* Calm surfaces (option B): no outlines. Cards sit one tone above the page; the one hero per
+   screen takes the team's color. Lists inside a card use hairline dividers, not boxes. */
+.card {
+  background: var(--surface);
+  border: 0;
+  border-radius: 22px;
+  box-shadow: var(--surface-shadow);
+}
+/* Ice glass. Phones set to reduce transparency, and browsers without blur, get a solid bar. */
+.glass, .glass-sheet {
+  border: 1px solid var(--glass-edge);
+  box-shadow: inset 0 1px 0 var(--glass-hi), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+.glass { background: var(--glass); }
+.glass-sheet { background: var(--glass-sheet); }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass, .glass-sheet { background: var(--glass-solid); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass, .glass-sheet { background: var(--glass-solid); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+/* Page behind the league sheet: dimmed and lightly blurred so the sheet reads first. */
+.sheet-scrim { -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+/* Fog above the tab bar: scrolling content melts into the page color instead of showing sharp text between the buttons. */
+.tab-fog {
+  height: calc(env(safe-area-inset-bottom) + 140px);
+  background: linear-gradient(to bottom, transparent 0%, color-mix(in srgb, var(--ice) 70%, transparent) 55%, var(--ice) 100%);
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 60%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 60%);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .sheet-scrim, .tab-fog { -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+.card-hi {
+  background: var(--surface-2);
+  border: 0;
+  border-radius: 24px;
+  box-shadow: var(--surface-shadow);
+}
+/* The hero: one per screen. Set --team inline to tint it with a team's color. */
+.hero {
+  background: color-mix(in srgb, var(--team, #3b82f6) var(--hero-mix), var(--ice));
+  border: 0;
+  border-radius: 26px;
+  /* The tint can be any team color, so text on it gets its own colors that clear 4.5:1 on all of them. */
+  --mute: var(--hero-mute);
+  --blue: var(--hero-blue);
+  --up: var(--hero-up);
+  --down: var(--hero-down);
+  --amber: var(--hero-amber);
+}
+.hero .tile { background: var(--hero-tile); border-radius: 16px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: 44px; height: 44px; padding: 0 14px; border-radius: 999px;
+  background: var(--ice-3); border: 1px solid var(--line);
+  font-size: 13px; font-weight: 600; color: var(--white); white-space: nowrap;
+}
+.chip[data-active="true"] { background: var(--red-btn); border-color: var(--red-btn); color: #fff; }
+.label { font-size: 13px; font-weight: 700; letter-spacing: 0; color: var(--mute); }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 36px; height: 48px; padding: 0 20px; border-radius: 14px; font-weight: 700; font-size: 15px;
+  transition: transform .12s ease, background .15s ease, opacity .15s;
+}
+.btn:active { transform: scale(0.98); }
+.btn-red { background: var(--red-btn); color: #fff; }
+.btn-red:hover { background: var(--red-btn-hover); }
+.btn-ghost { background: var(--ice-3); border: 1px solid transparent; color: var(--white); }
+.btn-ghost:hover { background: var(--ghost-hover); }
+/* Answers to "are you playing?": one tint strength for all three, so they read as a set.
+   Out is a soft red, not the alarm red the scan button and badges use. */
+.rsvp-in { background: color-mix(in srgb, var(--up) 15%, transparent); color: var(--up); }
+.rsvp-late { background: color-mix(in srgb, var(--amber) 15%, transparent); color: var(--amber); }
+.rsvp-out { background: color-mix(in srgb, var(--down) 15%, transparent); color: var(--down); }
+.btn:disabled { opacity: .5; pointer-events: none; }
+
+.up { color: var(--up); }
+.down { color: var(--down); }
+
+.field {
+  background: transparent; border: 1px solid transparent; border-radius: 8px;
+  padding: 4px 6px; min-width: 0; color: var(--white); font: inherit;
+}
+.field:hover { border-color: var(--line); }
+.field:focus { border-color: var(--red); background: var(--ice-3); }
+
+.scrollbar-none::-webkit-scrollbar { display: none; }
+.scrollbar-none { scrollbar-width: none; }
+
+@keyframes scanline { 0% { top: 0%; } 50% { top: 100%; } 100% { top: 0%; } }
+.scanline { position: absolute; left: 0; right: 0; height: 3px; background: var(--red); box-shadow: 0 0 18px 4px rgba(255,59,59,.55); animation: scanline 2.4s ease-in-out infinite; }
+@keyframes pulse-dot { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.25); opacity: .7; } }
+.pulse-dot { animation: pulse-dot 1.2s ease-in-out infinite; transform-origin: center; }
+@keyframes drop { from { transform: translateY(-12px); opacity: 0; } to { transform: none; opacity: 1; } }
+.drop-in { animation: drop .22s ease-out; }
+@keyframes rise { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+.rise { animation: rise .35s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rise, .drop-in, .pulse-dot { animation: none; }
+}
+
+.input {
+  height: 44px; border-radius: 12px; padding: 0 14px; background: var(--ice-3); border: 1px solid var(--line); color: var(--white);
+  font-size: 15px; outline: none; min-width: 0;
+}
+.input:focus { border-color: var(--red); }
+.input::placeholder { color: var(--mute); }
+
+/* Keyboard focus stays visible in brand red, including fields that hide the default outline. */
+:focus-visible {
+  outline: 2px solid var(--red) !important;
+  outline-offset: 2px;
+}
+
+/* The top bar and tab bar stay the same size when the phone's text is set larger, the way iOS's own bars do.
+   The page itself grows; these two would otherwise cover it and stack their labels on each other. */
+.bar-px { font-size: 15px; }
+.bar-px .text-xs { font-size: 12px; line-height: 16px; }
+.bar-px .text-sm { font-size: 14px; line-height: 20px; }
+.bar-px .h-5 { height: 20px; }
+.bar-px .min-w-\[28px\] { min-width: 28px; }
+.bar-px .px-1\.5 { padding-left: 6px; padding-right: 6px; }
+.bar-px .pl-3 { padding-left: 12px; }
+.bar-px .pr-2 { padding-right: 8px; }
+.bar-px .px-3 { padding-left: 12px; padding-right: 12px; }
+.bar-px .px-4 { padding-left: 16px; padding-right: 16px; }
+.bar-px .pb-3 { padding-bottom: 12px; }
+.bar-px .gap-1 { gap: 4px; }
+.bar-px .gap-1\.5 { gap: 6px; }
+.bar-px .gap-2 { gap: 8px; }
+.bar-px .mt-2 { margin-top: 8px; }
+.bar-px .mt-1 { margin-top: 4px; }
+.bar-px .h-1 { height: 4px; }
+.bar-px .w-10 { width: 40px; }
+.bar-px .max-w-\[560px\] { max-width: 560px; }

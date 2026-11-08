@@ -181,9 +181,9 @@ Per-game availability: **In**, **Out**, **Maybe**, with an optional one-tap reas
 
 ## Build order, revised
 
-1. Registration (phone, name, number, position, home rink) and the draft pool
-2. Captain claim, roster builder: draft, match a registered player to a sheet slot, player self-claim with captain notice
-3. Obfuscated slot names, alias collapse, self-hide
+1. ~~Registration (phone, name, number, position, home rink) and the draft pool~~ Done
+2. ~~Captain claim, roster builder: draft, match a registered player to a sheet slot, player self-claim with captain notice~~ Done
+3. ~~Obfuscated slot names, alias collapse, self-hide~~ Done (alias collapse is the captain's "same person as" merge plus the existing same-number match at scan time)
 4. Rink directory seed, live/listed states, rink detection from the sheet
 5. ~~Seasons and standings reset~~ Done in the pilot: per-rink season calendar, sheet date picks the season, standings per season, imports as the season baseline
 6. Scan attribution, duplicate comparison, dispute flow

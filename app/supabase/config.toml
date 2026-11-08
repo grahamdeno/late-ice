@@ -1,0 +1,58 @@
+# Local Supabase stack for development and CI (`npx supabase start`).
+# The hosted project is configured in the Supabase dashboard; see README.
+project_id = "late-ice"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+enabled = false
+
+# Local mail catcher (Mailpit). Sign-in emails land here instead of being sent. http://127.0.0.1:54324
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+file_size_limit = "10MiB"
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
+# 6-digit codes, valid 10 minutes. Mirror these in the hosted dashboard (Auth > Providers > Email).
+otp_length = 6
+otp_expiry = 600
+max_frequency = "1s"
+
+# Both templates show the typed code, never a link.
+[auth.email.template.magic_link]
+subject = "Your Late Ice code"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.confirmation]
+subject = "Your Late Ice code"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.sms]
+enable_signup = false
+
+[auth.rate_limit]
+email_sent = 1000

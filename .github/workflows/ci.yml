@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  push:
+    branches-ignore: [master, ci-shots, ux-audit-results]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install
+        run: if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
+
+      - name: Commit the lockfile if it was just created
+        if: github.event_name == 'push'
+        run: |
+          if [ -n "$(git status --porcelain package-lock.json)" ]; then
+            git config user.name "ci" && git config user.email "ci@users.noreply.github.com"
+            git add package-lock.json && git commit -qm "Add package-lock.json [ci]" && git push
+          fi
+
+      - name: Lint
+        continue-on-error: true
+        run: |
+          # No ESLint config exists, so next lint offers to create one. Close stdin so it
+          # exits instead of waiting. The step stays non-blocking.
+          npx next lint < /dev/null
+
+      - name: Start local Supabase (Postgres, Auth, Storage)
+        run: |
+          # Image registries rate-limit shared CI runners; try each, with a pause between.
+          started=""
+          for reg in ghcr.io public.ecr.aws docker.io ghcr.io; do
+            if SUPABASE_INTERNAL_IMAGE_REGISTRY=$reg npx supabase start -x studio,imgproxy,realtime,edge-runtime,logflare,vector,postgres-meta; then
+              started=$reg; echo "SUPABASE_INTERNAL_IMAGE_REGISTRY=$reg" >> "$GITHUB_ENV"; break
+            fi
+            npx supabase stop --no-backup || true
+            sleep 30
+          done
+          [ -n "$started" ] || { echo "Could not start Supabase from any registry"; exit 1; }
+          npx supabase status -o env > /tmp/sb.env
+          get() { grep "^$1=" /tmp/sb.env | head -1 | cut -d= -f2- | tr -d '"'; }
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$(get API_URL)"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(get ANON_KEY)"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$(get SERVICE_ROLE_KEY)"
+            echo "DATABASE_URL=$(get DB_URL)"
+            echo "CRON_SECRET=ci-secret"
+          } >> "$GITHUB_ENV"
+
+      - name: Build (includes the type check)
+        run: npm run build
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Smoke test (API end to end)
+        run: npx tsx script/smoke.ts
+
+      - name: Reset the database for the UI walkthrough
+        run: npx supabase db reset
+
+      - name: UI walkthrough screenshots
+        run: |
+          # A brand-new release can be half-published for a few minutes; fall back to the one before.
+          npm i --no-save playwright@1 || npm i --no-save playwright@~1.64.0 || npm i --no-save playwright@~1.60.0
+          npx playwright install --with-deps chromium
+          node script/ui-shots.mjs
+
+      - name: Keep the screenshots with this run
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-shots
+          path: app/shots
+          if-no-files-found: ignore
+
+      # Only the production branch publishes to ci-shots. Every push there used to cost a Vercel deploy,
+      # and the free plan allows 100 a day; the vercel.json written below turns deploys off for this branch.
+      - name: Publish screenshots to the ci-shots branch
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/nextjs-supabase'
+        working-directory: .
+        run: |
+          [ -d app/shots ] || exit 0
+          mkdir -p /tmp/s && cp app/shots/*.png /tmp/s/ 2>/dev/null || exit 0
+          git config user.name "ci" && git config user.email "ci@users.noreply.github.com"
+          git stash -u -q || true
+          git checkout -q --orphan ci-shots && git rm -rfq . && rm -rf app
+          cp /tmp/s/*.png . && mkdir -p app && printf '{ "git": { "deploymentEnabled": false } }\n' > app/vercel.json
+          git add *.png app/vercel.json && git commit -qm "UI shots for ${GITHUB_SHA::7}"
+          git push -f origin ci-shots

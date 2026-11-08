@@ -1,0 +1,41 @@
+name: Live sign-in check
+
+# Opens the live join page in a real browser and requests a sign-in code for a test address.
+# The email itself is checked by hand (it lands in a real inbox).
+on:
+  push:
+    branches: [nextjs-supabase]
+    paths: [".github/workflows/live-signin.yml"]
+
+jobs:
+  request-code:
+    runs-on: ubuntu-latest
+    env:
+      BASE: https://late-ice.tangomike.app
+      EMAIL: graham.denoyer@gmail.com
+    steps:
+      - name: Wait for the deploy of this commit
+        run: sleep 150
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Request a code through the live join page
+        run: |
+          mkdir -p /tmp/b && cd /tmp/b && npm init -y >/dev/null && npm i -s playwright@1 >/dev/null && npx playwright install --with-deps chromium >/dev/null
+          cat > b.mjs <<'JS'
+          import { chromium } from "playwright";
+          const b = await chromium.launch();
+          const p = await (await b.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+          p.on("pageerror", (e) => console.log("pageerror:", e.message));
+          p.on("response", (r) => { if (r.url().includes("supabase.co") || r.url().includes("/api/")) console.log(r.status(), r.url().replace(/\?.*/, "")); });
+          await p.goto(`${process.env.BASE}/join`, { waitUntil: "networkidle" });
+          await p.getByTestId("input-email").fill(process.env.EMAIL);
+          await p.getByTestId("button-send-code").click();
+          const ok = await p.getByTestId("input-code").waitFor({ timeout: 20000 }).then(() => true).catch(() => false);
+          const err = await p.getByTestId("text-error").innerText().catch(() => "");
+          console.log(`code screen shown: ${ok}; error: ${err || "none"}; sent at ${new Date().toISOString()}`);
+          console.log("resend button:", await p.getByTestId("button-resend").innerText().catch(() => "?"));
+          await b.close();
+          process.exit(ok ? 0 : 1);
+          JS
+          node b.mjs

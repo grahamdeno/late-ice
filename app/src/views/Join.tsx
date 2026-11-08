@@ -1,0 +1,251 @@
+"use client";
+import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Link, useLocation } from "@/lib/router";
+import { apiRequest, invalidatePrefixes, queryClient, setToken } from "@/lib/queryClient";
+import { useMe, normEmail, POSITION_LABEL, INVITE_KEY } from "@/lib/auth";
+import { supabase, passkeysSupported, passkeyError, passkeyAutofillSupported, markPasskeyOffer } from "@/lib/supabase";
+import { FaceoffDot, Loading, useFilter } from "@/lib/ui";
+import { RinkPicker } from "@/components/RinkPicker";
+
+type Step = "email" | "code" | "profile";
+const COOLDOWN = 60;
+
+const CODE_TTL_MS = 10 * 60 * 1000;
+
+/** Plain-language message. Supabase reports wrong and expired codes the same way,
+ *  so the time since the code was sent decides which one to show. */
+function codeError(message: string, sentAt: number | null) {
+  const m = message.toLowerCase();
+  if (m.includes("rate") || m.includes("seconds") || m.includes("too many")) return "Too many codes requested. Wait a minute and try again.";
+  if (m.includes("expired") || m.includes("invalid") || m.includes("token")) {
+    return sentAt && Date.now() - sentAt > CODE_TTL_MS
+      ? "That code has expired. Send a new one."
+      : "That code doesn't match. Check the latest email and try again.";
+  }
+  return "Something went wrong. Try again.";
+}
+
+/** A team's invite link: remember it through sign-in, and say which team it's for. */
+function useInvite() {
+  const [token, setTok] = useState<string | null>(null);
+  useEffect(() => {
+    let t: string | null = null;
+    try { t = new URLSearchParams(window.location.search).get("invite"); } catch { /* no window */ }
+    try { if (t) localStorage.setItem(INVITE_KEY, t); else t = localStorage.getItem(INVITE_KEY); } catch { /* storage off */ }
+    setTok(t);
+  }, []);
+  const { data } = useQuery<any>({ queryKey: [`/api/invites/${token}`], enabled: !!token });
+  return data?.valid ? data : null;
+}
+
+export default function Join() {
+  const [, , swap] = useLocation();
+  const { me, loading } = useMe();
+  const invite = useInvite();
+  const { data: gate } = useQuery<{ paused: boolean }>({ queryKey: ["/api/signup-status"] });
+  const [step, setStep] = useState<Step>("email");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [wait, setWait] = useState(0);
+  const [sentAt, setSentAt] = useState<number | null>(null);
+
+  // Already signed in: finish the profile or go to it.
+  useEffect(() => {
+    if (!me) return;
+    if (me.user.profileComplete) swap("/me");
+    else setStep("profile");
+  }, [me, swap]);
+
+  // Passkey autofill: a saved passkey shows above the keyboard on the email field, no button needed.
+  // Runs quietly in the background; tapping the Face ID button or sending a code cancels it.
+  const finishRef = useRef<((token: string) => Promise<void>) | null>(null);
+  useEffect(() => {
+    if (loading || me || step !== "email") return;
+    let live = true;
+    (async () => {
+      if (!(await passkeyAutofillSupported())) return;
+      for (let tries = 0; live && tries < 3; tries++) {
+        const { data, error } = await (supabase().auth as any).signInWithPasskey({ options: { mediation: "conditional" } });
+        if (!live) return;
+        if (data?.session) { await finishRef.current?.(data.session.access_token); return; }
+        // The prompt can outlast its challenge; start a fresh one. Anything else (canceled, replaced) ends it quietly.
+        if (!/challenge_expired/i.test(`${error?.code ?? ""} ${error?.message ?? ""}`)) return;
+      }
+    })();
+    return () => { live = false; };
+  }, [loading, me, step]);
+
+  // Resend cooldown ticker.
+  useEffect(() => {
+    if (wait <= 0) return;
+    const t = setTimeout(() => setWait((w) => w - 1), 1000);
+    return () => clearTimeout(t);
+  }, [wait]);
+
+  if (loading) return <Loading />;
+
+  const send = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const addr = normEmail(email);
+    if (!addr) return setErr("Enter a valid email address.");
+    if (wait > 0) return;
+    setBusy(true); setErr(null);
+    // A typed code, not a magic link: no emailRedirectTo.
+    const { error } = await supabase().auth.signInWithOtp({ email: addr, options: { shouldCreateUser: true } });
+    if (error) setErr(codeError(error.message, null));
+    else { setCode(""); setStep("code"); setWait(COOLDOWN); setSentAt(Date.now()); }
+    setBusy(false);
+  };
+
+  const verify = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const addr = normEmail(email);
+    if (!addr || code.length !== 6) return;
+    setBusy(true); setErr(null);
+    const { data, error } = await supabase().auth.verifyOtp({ email: addr, token: code, type: "email" });
+    if (error || !data.session) { setErr(codeError(error?.message ?? "invalid", sentAt)); setBusy(false); return; }
+    markPasskeyOffer();
+    await finish(data.session.access_token);
+    setBusy(false);
+  };
+
+  // Shared by the email code and the passkey: the account changed, so drop anonymous responses before the profile decides where to go.
+  const finish = async (token: string) => {
+    setToken(token);
+    queryClient.resetQueries();
+    try {
+      const res = await apiRequest("GET", "/api/me");
+      const j = await res.json();
+      if (j.user.profileComplete) swap("/me"); else setStep("profile");
+    } catch (e: any) { setErr(e.message); }
+  };
+
+  finishRef.current = finish;
+
+  const withPasskey = async () => {
+    setBusy(true); setErr(null);
+    const { data, error } = await (supabase().auth as any).signInWithPasskey();
+    if (error || !data?.session) setErr(passkeyError(error?.message));
+    else await finish(data.session.access_token);
+    setBusy(false);
+  };
+
+  return (
+    <div className="pt-2">
+      <div className="label">Join Late Ice</div>
+      <h1 className="font-display text-[40px] leading-[0.95] font-black uppercase mt-1">
+        {step === "profile" ? <>Four fields.<br /><span className="text-[var(--red)]">That's the whole form.</span></> : <>Your number.<br /><span className="text-[var(--red)]">Your rating.</span></>}
+      </h1>
+      <p className="text-sm text-[var(--mute)] mt-3">
+        {step === "profile"
+          ? invite?.team
+            ? `Finish your profile and you're on ${invite.team}. If a scoresheet already has your name, you can claim that spot instead.`
+            : "Registering puts you in the draft pool at your home rink. Your captain pulls you onto the team, or you claim the spot the scoresheet already made for you."
+          : "Sign in with your email. We send a six-digit code. No password."}
+      </p>
+
+      {invite && (
+        <div className="card mt-4 p-3.5 text-sm border-[var(--up)]/40" data-testid="card-invite-banner">
+          {invite.team ? <>You're invited to join <b>{invite.team}</b>{invite.league ? ` (${invite.league}, ${invite.rink})` : ""}. Sign in and you're in.</> : <>You've been invited to a team on Late Ice. Sign in to see which one, and you're in.</>}
+        </div>
+      )}
+      {!invite && step === "email" && (
+        <div className="card mt-4 p-3.5 text-xs text-[var(--mute)]" data-testid="card-gate-note">
+          {gate?.paused ? "New sign-ups are paused right now. Players who already have an account can still sign in." : "Late Ice is invite-only for now. Without your captain's link you'll be on the waitlist until staff let you in."}
+        </div>
+      )}
+      {step === "email" && (
+        <form onSubmit={send} className="card-hi p-5 mt-5 space-y-3">
+          <label className="block">
+            <span className="label">Email</span>
+            <input className="input w-full mt-1.5" type="email" inputMode="email" autoComplete="username webauthn" autoCapitalize="none" spellCheck={false} placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} data-testid="input-email" autoFocus />
+          </label>
+          {err && <p className="text-sm down" data-testid="text-error">{err}</p>}
+          <button className="btn btn-red w-full h-12" disabled={busy || !normEmail(email)} data-testid="button-send-code">{busy ? "Sending…" : "Email me a code"}</button>
+          {passkeysSupported() && <button type="button" className="btn btn-ghost w-full h-12" disabled={busy} onClick={withPasskey} data-testid="button-passkey-signin">Sign in with Face ID or a passkey</button>}
+          <p className="text-xs text-[var(--mute)] text-center">By joining you agree to the <Link href="/terms" className="underline" data-testid="link-terms">terms</Link> and <Link href="/privacy" className="underline" data-testid="link-privacy">privacy</Link>.</p>
+        </form>
+      )}
+
+      {step === "code" && (
+        <form onSubmit={verify} className="card-hi p-5 mt-5 space-y-3">
+          <div className="text-sm">Code sent to <b className="break-all">{normEmail(email)}</b>. <button type="button" className="text-[var(--blue)] min-h-[44px] px-1" onClick={() => { setStep("email"); setErr(null); }} data-testid="button-change-email">Change</button></div>
+          <p className="text-xs text-[var(--mute)]">Check your inbox and spam folder. The code expires in 10 minutes.</p>
+          <label className="block">
+            <span className="label">Six-digit code</span>
+            <input className="input w-full mt-1.5 tnum tracking-[0.4em] text-center text-xl" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} data-testid="input-code" autoFocus />
+          </label>
+          {err && <p className="text-sm down" data-testid="text-error">{err}</p>}
+          <button className="btn btn-red w-full h-12" disabled={busy || code.length !== 6} data-testid="button-verify">{busy ? "Checking…" : "Sign in"}</button>
+          <button type="button" className="btn btn-ghost w-full h-11" onClick={() => send()} disabled={busy || wait > 0} data-testid="button-resend">
+            {wait > 0 ? `Send a new code in ${wait}s` : "Send a new code"}
+          </button>
+        </form>
+      )}
+
+      {step === "profile" && <ProfileForm onDone={() => swap("/me")} submitLabel={invite?.team ? `Join ${invite.team}` : undefined} />}
+    </div>
+  );
+}
+
+export function ProfileForm({ onDone, submitLabel = "Join the draft pool" }: { onDone: () => void; submitLabel?: string }) {
+  const { me } = useMe();
+  const { rinkId: viewing, setRinkId } = useFilter();
+  const [name, setName] = useState(me?.user.name ?? "");
+  const [number, setNumber] = useState(me?.user.number ?? "");
+  const [position, setPosition] = useState<string>(me?.user.position ?? "");
+  const [rink, setRink] = useState<number | null>(me?.user.homeRink?.id ?? null);
+  const [age, setAge] = useState(!!me?.user.ageConfirmed);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  // Starts on the rink you were looking at; one tap changes it.
+  useEffect(() => { if (rink === null && viewing) setRink(viewing); }, [viewing, rink]);
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true); setErr(null);
+    try {
+      await apiRequest("PATCH", "/api/me", { name, number, position, homeRinkId: rink, age18: age });
+      if (rink) setRinkId(rink);
+      await invalidatePrefixes(["/api/me", "/api/players", "/api/feed", "/api/bootstrap", "/api/standings", "/api/teams"]);
+      onDone();
+    } catch (e: any) { setErr(e.message); }
+    setBusy(false);
+  };
+
+  return (
+    <form onSubmit={save} className="card-hi p-5 mt-5 space-y-4">
+      <label className="block">
+        <span className="label">Name</span>
+        <input className="input w-full mt-1.5" autoComplete="name" placeholder="First and last" value={name} onChange={(e) => setName(e.target.value)} data-testid="input-name" />
+      </label>
+      <label className="block">
+        <span className="label">Number</span>
+        <input className="input w-24 mt-1.5 tnum text-center" inputMode="numeric" maxLength={2} placeholder="#" value={number} onChange={(e) => setNumber(e.target.value.replace(/\D/g, "").slice(0, 2))} data-testid="input-number" />
+      </label>
+      <div>
+        <span className="label">Position</span>
+        <div className="grid grid-cols-4 gap-1.5 mt-1.5">
+          {(["C", "W", "D", "G"] as const).map((p) => (
+            <button type="button" key={p} onClick={() => setPosition(p)} aria-pressed={position === p} className={`h-11 rounded-xl border text-sm font-bold whitespace-nowrap ${position === p ? "border-[var(--red)] bg-[var(--red-dim)]" : "border-[var(--line)] bg-[var(--ice-3)]"}`} data-testid={`button-position-${p}`}>
+              {POSITION_LABEL[p]}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <span className="label">Home rink</span>
+        <div className="mt-1.5"><RinkPicker value={rink} onPick={setRink} /></div>
+      </div>
+      <label className="flex items-center gap-3 text-sm min-h-[44px]">
+        <input type="checkbox" className="h-6 w-6 shrink-0" checked={age} onChange={(e) => setAge(e.target.checked)} data-testid="input-age" />
+        <span>I&apos;m 18 or older. <Link href="/terms" className="underline" data-testid="link-terms-profile">Terms</Link></span>
+      </label>
+      {err && <p className="text-sm down" data-testid="text-error">{err}</p>}
+      <button className="btn btn-red w-full h-12" disabled={busy || !age || !name.trim() || !position || !rink} data-testid="button-save-profile">{busy ? "Saving…" : submitLabel}</button>
+    </form>
+  );
+}
