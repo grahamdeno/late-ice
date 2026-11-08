@@ -143,7 +143,8 @@ async function main() {
   const facts = PAIRS.map(([hn, an]) => {
     const home = byName.get(hn)!, away = byName.get(an)!;
     const hr = roster.get(home)!, ar = roster.get(away)!;
-    const sk = hr.filter((p) => !p.g && / /.test(p.name) && !/\./.test(p.name));
+    const full = hr.filter((p) => !p.g && / /.test(p.name) && !/\./.test(p.name));
+    const sk = full.length >= 2 ? full : hr.filter((p) => !p.g);
     return {
       home: { id: home, name: hn, roster: hr.map((p) => ({ id: p.id, number: p.num, name: p.name, goalie: p.g })) },
       away: { id: away, name: an, roster: ar.map((p) => ({ id: p.id, number: p.num, name: p.name, goalie: p.g })) },
