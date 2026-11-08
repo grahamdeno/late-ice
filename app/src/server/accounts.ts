@@ -518,6 +518,12 @@ export function isFullNameMatch(mine: string, posted: string) {
   return a[0] === b[0] && (lastA === lastB || similarity(lastA, lastB) >= 0.85);
 }
 
+function sameFirstAndInitial(mine: string, posted: string) {
+  const parts = (s: string) => s.trim().split(/\s+/).map((x) => x.replace(/[^a-z]/gi, "").toLowerCase()).filter(Boolean);
+  const a = parts(mine), b = parts(posted);
+  return a.length > 1 && b.length > 1 && a[0] === b[0] && a[a.length - 1][0] === b[b.length - 1][0];
+}
+
 /** Someone who joined through a team's invite link goes straight onto that roster, unless a spot with their full name is
  *  already waiting there (then "Is this you?" offers it, so nobody ends up on the roster twice). Runs once per person and team. */
 export async function seatInvited(db: Tx, userId: number) {
@@ -529,7 +535,9 @@ export async function seatInvited(db: Tx, userId: number) {
   const t = await one<any>(db, "SELECT t.*, l.level, l.rink_id FROM teams t JOIN leagues l ON l.id=t.league_id WHERE t.id=$1", [teamId]);
   if (!t) return null;
   const open = await q<any>(db, "SELECT p.name FROM roster_entries re JOIN players p ON p.id=re.player_id WHERE re.team_id=$1 AND p.user_id IS NULL", [teamId]);
-  if (open.some((r) => isFullNameMatch(u.name, r.name))) return null;
+  // A full-name spot, or a first-name-and-last-initial spot ("Graham D."), on this team is probably theirs: leave it for them
+  // to claim (or the captain to match) instead of adding a second, empty spot.
+  if (open.some((r) => isFullNameMatch(u.name, r.name) || sameFirstAndInitial(u.name, r.name))) return null;
   let number = cleanNumber(u.number);
   if (number && (await one(db, "SELECT 1 FROM roster_entries WHERE team_id=$1 AND number=$2", [teamId, number]))) number = null;
   const pid = await slotForUser(db, u, t.level);

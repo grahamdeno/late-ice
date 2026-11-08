@@ -129,8 +129,12 @@ try {
   await page.getByTestId("button-save-profile").click();
   await page.waitForURL(/\/me$/);
   await shoot(page, "me-suggestions");
-  if (!(await page.locator('[data-testid^="button-claim-"]').count())) errors.push("no claim suggestion shown");
-  await page.locator('[data-testid^="button-claim-"]').first().click();
+  // The scoresheet lists "Graham D.": not a full-name match, so it's claimed through Find your spot (opens by itself, searches his first name).
+  if (await page.locator('[data-testid^="button-claim-"]:not([data-testid^="button-claim-spot-"])').count()) errors.push("a last-initial spot was offered as 'Is this you?'");
+  page.once("dialog", (d) => d.accept());
+  const spot = page.locator('[data-testid^="button-claim-spot-"]').first();
+  try { await spot.waitFor({ timeout: 8000 }); } catch { errors.push("Find your spot did not list Graham D."); }
+  await spot.click();
   await page.waitForTimeout(800);
   await page.locator('[data-testid^="button-become-captain-"]').first().click();
   await page.waitForTimeout(800);

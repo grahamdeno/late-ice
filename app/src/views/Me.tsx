@@ -142,7 +142,7 @@ export default function MePage() {
             ))}
           </div>
         ) : (
-          me.invitedTeam ? <Empty title={`Waiting on ${me.invitedTeam.name}`} body={`You came in on ${me.invitedTeam.name}'s invite. Your captain will match you to your spot. If a scoresheet already has your name, it shows above as "Is this you?"`} />
+          me.invitedTeam ? <Empty title={`Waiting on ${me.invitedTeam.name}`} body={`You came in on ${me.invitedTeam.name}'s invite. Your captain will match you to your spot. If a scoresheet already has your name, find it under "Find your spot" below.`} />
           : <Empty title="You're in the draft pool" body={`Captains at ${u.homeRink?.name ?? "your rink"} can see you and pull you onto their team. If a scoresheet already has you, it shows up above as "Is this you?"`} />
         )}
       </Section>
@@ -154,9 +154,14 @@ export default function MePage() {
           <AvatarBuilder bare saved={u.avatar} jersey={main.color} number={main.number} archetype={u.archetypeSelf ? { archetype: u.archetypeSelf, votes: 0 } : main.archetype ?? null} goalie={u.position === "G"} />
         </More>
       )}
-      {me.slots.length > 0 && (
+      {me.slots.length > 0 ? (
         <More title="On another team too?" hint="Find your spot on a second team or as a sub" testid="button-find-spot">
           <FindSpot run={run} />
+        </More>
+      ) : u.access !== "waiting" && (
+        // No team yet: the scoresheet may list you as "Graham D.", which "Is this you?" won't guess. Search for it here.
+        <More title="Find your spot" hint="Scoresheets often list a first name and last initial" defaultOpen testid="button-find-spot">
+          <FindSpot run={run} initial={(u.name ?? "").trim().split(/\s+/)[0] ?? ""} />
         </More>
       )}
       {me.captainTeams.length > 0 && <RowLink href="/pool" title="Draft pool" hint="Registered players at your rink" testid="link-pool" />}
@@ -191,8 +196,8 @@ function Notifications({ me }: { me: any }) {
 }
 
 /** Second team, or a sub spot the app didn't suggest: search unclaimed spots by name or team, then claim. */
-function FindSpot({ run }: { run: (m: string, u: string, b?: unknown) => Promise<unknown> }) {
-  const [text, setText] = useState("");
+function FindSpot({ run, initial = "" }: { run: (m: string, u: string, b?: unknown) => Promise<unknown>; initial?: string }) {
+  const [text, setText] = useState(initial);
   const [rows, setRows] = useState<any[] | null>(null);
   useEffect(() => {
     if (text.trim().length < 2) { setRows(null); return; }
