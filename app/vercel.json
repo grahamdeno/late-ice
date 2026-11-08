@@ -10,7 +10,7 @@
       "grok/**": false,
       "claude/**": false,
       "audit/**": false,
-      "premium-pass": false
+      "polish-2": false
     }
   }
 }

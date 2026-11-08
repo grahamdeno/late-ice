@@ -117,7 +117,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-[100dvh] rink-bg w-full overflow-x-clip">
       <header
-        className="fixed top-0 inset-x-0 z-40"
+        className="fixed top-0 inset-x-0 z-40 bar-px"
         // Pulling on the bar opens the sheet; it never drags the page with it.
         style={{ paddingTop: "env(safe-area-inset-top)", touchAction: "none" }}
         onTouchStart={(e) => (startY.current = e.touches[0].clientY)}
@@ -126,7 +126,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         }}
       >
         <div className="mx-auto max-w-[560px] px-4">
-          <div className="mt-2 h-14 rounded-2xl flex items-center justify-between gap-2 px-3 overflow-hidden glass">
+          <div className="mt-2 h-[56px] rounded-2xl flex items-center justify-between gap-2 px-3 overflow-hidden glass">
             <Link href="/" className="flex items-center gap-2 shrink-0 min-h-[44px]" data-testid="link-home-logo" aria-label="Late Ice home">
               <FaceoffDot size={26} />
               <span className="whitespace-nowrap" style={{ fontWeight: 900, letterSpacing: "-0.03em", fontSize: 19 }}>Late Ice</span>
@@ -134,7 +134,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-1.5 min-w-0">
             <button
               onClick={() => setOpen((o) => !o)}
-              className="flex items-center gap-1.5 min-w-0 h-11 pl-3 pr-2 rounded-full bg-[var(--ice-3)] border border-[var(--line)] text-sm font-bold"
+              className="flex items-center gap-1.5 min-w-0 h-[44px] pl-3 pr-2 rounded-full bg-[var(--ice-3)] border border-[var(--line)] text-sm font-bold"
               data-testid="button-league-switcher"
               aria-expanded={open}
             >
@@ -216,13 +216,13 @@ function AppShell({ children }: { children: React.ReactNode }) {
       {/* Fog: page content fades out before it reaches the tab bar. */}
       <div className="tab-fog fixed bottom-0 inset-x-0 z-30 pointer-events-none" aria-hidden="true" />
 
-      <nav className="fixed bottom-0 inset-x-0 z-40" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+      <nav className="fixed bottom-0 inset-x-0 z-40 bar-px" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         <div className="relative mx-auto max-w-[560px] px-4 pb-3">
-          <div className="h-16 rounded-2xl grid grid-cols-5 items-center glass">
+          <div className="h-[64px] rounded-2xl grid grid-cols-5 items-center glass">
             {NAV.map((n) =>
               n.href === "/scan" ? (
                 <Link key={n.href} href="/scan" className="flex justify-center" data-testid="nav-scan" aria-label="Scan scoresheet">
-                  <span className="-mt-7 h-16 w-16 rounded-full flex items-center justify-center border-4 border-[var(--ice)]" style={{ background: "var(--red)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.35), 0 8px 24px rgba(255,59,59,.35)" }}>
+                  <span className="-mt-[28px] h-[64px] w-[64px] rounded-full flex items-center justify-center border-4 border-[var(--ice)]" style={{ background: "var(--red)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.35), 0 8px 24px rgba(255,59,59,.35)" }}>
                     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" /><circle cx="12" cy="12" r="3.2" fill="#fff" stroke="none" /></svg>
                   </span>
                 </Link>

@@ -83,3 +83,13 @@ export function imageKeyValid(key: string | null | undefined, now = Date.now()) 
   const a = Buffer.from(sig), b = Buffer.from(want);
   return a.length === b.length && timingSafeEqual(a, b);
 }
+
+/** A shared result link: opens that one game, signed out, with names as initials. It never expires and opens nothing else. */
+export function shareKey(gameId: number) {
+  return createHmac("sha256", secret()).update(`game-share.${gameId}`).digest("base64url").slice(0, 22);
+}
+export function shareKeyValid(gameId: number, key: string | null | undefined) {
+  if (!key) return false;
+  const want = Buffer.from(shareKey(gameId)), got = Buffer.from(String(key));
+  return want.length === got.length && timingSafeEqual(want, got);
+}

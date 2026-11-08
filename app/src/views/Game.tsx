@@ -9,8 +9,13 @@ import { ShareCard } from "@/components/ShareCard";
 
 export default function Game({ id, fresh }: { id: string; fresh?: boolean }) {
   const sheetImg = useSheetImage();
-  const { data: g, error } = useQuery<any>({ queryKey: [`/api/games/${id}`] });
+  const [shareParam] = useState(() => { try { return new URLSearchParams(window.location.search).get("s"); } catch { return null; } });
+  const { me } = useMe();
+  // A shared link only matters signed out; signed in, the full game loads as usual.
+  const s = shareParam && !me ? `?s=${encodeURIComponent(shareParam)}` : "";
+  const { data: g, error } = useQuery<any>({ queryKey: [`/api/games/${id}${s}`] });
   if (!g) return <Loading error={error} />;
+  if (g.shared) return <SharedGame g={g} />;
   const sides = [
     { key: "home", team: g.home, score: g.homeScore },
     { key: "away", team: g.away, score: g.awayScore },
@@ -99,7 +104,7 @@ export default function Game({ id, fresh }: { id: string; fresh?: boolean }) {
         </>
       )}
 
-      <div className="mt-5"><ShareCard kind="game" id={g.id} title={`${g.home.name} ${g.homeScore}-${g.awayScore} ${g.away.name}`} label="Share this result" /></div>
+      <div className="mt-5"><ShareCard kind="game" id={g.id} shareKey={g.shareKey} title={`${g.home.name} ${g.homeScore}-${g.awayScore} ${g.away.name}`} label="Share this result" /></div>
 
       {!imported && <>
 
@@ -269,4 +274,86 @@ function toSec(t: string | null) {
   if (!t) return 0;
   const [m, s] = t.split(":").map(Number);
   return (m || 0) * 60 + (s || 0);
+}
+
+/** Signed out through a shared result link: the score, the periods and who scored, names as initials. */
+function SharedGame({ g }: { g: any }) {
+  const sides = [
+    { key: "home", team: g.home, score: g.homeScore },
+    { key: "away", team: g.away, score: g.awayScore },
+  ] as const;
+  const imported = g.source === "daysmart";
+  const nameFor = (teamId: number, num: string | null) => g.lines.find((l: any) => l.team_id === teamId && l.number === num)?.name;
+  const timeline = sides
+    .flatMap((s) => (g.goals[s.key] || []).map((x: any) => ({ ...x, side: s.key, team: s.team })))
+    .sort((a: any, b: any) => (a.period - b.period) || (toSec(b.time) - toSec(a.time)));
+  const periods = Math.max(3, (g.periods.home || []).length);
+  return (
+    <div data-testid="view-shared-game">
+      <div className="label px-1">{g.league?.name} · {fmtDate(g.playedOn)}</div>
+      <div className="hero p-5 mt-2">
+        <div className="flex items-center justify-between mb-4">
+          <LevelPill level={g.league?.level} />
+          <span className="label">Final{g.startTime ? ` · ${g.startTime}` : ""}</span>
+        </div>
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+          {sides.map((s, i) => (
+            <div key={s.key} className={`flex flex-col items-center text-center gap-2 ${i === 1 ? "order-3" : ""}`}>
+              <TeamBadge team={s.team} size={52} />
+              <span className="text-sm font-bold leading-tight">{s.team.name}</span>
+            </div>
+          ))}
+          <div className="order-2 font-display text-6xl tnum flex items-center gap-2" data-testid="text-final-score">
+            <span>{g.homeScore}</span><span className="text-[var(--mute)] text-3xl">–</span><span>{g.awayScore}</span>
+          </div>
+        </div>
+        {!imported && (
+          <table className="w-full mt-5 text-sm tnum">
+            <thead><tr className="text-[var(--mute)]"><th className="text-left font-medium py-1"><span className="sr-only">Team</span></th>{Array.from({ length: periods }, (_, i) => <th key={i} className="font-medium">{i + 1}</th>)}<th className="font-medium">T</th></tr></thead>
+            <tbody>
+              {sides.map((s) => (
+                <tr key={s.key} className="border-t border-[var(--line)]">
+                  <td className="py-1.5 truncate max-w-[110px]">{s.team.name}</td>
+                  {Array.from({ length: periods }, (_, i) => <td key={i} className="text-center">{g.periods[s.key]?.[i] ?? "–"}</td>)}
+                  <td className="text-center font-bold">{s.score}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {(imported ? g.imported.length > 0 : timeline.length > 0) && <h2 className="font-black text-[17px] mt-7 mb-3 px-1">Scoring</h2>}
+      {imported ? (
+        <div className="card divide-y divide-[var(--line)]">
+          {g.imported.map((l: any, i: number) => (
+            <div key={i} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+              <TeamBadge team={l.team_id === g.home.id ? g.home : g.away} size={22} />
+              <span className="flex-1 truncate font-medium">{l.name}</span>
+              <span className="tnum text-[var(--mute)]">{l.goals}G {l.assists}A</span>
+            </div>
+          ))}
+        </div>
+      ) : timeline.length > 0 && (
+        <div className="card divide-y divide-[var(--line)]">
+          {timeline.map((x: any, i: number) => (
+            <div key={i} className="flex items-center gap-3 p-3">
+              <span className="label w-12">P{x.period} {x.time}</span>
+              <TeamBadge team={x.team} size={24} />
+              <div className="flex-1 min-w-0">
+                <div className="font-bold truncate">{nameFor(x.team.id, x.scorer) ?? `#${x.scorer}`}</div>
+                <div className="text-xs text-[var(--mute)] truncate">{[x.assist1, x.assist2].filter(Boolean).map((n: string) => nameFor(x.team.id, n) ?? `#${n}`).join(", ") || "Unassisted"}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="card-hi mt-5 p-5" data-testid="card-shared-join">
+        <div className="font-black text-[17px]">Play in this league?</div>
+        <p className="text-sm text-[var(--mute)] mt-1">Sign in to see the full game: names, penalties, three stars and how every rating moved.</p>
+        <Link href="/join" className="btn btn-red w-full h-12 mt-4" data-testid="button-shared-join">Sign in or join</Link>
+      </div>
+    </div>
+  );
 }
