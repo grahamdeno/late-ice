@@ -1,0 +1,882 @@
+{
+  "leagueId": 3,
+  "rinkId": 1,
+  "tonight": {
+    "iso": "2026-11-09T02:15:00.105Z",
+    "localDate": "2026-11-08",
+    "localTime": "9:15 PM"
+  },
+  "today": "2026-11-08",
+  "pairs": [
+    {
+      "home": {
+        "id": 15,
+        "name": "Whiskey Dekes",
+        "roster": [
+          {
+            "id": 242,
+            "number": "28",
+            "name": "Phil Quinn",
+            "goalie": true
+          },
+          {
+            "id": 243,
+            "number": "51",
+            "name": "Luke Barone",
+            "goalie": false
+          },
+          {
+            "id": 244,
+            "number": "55",
+            "name": "Paul Kuehn",
+            "goalie": false
+          },
+          {
+            "id": 245,
+            "number": "10",
+            "name": "Derek Brennan",
+            "goalie": false
+          },
+          {
+            "id": 246,
+            "number": "4",
+            "name": "Chris Voss",
+            "goalie": false
+          },
+          {
+            "id": 247,
+            "number": "19",
+            "name": "Ben Gant",
+            "goalie": false
+          },
+          {
+            "id": 248,
+            "number": "73",
+            "name": "Bill Hobbs",
+            "goalie": false
+          },
+          {
+            "id": 249,
+            "number": "18",
+            "name": "Tom Brennan",
+            "goalie": false
+          },
+          {
+            "id": 250,
+            "number": "94",
+            "name": "Kyle Tate",
+            "goalie": false
+          },
+          {
+            "id": 251,
+            "number": "45",
+            "name": "Bill Nash",
+            "goalie": false
+          },
+          {
+            "id": 252,
+            "number": "87",
+            "name": "Sean Hobbs",
+            "goalie": false
+          },
+          {
+            "id": 253,
+            "number": "67",
+            "name": "Alex Pell",
+            "goalie": false
+          },
+          {
+            "id": 254,
+            "number": "22",
+            "name": "Bill Reyes",
+            "goalie": false
+          },
+          {
+            "id": 255,
+            "number": "15",
+            "name": "Mark Fisk",
+            "goalie": false
+          },
+          {
+            "id": 256,
+            "number": "44",
+            "name": "Drew Becker",
+            "goalie": false
+          },
+          {
+            "id": 257,
+            "number": "85",
+            "name": "Josh Brandt",
+            "goalie": false
+          }
+        ]
+      },
+      "away": {
+        "id": 16,
+        "name": "Wild Puckers",
+        "roster": [
+          {
+            "id": 258,
+            "number": "26",
+            "name": "Eric Sutter",
+            "goalie": true
+          },
+          {
+            "id": 259,
+            "number": "51",
+            "name": "Dan Tate",
+            "goalie": false
+          },
+          {
+            "id": 260,
+            "number": "91",
+            "name": "Chris Mercer",
+            "goalie": false
+          },
+          {
+            "id": 261,
+            "number": "29",
+            "name": "Luke Rhodes",
+            "goalie": false
+          },
+          {
+            "id": 262,
+            "number": "56",
+            "name": "Kevin Keane",
+            "goalie": false
+          },
+          {
+            "id": 263,
+            "number": "37",
+            "name": "Cole Hanlon",
+            "goalie": false
+          },
+          {
+            "id": 264,
+            "number": "7",
+            "name": "Chris Tate",
+            "goalie": false
+          },
+          {
+            "id": 265,
+            "number": "76",
+            "name": "Zach Reyes",
+            "goalie": false
+          },
+          {
+            "id": 266,
+            "number": "17",
+            "name": "Jake Mercer",
+            "goalie": false
+          },
+          {
+            "id": 267,
+            "number": "44",
+            "name": "Pete Burke",
+            "goalie": false
+          },
+          {
+            "id": 268,
+            "number": "66",
+            "name": "Scott Kuehn",
+            "goalie": false
+          },
+          {
+            "id": 269,
+            "number": "57",
+            "name": "Chris Reyes",
+            "goalie": false
+          },
+          {
+            "id": 270,
+            "number": "93",
+            "name": "Sean Rhodes",
+            "goalie": false
+          },
+          {
+            "id": 271,
+            "number": "15",
+            "name": "Zach Burke",
+            "goalie": false
+          },
+          {
+            "id": 272,
+            "number": "22",
+            "name": "Ryan Kuehn",
+            "goalie": false
+          },
+          {
+            "id": 273,
+            "number": "20",
+            "name": "Luke Mercer",
+            "goalie": false
+          }
+        ]
+      },
+      "captain": {
+        "id": 243,
+        "number": "51",
+        "name": "Luke Barone"
+      },
+      "player": {
+        "id": 244,
+        "number": "55",
+        "name": "Paul Kuehn"
+      }
+    },
+    {
+      "home": {
+        "id": 10,
+        "name": "Blue Liners",
+        "roster": [
+          {
+            "id": 178,
+            "number": "13",
+            "name": "Trent Grady",
+            "goalie": true
+          },
+          {
+            "id": 179,
+            "number": "60",
+            "name": "Nick Tolliver",
+            "goalie": false
+          },
+          {
+            "id": 180,
+            "number": "81",
+            "name": "Paul Novak",
+            "goalie": false
+          },
+          {
+            "id": 181,
+            "number": "33",
+            "name": "Mike Price",
+            "goalie": false
+          },
+          {
+            "id": 182,
+            "number": "47",
+            "name": "Eric Nash",
+            "goalie": false
+          },
+          {
+            "id": 183,
+            "number": "27",
+            "name": "Trent Ashby",
+            "goalie": false
+          },
+          {
+            "id": 184,
+            "number": "29",
+            "name": "Wes Simms",
+            "goalie": false
+          },
+          {
+            "id": 185,
+            "number": "70",
+            "name": "Steve Brennan",
+            "goalie": false
+          },
+          {
+            "id": 186,
+            "number": "78",
+            "name": "Nick Pell",
+            "goalie": false
+          },
+          {
+            "id": 187,
+            "number": "5",
+            "name": "Brian Ivey",
+            "goalie": false
+          },
+          {
+            "id": 188,
+            "number": "59",
+            "name": "Gary Tate",
+            "goalie": false
+          },
+          {
+            "id": 189,
+            "number": "25",
+            "name": "Zach Lunde",
+            "goalie": false
+          },
+          {
+            "id": 190,
+            "number": "80",
+            "name": "Eric Marsh",
+            "goalie": false
+          },
+          {
+            "id": 191,
+            "number": "55",
+            "name": "Gary Shaw",
+            "goalie": false
+          },
+          {
+            "id": 192,
+            "number": "52",
+            "name": "Bill Lunde",
+            "goalie": false
+          },
+          {
+            "id": 193,
+            "number": "58",
+            "name": "Cody Rhodes",
+            "goalie": false
+          }
+        ]
+      },
+      "away": {
+        "id": 11,
+        "name": "Fighting Irish",
+        "roster": [
+          {
+            "id": 194,
+            "number": "1",
+            "name": "Tom Walsh",
+            "goalie": true
+          },
+          {
+            "id": 195,
+            "number": "75",
+            "name": "Sean Pike",
+            "goalie": false
+          },
+          {
+            "id": 196,
+            "number": "79",
+            "name": "Nick Simms",
+            "goalie": false
+          },
+          {
+            "id": 197,
+            "number": "71",
+            "name": "Pete Pell",
+            "goalie": false
+          },
+          {
+            "id": 198,
+            "number": "17",
+            "name": "Pete Fisk",
+            "goalie": false
+          },
+          {
+            "id": 199,
+            "number": "61",
+            "name": "Jason Reyes",
+            "goalie": false
+          },
+          {
+            "id": 200,
+            "number": "87",
+            "name": "Sean Doyle",
+            "goalie": false
+          },
+          {
+            "id": 201,
+            "number": "50",
+            "name": "Brett Tolliver",
+            "goalie": false
+          },
+          {
+            "id": 202,
+            "number": "19",
+            "name": "Cody Fisk",
+            "goalie": false
+          },
+          {
+            "id": 203,
+            "number": "13",
+            "name": "Jason Pell",
+            "goalie": false
+          },
+          {
+            "id": 204,
+            "number": "35",
+            "name": "Kyle Sutter",
+            "goalie": false
+          },
+          {
+            "id": 205,
+            "number": "68",
+            "name": "Tyler Novak",
+            "goalie": false
+          },
+          {
+            "id": 206,
+            "number": "53",
+            "name": "Pete Voss",
+            "goalie": false
+          },
+          {
+            "id": 207,
+            "number": "5",
+            "name": "Jake Tolliver",
+            "goalie": false
+          },
+          {
+            "id": 208,
+            "number": "89",
+            "name": "Paul Voss",
+            "goalie": false
+          },
+          {
+            "id": 209,
+            "number": "92",
+            "name": "Tyler Nash",
+            "goalie": false
+          }
+        ]
+      },
+      "captain": {
+        "id": 179,
+        "number": "60",
+        "name": "Nick Tolliver"
+      },
+      "player": {
+        "id": 180,
+        "number": "81",
+        "name": "Paul Novak"
+      }
+    },
+    {
+      "home": {
+        "id": 9,
+        "name": "Backside Checkers",
+        "roster": [
+          {
+            "id": 162,
+            "number": "26",
+            "name": "Phil Gant",
+            "goalie": true
+          },
+          {
+            "id": 163,
+            "number": "18",
+            "name": "Phil Shaw",
+            "goalie": false
+          },
+          {
+            "id": 164,
+            "number": "65",
+            "name": "Steve Ivey",
+            "goalie": false
+          },
+          {
+            "id": 165,
+            "number": "69",
+            "name": "Ben Hanlon",
+            "goalie": false
+          },
+          {
+            "id": 166,
+            "number": "84",
+            "name": "Eric Walsh",
+            "goalie": false
+          },
+          {
+            "id": 167,
+            "number": "55",
+            "name": "Josh Sutter",
+            "goalie": false
+          },
+          {
+            "id": 168,
+            "number": "4",
+            "name": "Jake Ashby",
+            "goalie": false
+          },
+          {
+            "id": 169,
+            "number": "41",
+            "name": "Mark Holt",
+            "goalie": false
+          },
+          {
+            "id": 170,
+            "number": "51",
+            "name": "Zach Ruiz",
+            "goalie": false
+          },
+          {
+            "id": 171,
+            "number": "19",
+            "name": "Tyler Fisk",
+            "goalie": false
+          },
+          {
+            "id": 172,
+            "number": "32",
+            "name": "Kyle Simms",
+            "goalie": false
+          },
+          {
+            "id": 173,
+            "number": "83",
+            "name": "Zach Kuehn",
+            "goalie": false
+          },
+          {
+            "id": 174,
+            "number": "7",
+            "name": "Phil Lang",
+            "goalie": false
+          },
+          {
+            "id": 175,
+            "number": "36",
+            "name": "Evan Lang",
+            "goalie": false
+          },
+          {
+            "id": 176,
+            "number": "61",
+            "name": "Kyle Cho",
+            "goalie": false
+          },
+          {
+            "id": 177,
+            "number": "56",
+            "name": "Scott Ferraro",
+            "goalie": false
+          }
+        ]
+      },
+      "away": {
+        "id": 13,
+        "name": "Hinson Hookers",
+        "roster": [
+          {
+            "id": 210,
+            "number": "17",
+            "name": "Bill Lang",
+            "goalie": true
+          },
+          {
+            "id": 211,
+            "number": "41",
+            "name": "Wes Vance",
+            "goalie": false
+          },
+          {
+            "id": 212,
+            "number": "70",
+            "name": "Pete Hanlon",
+            "goalie": false
+          },
+          {
+            "id": 213,
+            "number": "35",
+            "name": "Pete Price",
+            "goalie": false
+          },
+          {
+            "id": 214,
+            "number": "43",
+            "name": "Wes Moss",
+            "goalie": false
+          },
+          {
+            "id": 215,
+            "number": "82",
+            "name": "Nick Sutter",
+            "goalie": false
+          },
+          {
+            "id": 216,
+            "number": "55",
+            "name": "Matt Nash",
+            "goalie": false
+          },
+          {
+            "id": 217,
+            "number": "68",
+            "name": "Derek Pell",
+            "goalie": false
+          },
+          {
+            "id": 218,
+            "number": "94",
+            "name": "Ben Ruiz",
+            "goalie": false
+          },
+          {
+            "id": 219,
+            "number": "93",
+            "name": "Evan Mercer",
+            "goalie": false
+          },
+          {
+            "id": 220,
+            "number": "16",
+            "name": "Alex Kuehn",
+            "goalie": false
+          },
+          {
+            "id": 221,
+            "number": "27",
+            "name": "Wes Brandt",
+            "goalie": false
+          },
+          {
+            "id": 222,
+            "number": "64",
+            "name": "Adam Kuehn",
+            "goalie": false
+          },
+          {
+            "id": 223,
+            "number": "59",
+            "name": "Dan Cho",
+            "goalie": false
+          },
+          {
+            "id": 224,
+            "number": "15",
+            "name": "Jason Kuehn",
+            "goalie": false
+          },
+          {
+            "id": 225,
+            "number": "80",
+            "name": "Paul Tate",
+            "goalie": false
+          }
+        ]
+      },
+      "captain": {
+        "id": 163,
+        "number": "18",
+        "name": "Phil Shaw"
+      },
+      "player": {
+        "id": 164,
+        "number": "65",
+        "name": "Steve Ivey"
+      }
+    },
+    {
+      "home": {
+        "id": 12,
+        "name": "Hammer'd Heads",
+        "roster": [
+          {
+            "id": 1,
+            "number": "46",
+            "name": "Jared A.",
+            "goalie": false
+          },
+          {
+            "id": 2,
+            "number": "82",
+            "name": "Nathan B.",
+            "goalie": false
+          },
+          {
+            "id": 3,
+            "number": "34",
+            "name": "Joshua B.",
+            "goalie": false
+          },
+          {
+            "id": 4,
+            "number": "87",
+            "name": "Graham D.",
+            "goalie": false
+          },
+          {
+            "id": 5,
+            "number": "42",
+            "name": "Alex F.",
+            "goalie": false
+          },
+          {
+            "id": 6,
+            "number": "84",
+            "name": "Steve G.",
+            "goalie": false
+          },
+          {
+            "id": 7,
+            "number": "24",
+            "name": "Tristan H.",
+            "goalie": false
+          },
+          {
+            "id": 8,
+            "number": "75",
+            "name": "Claude H.",
+            "goalie": false
+          },
+          {
+            "id": 9,
+            "number": "88",
+            "name": "Joseph H.",
+            "goalie": false
+          },
+          {
+            "id": 10,
+            "number": "44",
+            "name": "Seth L.",
+            "goalie": false
+          },
+          {
+            "id": 11,
+            "number": "5",
+            "name": "Matt M.",
+            "goalie": false
+          },
+          {
+            "id": 12,
+            "number": "15",
+            "name": "Steven M.",
+            "goalie": false
+          },
+          {
+            "id": 13,
+            "number": "56",
+            "name": "Ben M.",
+            "goalie": false
+          },
+          {
+            "id": 14,
+            "number": "17",
+            "name": "Dan M.",
+            "goalie": false
+          },
+          {
+            "id": 15,
+            "number": "36",
+            "name": "Rob N.",
+            "goalie": false
+          },
+          {
+            "id": 16,
+            "number": "73",
+            "name": "Kristian S.",
+            "goalie": false
+          },
+          {
+            "id": 17,
+            "number": "97",
+            "name": "Adam Y.",
+            "goalie": false
+          }
+        ]
+      },
+      "away": {
+        "id": 14,
+        "name": "Seal Team Sticks (Muckers)",
+        "roster": [
+          {
+            "id": 226,
+            "number": "32",
+            "name": "Sean Fisk",
+            "goalie": true
+          },
+          {
+            "id": 227,
+            "number": "16",
+            "name": "Jason Tolliver",
+            "goalie": false
+          },
+          {
+            "id": 228,
+            "number": "50",
+            "name": "Nick Becker",
+            "goalie": false
+          },
+          {
+            "id": 229,
+            "number": "40",
+            "name": "Cole Moss",
+            "goalie": false
+          },
+          {
+            "id": 230,
+            "number": "2",
+            "name": "Zach Rhodes",
+            "goalie": false
+          },
+          {
+            "id": 231,
+            "number": "27",
+            "name": "Chris Lunde",
+            "goalie": false
+          },
+          {
+            "id": 232,
+            "number": "82",
+            "name": "Brian Novak",
+            "goalie": false
+          },
+          {
+            "id": 233,
+            "number": "34",
+            "name": "Alex Hales",
+            "goalie": false
+          },
+          {
+            "id": 234,
+            "number": "65",
+            "name": "Derek Pike",
+            "goalie": false
+          },
+          {
+            "id": 235,
+            "number": "41",
+            "name": "Steve Nash",
+            "goalie": false
+          },
+          {
+            "id": 236,
+            "number": "52",
+            "name": "Tom Ashby",
+            "goalie": false
+          },
+          {
+            "id": 237,
+            "number": "84",
+            "name": "Jason Ruiz",
+            "goalie": false
+          },
+          {
+            "id": 238,
+            "number": "74",
+            "name": "Evan Simms",
+            "goalie": false
+          },
+          {
+            "id": 239,
+            "number": "6",
+            "name": "Drew Novak",
+            "goalie": false
+          },
+          {
+            "id": 240,
+            "number": "78",
+            "name": "Bill Simms",
+            "goalie": false
+          },
+          {
+            "id": 241,
+            "number": "59",
+            "name": "Evan Nash",
+            "goalie": false
+          }
+        ]
+      },
+      "captain": {
+        "id": 1,
+        "number": "46",
+        "name": "Jared A."
+      },
+      "player": {
+        "id": 2,
+        "number": "82",
+        "name": "Nathan B."
+      }
+    }
+  ]
+}

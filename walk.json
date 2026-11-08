@@ -1,0 +1,4926 @@
+{
+  "seed": {
+    "leagueId": 3,
+    "rinkId": 1,
+    "tonight": {
+      "iso": "2026-11-09T02:15:00.105Z",
+      "localDate": "2026-11-08",
+      "localTime": "9:15 PM"
+    },
+    "today": "2026-11-08",
+    "pairs": [
+      {
+        "home": {
+          "id": 15,
+          "name": "Whiskey Dekes",
+          "roster": [
+            {
+              "id": 242,
+              "number": "28",
+              "name": "Phil Quinn",
+              "goalie": true
+            },
+            {
+              "id": 243,
+              "number": "51",
+              "name": "Luke Barone",
+              "goalie": false
+            },
+            {
+              "id": 244,
+              "number": "55",
+              "name": "Paul Kuehn",
+              "goalie": false
+            },
+            {
+              "id": 245,
+              "number": "10",
+              "name": "Derek Brennan",
+              "goalie": false
+            },
+            {
+              "id": 246,
+              "number": "4",
+              "name": "Chris Voss",
+              "goalie": false
+            },
+            {
+              "id": 247,
+              "number": "19",
+              "name": "Ben Gant",
+              "goalie": false
+            },
+            {
+              "id": 248,
+              "number": "73",
+              "name": "Bill Hobbs",
+              "goalie": false
+            },
+            {
+              "id": 249,
+              "number": "18",
+              "name": "Tom Brennan",
+              "goalie": false
+            },
+            {
+              "id": 250,
+              "number": "94",
+              "name": "Kyle Tate",
+              "goalie": false
+            },
+            {
+              "id": 251,
+              "number": "45",
+              "name": "Bill Nash",
+              "goalie": false
+            },
+            {
+              "id": 252,
+              "number": "87",
+              "name": "Sean Hobbs",
+              "goalie": false
+            },
+            {
+              "id": 253,
+              "number": "67",
+              "name": "Alex Pell",
+              "goalie": false
+            },
+            {
+              "id": 254,
+              "number": "22",
+              "name": "Bill Reyes",
+              "goalie": false
+            },
+            {
+              "id": 255,
+              "number": "15",
+              "name": "Mark Fisk",
+              "goalie": false
+            },
+            {
+              "id": 256,
+              "number": "44",
+              "name": "Drew Becker",
+              "goalie": false
+            },
+            {
+              "id": 257,
+              "number": "85",
+              "name": "Josh Brandt",
+              "goalie": false
+            }
+          ]
+        },
+        "away": {
+          "id": 16,
+          "name": "Wild Puckers",
+          "roster": [
+            {
+              "id": 258,
+              "number": "26",
+              "name": "Eric Sutter",
+              "goalie": true
+            },
+            {
+              "id": 259,
+              "number": "51",
+              "name": "Dan Tate",
+              "goalie": false
+            },
+            {
+              "id": 260,
+              "number": "91",
+              "name": "Chris Mercer",
+              "goalie": false
+            },
+            {
+              "id": 261,
+              "number": "29",
+              "name": "Luke Rhodes",
+              "goalie": false
+            },
+            {
+              "id": 262,
+              "number": "56",
+              "name": "Kevin Keane",
+              "goalie": false
+            },
+            {
+              "id": 263,
+              "number": "37",
+              "name": "Cole Hanlon",
+              "goalie": false
+            },
+            {
+              "id": 264,
+              "number": "7",
+              "name": "Chris Tate",
+              "goalie": false
+            },
+            {
+              "id": 265,
+              "number": "76",
+              "name": "Zach Reyes",
+              "goalie": false
+            },
+            {
+              "id": 266,
+              "number": "17",
+              "name": "Jake Mercer",
+              "goalie": false
+            },
+            {
+              "id": 267,
+              "number": "44",
+              "name": "Pete Burke",
+              "goalie": false
+            },
+            {
+              "id": 268,
+              "number": "66",
+              "name": "Scott Kuehn",
+              "goalie": false
+            },
+            {
+              "id": 269,
+              "number": "57",
+              "name": "Chris Reyes",
+              "goalie": false
+            },
+            {
+              "id": 270,
+              "number": "93",
+              "name": "Sean Rhodes",
+              "goalie": false
+            },
+            {
+              "id": 271,
+              "number": "15",
+              "name": "Zach Burke",
+              "goalie": false
+            },
+            {
+              "id": 272,
+              "number": "22",
+              "name": "Ryan Kuehn",
+              "goalie": false
+            },
+            {
+              "id": 273,
+              "number": "20",
+              "name": "Luke Mercer",
+              "goalie": false
+            }
+          ]
+        },
+        "captain": {
+          "id": 243,
+          "number": "51",
+          "name": "Luke Barone"
+        },
+        "player": {
+          "id": 244,
+          "number": "55",
+          "name": "Paul Kuehn"
+        }
+      },
+      {
+        "home": {
+          "id": 10,
+          "name": "Blue Liners",
+          "roster": [
+            {
+              "id": 178,
+              "number": "13",
+              "name": "Trent Grady",
+              "goalie": true
+            },
+            {
+              "id": 179,
+              "number": "60",
+              "name": "Nick Tolliver",
+              "goalie": false
+            },
+            {
+              "id": 180,
+              "number": "81",
+              "name": "Paul Novak",
+              "goalie": false
+            },
+            {
+              "id": 181,
+              "number": "33",
+              "name": "Mike Price",
+              "goalie": false
+            },
+            {
+              "id": 182,
+              "number": "47",
+              "name": "Eric Nash",
+              "goalie": false
+            },
+            {
+              "id": 183,
+              "number": "27",
+              "name": "Trent Ashby",
+              "goalie": false
+            },
+            {
+              "id": 184,
+              "number": "29",
+              "name": "Wes Simms",
+              "goalie": false
+            },
+            {
+              "id": 185,
+              "number": "70",
+              "name": "Steve Brennan",
+              "goalie": false
+            },
+            {
+              "id": 186,
+              "number": "78",
+              "name": "Nick Pell",
+              "goalie": false
+            },
+            {
+              "id": 187,
+              "number": "5",
+              "name": "Brian Ivey",
+              "goalie": false
+            },
+            {
+              "id": 188,
+              "number": "59",
+              "name": "Gary Tate",
+              "goalie": false
+            },
+            {
+              "id": 189,
+              "number": "25",
+              "name": "Zach Lunde",
+              "goalie": false
+            },
+            {
+              "id": 190,
+              "number": "80",
+              "name": "Eric Marsh",
+              "goalie": false
+            },
+            {
+              "id": 191,
+              "number": "55",
+              "name": "Gary Shaw",
+              "goalie": false
+            },
+            {
+              "id": 192,
+              "number": "52",
+              "name": "Bill Lunde",
+              "goalie": false
+            },
+            {
+              "id": 193,
+              "number": "58",
+              "name": "Cody Rhodes",
+              "goalie": false
+            }
+          ]
+        },
+        "away": {
+          "id": 11,
+          "name": "Fighting Irish",
+          "roster": [
+            {
+              "id": 194,
+              "number": "1",
+              "name": "Tom Walsh",
+              "goalie": true
+            },
+            {
+              "id": 195,
+              "number": "75",
+              "name": "Sean Pike",
+              "goalie": false
+            },
+            {
+              "id": 196,
+              "number": "79",
+              "name": "Nick Simms",
+              "goalie": false
+            },
+            {
+              "id": 197,
+              "number": "71",
+              "name": "Pete Pell",
+              "goalie": false
+            },
+            {
+              "id": 198,
+              "number": "17",
+              "name": "Pete Fisk",
+              "goalie": false
+            },
+            {
+              "id": 199,
+              "number": "61",
+              "name": "Jason Reyes",
+              "goalie": false
+            },
+            {
+              "id": 200,
+              "number": "87",
+              "name": "Sean Doyle",
+              "goalie": false
+            },
+            {
+              "id": 201,
+              "number": "50",
+              "name": "Brett Tolliver",
+              "goalie": false
+            },
+            {
+              "id": 202,
+              "number": "19",
+              "name": "Cody Fisk",
+              "goalie": false
+            },
+            {
+              "id": 203,
+              "number": "13",
+              "name": "Jason Pell",
+              "goalie": false
+            },
+            {
+              "id": 204,
+              "number": "35",
+              "name": "Kyle Sutter",
+              "goalie": false
+            },
+            {
+              "id": 205,
+              "number": "68",
+              "name": "Tyler Novak",
+              "goalie": false
+            },
+            {
+              "id": 206,
+              "number": "53",
+              "name": "Pete Voss",
+              "goalie": false
+            },
+            {
+              "id": 207,
+              "number": "5",
+              "name": "Jake Tolliver",
+              "goalie": false
+            },
+            {
+              "id": 208,
+              "number": "89",
+              "name": "Paul Voss",
+              "goalie": false
+            },
+            {
+              "id": 209,
+              "number": "92",
+              "name": "Tyler Nash",
+              "goalie": false
+            }
+          ]
+        },
+        "captain": {
+          "id": 179,
+          "number": "60",
+          "name": "Nick Tolliver"
+        },
+        "player": {
+          "id": 180,
+          "number": "81",
+          "name": "Paul Novak"
+        }
+      },
+      {
+        "home": {
+          "id": 9,
+          "name": "Backside Checkers",
+          "roster": [
+            {
+              "id": 162,
+              "number": "26",
+              "name": "Phil Gant",
+              "goalie": true
+            },
+            {
+              "id": 163,
+              "number": "18",
+              "name": "Phil Shaw",
+              "goalie": false
+            },
+            {
+              "id": 164,
+              "number": "65",
+              "name": "Steve Ivey",
+              "goalie": false
+            },
+            {
+              "id": 165,
+              "number": "69",
+              "name": "Ben Hanlon",
+              "goalie": false
+            },
+            {
+              "id": 166,
+              "number": "84",
+              "name": "Eric Walsh",
+              "goalie": false
+            },
+            {
+              "id": 167,
+              "number": "55",
+              "name": "Josh Sutter",
+              "goalie": false
+            },
+            {
+              "id": 168,
+              "number": "4",
+              "name": "Jake Ashby",
+              "goalie": false
+            },
+            {
+              "id": 169,
+              "number": "41",
+              "name": "Mark Holt",
+              "goalie": false
+            },
+            {
+              "id": 170,
+              "number": "51",
+              "name": "Zach Ruiz",
+              "goalie": false
+            },
+            {
+              "id": 171,
+              "number": "19",
+              "name": "Tyler Fisk",
+              "goalie": false
+            },
+            {
+              "id": 172,
+              "number": "32",
+              "name": "Kyle Simms",
+              "goalie": false
+            },
+            {
+              "id": 173,
+              "number": "83",
+              "name": "Zach Kuehn",
+              "goalie": false
+            },
+            {
+              "id": 174,
+              "number": "7",
+              "name": "Phil Lang",
+              "goalie": false
+            },
+            {
+              "id": 175,
+              "number": "36",
+              "name": "Evan Lang",
+              "goalie": false
+            },
+            {
+              "id": 176,
+              "number": "61",
+              "name": "Kyle Cho",
+              "goalie": false
+            },
+            {
+              "id": 177,
+              "number": "56",
+              "name": "Scott Ferraro",
+              "goalie": false
+            }
+          ]
+        },
+        "away": {
+          "id": 13,
+          "name": "Hinson Hookers",
+          "roster": [
+            {
+              "id": 210,
+              "number": "17",
+              "name": "Bill Lang",
+              "goalie": true
+            },
+            {
+              "id": 211,
+              "number": "41",
+              "name": "Wes Vance",
+              "goalie": false
+            },
+            {
+              "id": 212,
+              "number": "70",
+              "name": "Pete Hanlon",
+              "goalie": false
+            },
+            {
+              "id": 213,
+              "number": "35",
+              "name": "Pete Price",
+              "goalie": false
+            },
+            {
+              "id": 214,
+              "number": "43",
+              "name": "Wes Moss",
+              "goalie": false
+            },
+            {
+              "id": 215,
+              "number": "82",
+              "name": "Nick Sutter",
+              "goalie": false
+            },
+            {
+              "id": 216,
+              "number": "55",
+              "name": "Matt Nash",
+              "goalie": false
+            },
+            {
+              "id": 217,
+              "number": "68",
+              "name": "Derek Pell",
+              "goalie": false
+            },
+            {
+              "id": 218,
+              "number": "94",
+              "name": "Ben Ruiz",
+              "goalie": false
+            },
+            {
+              "id": 219,
+              "number": "93",
+              "name": "Evan Mercer",
+              "goalie": false
+            },
+            {
+              "id": 220,
+              "number": "16",
+              "name": "Alex Kuehn",
+              "goalie": false
+            },
+            {
+              "id": 221,
+              "number": "27",
+              "name": "Wes Brandt",
+              "goalie": false
+            },
+            {
+              "id": 222,
+              "number": "64",
+              "name": "Adam Kuehn",
+              "goalie": false
+            },
+            {
+              "id": 223,
+              "number": "59",
+              "name": "Dan Cho",
+              "goalie": false
+            },
+            {
+              "id": 224,
+              "number": "15",
+              "name": "Jason Kuehn",
+              "goalie": false
+            },
+            {
+              "id": 225,
+              "number": "80",
+              "name": "Paul Tate",
+              "goalie": false
+            }
+          ]
+        },
+        "captain": {
+          "id": 163,
+          "number": "18",
+          "name": "Phil Shaw"
+        },
+        "player": {
+          "id": 164,
+          "number": "65",
+          "name": "Steve Ivey"
+        }
+      },
+      {
+        "home": {
+          "id": 12,
+          "name": "Hammer'd Heads",
+          "roster": [
+            {
+              "id": 1,
+              "number": "46",
+              "name": "Jared A.",
+              "goalie": false
+            },
+            {
+              "id": 2,
+              "number": "82",
+              "name": "Nathan B.",
+              "goalie": false
+            },
+            {
+              "id": 3,
+              "number": "34",
+              "name": "Joshua B.",
+              "goalie": false
+            },
+            {
+              "id": 4,
+              "number": "87",
+              "name": "Graham D.",
+              "goalie": false
+            },
+            {
+              "id": 5,
+              "number": "42",
+              "name": "Alex F.",
+              "goalie": false
+            },
+            {
+              "id": 6,
+              "number": "84",
+              "name": "Steve G.",
+              "goalie": false
+            },
+            {
+              "id": 7,
+              "number": "24",
+              "name": "Tristan H.",
+              "goalie": false
+            },
+            {
+              "id": 8,
+              "number": "75",
+              "name": "Claude H.",
+              "goalie": false
+            },
+            {
+              "id": 9,
+              "number": "88",
+              "name": "Joseph H.",
+              "goalie": false
+            },
+            {
+              "id": 10,
+              "number": "44",
+              "name": "Seth L.",
+              "goalie": false
+            },
+            {
+              "id": 11,
+              "number": "5",
+              "name": "Matt M.",
+              "goalie": false
+            },
+            {
+              "id": 12,
+              "number": "15",
+              "name": "Steven M.",
+              "goalie": false
+            },
+            {
+              "id": 13,
+              "number": "56",
+              "name": "Ben M.",
+              "goalie": false
+            },
+            {
+              "id": 14,
+              "number": "17",
+              "name": "Dan M.",
+              "goalie": false
+            },
+            {
+              "id": 15,
+              "number": "36",
+              "name": "Rob N.",
+              "goalie": false
+            },
+            {
+              "id": 16,
+              "number": "73",
+              "name": "Kristian S.",
+              "goalie": false
+            },
+            {
+              "id": 17,
+              "number": "97",
+              "name": "Adam Y.",
+              "goalie": false
+            }
+          ]
+        },
+        "away": {
+          "id": 14,
+          "name": "Seal Team Sticks (Muckers)",
+          "roster": [
+            {
+              "id": 226,
+              "number": "32",
+              "name": "Sean Fisk",
+              "goalie": true
+            },
+            {
+              "id": 227,
+              "number": "16",
+              "name": "Jason Tolliver",
+              "goalie": false
+            },
+            {
+              "id": 228,
+              "number": "50",
+              "name": "Nick Becker",
+              "goalie": false
+            },
+            {
+              "id": 229,
+              "number": "40",
+              "name": "Cole Moss",
+              "goalie": false
+            },
+            {
+              "id": 230,
+              "number": "2",
+              "name": "Zach Rhodes",
+              "goalie": false
+            },
+            {
+              "id": 231,
+              "number": "27",
+              "name": "Chris Lunde",
+              "goalie": false
+            },
+            {
+              "id": 232,
+              "number": "82",
+              "name": "Brian Novak",
+              "goalie": false
+            },
+            {
+              "id": 233,
+              "number": "34",
+              "name": "Alex Hales",
+              "goalie": false
+            },
+            {
+              "id": 234,
+              "number": "65",
+              "name": "Derek Pike",
+              "goalie": false
+            },
+            {
+              "id": 235,
+              "number": "41",
+              "name": "Steve Nash",
+              "goalie": false
+            },
+            {
+              "id": 236,
+              "number": "52",
+              "name": "Tom Ashby",
+              "goalie": false
+            },
+            {
+              "id": 237,
+              "number": "84",
+              "name": "Jason Ruiz",
+              "goalie": false
+            },
+            {
+              "id": 238,
+              "number": "74",
+              "name": "Evan Simms",
+              "goalie": false
+            },
+            {
+              "id": 239,
+              "number": "6",
+              "name": "Drew Novak",
+              "goalie": false
+            },
+            {
+              "id": 240,
+              "number": "78",
+              "name": "Bill Simms",
+              "goalie": false
+            },
+            {
+              "id": 241,
+              "number": "59",
+              "name": "Evan Nash",
+              "goalie": false
+            }
+          ]
+        },
+        "captain": {
+          "id": 1,
+          "number": "46",
+          "name": "Jared A."
+        },
+        "player": {
+          "id": 2,
+          "number": "82",
+          "name": "Nathan B."
+        }
+      }
+    ]
+  },
+  "jobs": [
+    {
+      "id": "captain-setup",
+      "engine": "webkit",
+      "who": "captain",
+      "name": "Captain claims his team and shares the invite link",
+      "goal": "Sign in, get let in, claim my spot, take the C, send the link to the group chat.",
+      "target": {
+        "taps": 12
+      },
+      "ok": true,
+      "taps": 10,
+      "chars": 45,
+      "screens": 11,
+      "emails": 1,
+      "ms": 18981,
+      "steps": [
+        {
+          "label": "home-signed-out",
+          "path": "/",
+          "shot": "001-webkit-captain-setup-home-signed-out.jpg",
+          "screens": 1.5,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Midnight Pond Made-up teams and players. Sign in to see your",
+            "# EVERY GAME COUNTS. EVEN THE 11:15.",
+            "· Just played? Snap the sheet. One photo. We read every goal, ",
+            "· Join your team Your schedule, your line and your rating, in ",
+            "# Latest finals",
+            "· Standings",
+            "· A Thu, Nov 5 · 21:15 Final Zamboni Zombies 0 Top Shelf Tacos",
+            "· B Wed, Nov 4 · 21:15 Final Sticks & Scones 3 Hat Trick Ponie"
+          ]
+        },
+        {
+          "label": "join",
+          "path": "/join",
+          "shot": "002-webkit-captain-setup-join.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# YOUR NUMBER. YOUR RATING.",
+            "· Late Ice is invite-only for now. Without your captain's link",
+            "· Email me a code",
+            "· Sign in with Face ID or a passkey",
+            "· terms",
+            "· privacy"
+          ]
+        },
+        {
+          "label": "code",
+          "path": "/join",
+          "shot": "003-webkit-captain-setup-code.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# YOUR NUMBER. YOUR RATING.",
+            "· Change",
+            "· Sign in",
+            "· Send a new code in 60s"
+          ]
+        },
+        {
+          "label": "profile",
+          "path": "/join",
+          "shot": "004-webkit-captain-setup-profile.jpg",
+          "screens": 1.4,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# FOUR FIELDS. THAT'S THE WHOLE FORM.",
+            "· Center",
+            "· Wing",
+            "· Defense",
+            "· Goalie",
+            "· United States",
+            "· Canada",
+            "· Midnight Pond Anytown, NC · 3 leagues"
+          ]
+        },
+        {
+          "label": "me-waiting",
+          "path": "/me",
+          "shot": "005-webkit-captain-setup-me-waiting.jpg",
+          "screens": 1.1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· You're on the waitlist You can look around. To claim your sp",
+            "· Is this you? WD #51 Luke B. Whiskey Dekes · C League That's ",
+            "· That's me",
+            "· Luke Barone Center Late Ice Rating – Not rated yet",
+            "# Luke Barone",
+            "· Settings",
+            "# My team"
+          ]
+        },
+        {
+          "label": "me-let-in",
+          "path": "/me",
+          "shot": "006-webkit-captain-setup-me-let-in.jpg",
+          "screens": 1.4,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Is this you? WD #51 Luke B. Whiskey Dekes · C League That's ",
+            "· That's me",
+            "· Luke Barone Center Late Ice Rating – Not rated yet",
+            "# Luke Barone",
+            "· Settings",
+            "# My team",
+            "· Find your spot Scoresheets often list a first name and last "
+          ]
+        },
+        {
+          "label": "me-claimed",
+          "path": "/me",
+          "shot": "007-webkit-captain-setup-me-claimed.jpg",
+          "screens": 1.5,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· 51 Luke Barone Center WD Whiskey Dekes #51 Late Ice Rating 4",
+            "# Luke Barone",
+            "· Settings",
+            "· WD Whiskey Dekes #51",
+            "· 4.10 ▲ 0.187 last 5 C level",
+            "# My team",
+            "· WD C Whiskey Dekes #51 · No captain yet › Sun Nov 8 vs WP Wi",
+            "· WD C Whiskey Dekes #51 · No captain yet ›",
+            "· I'm the captain",
+            "· Rating history Every game, and why your rating moved ›",
+            "· Your bobblehead Skin, hair, helmet and gear"
+          ]
+        },
+        {
+          "label": "me-captain",
+          "path": "/me",
+          "shot": "008-webkit-captain-setup-me-captain.jpg",
+          "screens": 1.6,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· 51 Luke Barone Center WD Whiskey Dekes #51 Late Ice Rating 4",
+            "# Luke Barone",
+            "· Settings",
+            "· WD Whiskey Dekes #51",
+            "· 4.10 ▲ 0.187 last 5 C level",
+            "# My team",
+            "· WD C Whiskey Dekes #51 · Captain › Sun Nov 8 vs WP Wild Puck",
+            "· WD C Whiskey Dekes #51 · Captain ›",
+            "· Manage team",
+            "· Rating history Every game, and why your rating moved ›",
+            "· Your bobblehead Skin, hair, helmet and gear"
+          ]
+        },
+        {
+          "label": "manage",
+          "path": "/team/15/manage",
+          "shot": "009-webkit-captain-setup-manage.jpg",
+          "screens": 2.5,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· ‹ Back",
+            "# MANAGE TEAM",
+            "· 15 / 25 Skaters 1 / 2 Goalies 0 On IR or away",
+            "# Roster",
+            "· #4 Chris V. Center · Not signed up yet 4.16 ›",
+            "· #10 Derek B. Defense · Not signed up yet 4.15 ›",
+            "· #15 Mark F. Wing · Not signed up yet 4.06 ›",
+            "· #18 Tom B. Wing · Not signed up yet 4.10 ›",
+            "· #19 Ben G. Center · Not signed up yet 4.19 ›"
+          ]
+        },
+        {
+          "label": "invites-open",
+          "path": "/team/15/manage",
+          "shot": "010-webkit-captain-setup-invites-open.jpg",
+          "screens": 2.8,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· #85 Josh B. Defense · Not signed up yet 4.17 ›",
+            "· #87 Sean H. Center · Not signed up yet 4.19 ›",
+            "· #94 Kyle T. Center · Not signed up yet 4.14 ›",
+            "· #28 Phil Q. Goalie · Not signed up yet 4.14 ›",
+            "· Add a player For a teammate who isn't in the app yet",
+            "· Invites and the draft pool Share a link, or pull a registere",
+            "· Open the draft pool",
+            "· Invite link Anyone who joins through it is let in and lands ",
+            "· Make an invite link",
+            "· Leadership Assistant captains and handing off the captaincy"
+          ]
+        },
+        {
+          "label": "invite-link",
+          "path": "/team/15/manage",
+          "shot": "011-webkit-captain-setup-invite-link.jpg",
+          "screens": 2.9,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· #85 Josh B. Defense · Not signed up yet 4.17 ›",
+            "· #87 Sean H. Center · Not signed up yet 4.19 ›",
+            "· #94 Kyle T. Center · Not signed up yet 4.14 ›",
+            "· #28 Phil Q. Goalie · Not signed up yet 4.14 ›",
+            "· Add a player For a teammate who isn't in the app yet",
+            "· Invites and the draft pool Share a link, or pull a registere",
+            "· Open the draft pool",
+            "· Invite link Anyone who joins through it is let in and lands ",
+            "· Share link",
+            "· Turn off link"
+          ]
+        }
+      ],
+      "notes": [
+        "home rink preset to Polar Ice: yes",
+        "invite /join?invite=i28xOks5rPbcnNP7"
+      ],
+      "blockedAt": null,
+      "throttled": false,
+      "human": 73,
+      "pass": true
+    },
+    {
+      "id": "first-two-minutes",
+      "engine": "webkit",
+      "who": "player",
+      "name": "New player: invite link to his team in two minutes",
+      "goal": "Tap the captain's link, sign in, four fields, see my team and my next game.",
+      "target": {
+        "taps": 9,
+        "human": 120
+      },
+      "ok": true,
+      "taps": 6,
+      "chars": 43,
+      "screens": 6,
+      "emails": 1,
+      "ms": 9458,
+      "steps": [
+        {
+          "label": "invite-landing",
+          "path": "/join?invite=i28xOks5rPbcnNP7",
+          "shot": "012-webkit-first-two-minutes-invite-landing.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# YOUR NUMBER. YOUR RATING.",
+            "· You're invited to join Whiskey Dekes. Sign in and you're in.",
+            "· Email me a code",
+            "· Sign in with Face ID or a passkey",
+            "· terms",
+            "· privacy"
+          ]
+        },
+        {
+          "label": "code",
+          "path": "/join?invite=i28xOks5rPbcnNP7",
+          "shot": "013-webkit-first-two-minutes-code.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# YOUR NUMBER. YOUR RATING.",
+            "· You're invited to join Whiskey Dekes. Sign in and you're in.",
+            "· Change",
+            "· Sign in",
+            "· Send a new code in 60s"
+          ]
+        },
+        {
+          "label": "profile",
+          "path": "/join?invite=i28xOks5rPbcnNP7",
+          "shot": "014-webkit-first-two-minutes-profile.jpg",
+          "screens": 1.5,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# FOUR FIELDS. THAT'S THE WHOLE FORM.",
+            "· You're invited to join Whiskey Dekes (C League, Polar Ice Wi",
+            "· Center",
+            "· Wing",
+            "· Defense",
+            "· Goalie",
+            "· United States",
+            "· Canada"
+          ]
+        },
+        {
+          "label": "me-first",
+          "path": "/me",
+          "shot": "015-webkit-first-two-minutes-me-first.jpg",
+          "screens": 1.5,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Is this you? WD #55 Paul K. Whiskey Dekes · C League That's ",
+            "· That's me",
+            "· Paul Kuehn Wing Late Ice Rating – Not rated yet",
+            "# Paul Kuehn",
+            "· Settings",
+            "# My team",
+            "· Find your spot Scoresheets often list a first name and last "
+          ]
+        },
+        {
+          "label": "me-claimed",
+          "path": "/me",
+          "shot": "016-webkit-first-two-minutes-me-claimed.jpg",
+          "screens": 1.5,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· 55 Paul Kuehn Wing WD Whiskey Dekes #55 Late Ice Rating 4.12",
+            "# Paul Kuehn",
+            "· Settings",
+            "· WD Whiskey Dekes #55",
+            "· 4.12 ▲ 0.187 last 5 C level",
+            "# My team",
+            "· WD C Whiskey Dekes #55 · Captain: Luke Barone › Sun Nov 8 vs",
+            "· WD C Whiskey Dekes #55 · Captain: Luke Barone ›",
+            "· Rating history Every game, and why your rating moved ›",
+            "· Your bobblehead Skin, hair, helmet and gear",
+            "· On another team too? Find your spot on a second team or as a"
+          ]
+        },
+        {
+          "label": "home-first",
+          "path": "/",
+          "shot": "017-webkit-first-two-minutes-home-first.jpg",
+          "screens": 1.6,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# Tonight",
+            "· WD Whiskey Dekes No answers yet Sun Nov 8 vs WP Wild Puckers",
+            "· Whiskey Dekes",
+            "· In",
+            "· Late",
+            "· Out",
+            "· Scout Wild Puckers",
+            "· Lineup",
+            "· Schedule",
+            "· Last game · Sun, Nov 1 W 8-1 vs Hinson Hookers Rating 4.12 +",
+            "· Just played? Snap the sheet",
+            "# Latest in C League",
+            "· All results",
+            "· C Sun, Nov 1 · 11:15 PM Final FI Fighting Irish 4 BL Blue Li"
+          ]
+        }
+      ],
+      "notes": [
+        "home rink preset to Polar Ice: yes",
+        "Is this you? offered"
+      ],
+      "blockedAt": null,
+      "throttled": false,
+      "human": 56,
+      "pass": true
+    },
+    {
+      "id": "game-night-in",
+      "engine": "webkit",
+      "who": "player",
+      "name": "Game night: say In",
+      "goal": "Open the app at work in the afternoon, see tonight's game, say I'm in.",
+      "target": {
+        "taps": 1,
+        "human": 8
+      },
+      "ok": true,
+      "taps": 1,
+      "chars": 0,
+      "screens": 2,
+      "emails": 0,
+      "ms": 3325,
+      "steps": [
+        {
+          "label": "home",
+          "path": "/",
+          "shot": "018-webkit-game-night-in-home.jpg",
+          "screens": 1.6,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# Tonight",
+            "· WD Whiskey Dekes No answers yet Sun Nov 8 vs WP Wild Puckers",
+            "· Whiskey Dekes",
+            "· In",
+            "· Late",
+            "· Out",
+            "· Scout Wild Puckers",
+            "· Lineup",
+            "· Schedule",
+            "· Last game · Sun, Nov 1 W 8-1 vs Hinson Hookers Rating 4.12 +",
+            "· Just played? Snap the sheet",
+            "# Latest in C League",
+            "· All results",
+            "· C Sun, Nov 1 · 11:15 PM Final FI Fighting Irish 4 BL Blue Li"
+          ]
+        },
+        {
+          "label": "said-in",
+          "path": "/",
+          "shot": "019-webkit-game-night-in-said-in.jpg",
+          "screens": 1.6,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# Tonight",
+            "· WD Whiskey Dekes 1 in Sun Nov 8 vs WP Wild Puckers 9:15 PM ·",
+            "· Whiskey Dekes",
+            "· In",
+            "· Late",
+            "· Out",
+            "· Scout Wild Puckers",
+            "· Lineup",
+            "· Schedule",
+            "· Last game · Sun, Nov 1 W 8-1 vs Hinson Hookers Rating 4.12 +",
+            "· Just played? Snap the sheet",
+            "# Latest in C League",
+            "· All results",
+            "· C Sun, Nov 1 · 11:15 PM Final FI Fighting Irish 4 BL Blue Li"
+          ]
+        }
+      ],
+      "notes": [
+        "Home title: Tonight",
+        "counts: 1 in"
+      ],
+      "blockedAt": null,
+      "throttled": false,
+      "human": 6,
+      "pass": true
+    },
+    {
+      "id": "game-night-captain",
+      "engine": "webkit",
+      "who": "captain",
+      "name": "Game night: captain checks who's in and posts the room",
+      "goal": "See who said In, set sheet 2, white jerseys, locker room 4.",
+      "target": {
+        "taps": 5
+      },
+      "ok": true,
+      "taps": 2,
+      "chars": 7,
+      "screens": 4,
+      "emails": 0,
+      "ms": 7369,
+      "steps": [
+        {
+          "label": "home",
+          "path": "/",
+          "shot": "020-webkit-game-night-captain-home.jpg",
+          "screens": 1.8,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# Tonight",
+            "· WD Whiskey Dekes 1 in Sun Nov 8 vs WP Wild Puckers 9:15 PM ·",
+            "· Whiskey Dekes",
+            "· In",
+            "· Late",
+            "· Out",
+            "· Find a goalie sub",
+            "· Scout Wild Puckers",
+            "· Lineup",
+            "· Set sheet & room",
+            "· Schedule",
+            "· Last game · Sun, Nov 1 W 8-1 vs Hinson Hookers Rating 4.10 +",
+            "· Just played? Snap the sheet",
+            "· All results"
+          ]
+        },
+        {
+          "label": "details-form",
+          "path": "/team/15?details=1",
+          "shot": "021-webkit-game-night-captain-details-form.jpg",
+          "screens": 4.1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# Schedule",
+            "· Add a game",
+            "· Remove",
+            "· In",
+            "· Late",
+            "· Out",
+            "· 1 in · 1 no answer ▾",
+            "· Set the lineup ›",
+            "· Find a goalie sub",
+            "· Find a sub",
+            "· Close",
+            "· Save details",
+            "· Next in turn"
+          ]
+        },
+        {
+          "label": "details-saved",
+          "path": "/team/15?details=1",
+          "shot": "022-webkit-game-night-captain-details-saved.jpg",
+          "screens": 4.1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# Schedule",
+            "· Add a game",
+            "· Remove",
+            "· In",
+            "· Late",
+            "· Out",
+            "· 1 in · 1 no answer ▾",
+            "· Set the lineup ›",
+            "· Find a goalie sub",
+            "· Find a sub",
+            "· Close",
+            "· Save details"
+          ]
+        },
+        {
+          "label": "home-after",
+          "path": "/",
+          "shot": "023-webkit-game-night-captain-home-after.jpg",
+          "screens": 1.8,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# Tonight",
+            "· WD Whiskey Dekes 1 in Sun Nov 8 vs WP Wild Puckers 9:15 PM ·",
+            "· Whiskey Dekes",
+            "· In",
+            "· Late",
+            "· Out",
+            "· Find a goalie sub",
+            "· Scout Wild Puckers",
+            "· Lineup",
+            "· Edit details",
+            "· Schedule",
+            "· Last game · Sun, Nov 1 W 8-1 vs Hinson Hookers Rating 4.10 +",
+            "· Just played? Snap the sheet"
+          ]
+        }
+      ],
+      "notes": [],
+      "blockedAt": null,
+      "throttled": false,
+      "human": 13,
+      "pass": true
+    },
+    {
+      "id": "game-night-room",
+      "engine": "webkit",
+      "who": "player",
+      "name": "Game night: player sees sheet and room",
+      "goal": "Which room? Without asking the group chat.",
+      "target": {
+        "taps": 0,
+        "human": 4
+      },
+      "ok": true,
+      "taps": 0,
+      "chars": 0,
+      "screens": 1,
+      "emails": 0,
+      "ms": 1920,
+      "steps": [
+        {
+          "label": "home",
+          "path": "/",
+          "shot": "024-webkit-game-night-room-home.jpg",
+          "screens": 1.7,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# Tonight",
+            "· WD Whiskey Dekes 1 in Sun Nov 8 vs WP Wild Puckers 9:15 PM ·",
+            "· Whiskey Dekes",
+            "· In",
+            "· Late",
+            "· Out",
+            "· Scout Wild Puckers",
+            "· Lineup",
+            "· Schedule",
+            "· Last game · Sun, Nov 1 W 8-1 vs Hinson Hookers Rating 4.12 +",
+            "· Just played? Snap the sheet",
+            "# Latest in C League",
+            "· All results",
+            "· C Sun, Nov 1 · 11:15 PM Final FI Fighting Irish 4 BL Blue Li"
+          ]
+        }
+      ],
+      "notes": [],
+      "blockedAt": null,
+      "throttled": false,
+      "human": 2,
+      "pass": true
+    },
+    {
+      "id": "scan-sheet",
+      "engine": "webkit",
+      "who": "player",
+      "name": "After the game: scan the sheet and send it",
+      "goal": "In the locker room: snap the sheet, glance, send.",
+      "target": {
+        "taps": 4,
+        "human": 30
+      },
+      "ok": true,
+      "taps": 3,
+      "chars": 0,
+      "screens": 4,
+      "emails": 0,
+      "ms": 5625,
+      "steps": [
+        {
+          "label": "scan",
+          "path": "/scan",
+          "shot": "025-webkit-scan-sheet-scan.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# SNAP THE SHEET",
+            "· Take photo",
+            "· Upload"
+          ]
+        },
+        {
+          "label": "scan-reading",
+          "path": "/sheet/1",
+          "shot": "026-webkit-scan-sheet-scan-reading.jpg",
+          "screens": 1.9,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "· View photo",
+            "· C",
+            "· Goals 5",
+            "· Rosters 28",
+            "· Penalties 2",
+            "· Send to the captains to confirm"
+          ]
+        },
+        {
+          "label": "review",
+          "path": "/sheet/1",
+          "shot": "027-webkit-scan-sheet-review.jpg",
+          "screens": 1.9,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "· View photo",
+            "· C",
+            "· Goals 5",
+            "· Rosters 28",
+            "· Penalties 2",
+            "· Send to the captains to confirm"
+          ]
+        },
+        {
+          "label": "sent",
+          "path": "/sheet/1",
+          "shot": "028-webkit-scan-sheet-sent.jpg",
+          "screens": 1.9,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "· View photo",
+            "· C",
+            "· Goals 5",
+            "· Rosters 28",
+            "· Penalties 2"
+          ]
+        }
+      ],
+      "notes": [
+        "review shows 3-2"
+      ],
+      "blockedAt": null,
+      "throttled": false,
+      "human": 13,
+      "pass": true
+    },
+    {
+      "id": "captain-confirm",
+      "engine": "webkit",
+      "who": "captain",
+      "name": "Captain confirms the sheet",
+      "goal": "Phone buzzes on the drive home: check it, confirm.",
+      "target": {
+        "taps": 3,
+        "human": 20
+      },
+      "ok": true,
+      "taps": 2,
+      "chars": 0,
+      "screens": 3,
+      "emails": 0,
+      "ms": 5038,
+      "steps": [
+        {
+          "label": "home",
+          "path": "/",
+          "shot": "029-webkit-captain-confirm-home.jpg",
+          "screens": 1.9,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# Tonight",
+            "· A sheet is waiting for you to confirm Whiskey Dekes vs Wild ",
+            "· WD Whiskey Dekes 1 in Sun Nov 8 vs WP Wild Puckers 9:15 PM ·",
+            "· Whiskey Dekes",
+            "· In",
+            "· Late",
+            "· Out",
+            "· Find a goalie sub",
+            "· Scout Wild Puckers",
+            "· Lineup",
+            "· Edit details",
+            "· Schedule",
+            "· Last game · Sun, Nov 1 W 8-1 vs Hinson Hookers Rating 4.10 +",
+            "· Just played? Snap the sheet"
+          ]
+        },
+        {
+          "label": "sheet-to-confirm",
+          "path": "/sheet/1",
+          "shot": "030-webkit-captain-confirm-sheet-to-confirm.jpg",
+          "screens": 1.9,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "· View photo",
+            "· C",
+            "· Goals 5",
+            "· Rosters 28",
+            "· Penalties 2",
+            "· Confirm final · C · 3–2"
+          ]
+        },
+        {
+          "label": "game-in-books",
+          "path": "/game/77/new",
+          "shot": "031-webkit-captain-confirm-game-in-books.jpg",
+          "screens": 4.1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "· WD Whiskey Dekes",
+            "· WP Wild Puckers",
+            "· Share this result",
+            "# Three stars",
+            "· ★★★ Paul Kuehn 1G 1A +0.022",
+            "· ★★ Chris M. 1G 1A −0.006",
+            "· ★ Derek B. 0G 1A +0.018"
+          ]
+        }
+      ],
+      "notes": [
+        "Home waiting card: yes; unread dot on Me: yes"
+      ],
+      "blockedAt": null,
+      "throttled": false,
+      "human": 9,
+      "pass": true
+    },
+    {
+      "id": "see-rating-move",
+      "engine": "webkit",
+      "who": "player",
+      "name": "Player sees his line and why his rating moved",
+      "goal": "Next morning: did we win, what did I get, why did my number change?",
+      "target": {
+        "taps": 3,
+        "human": 16
+      },
+      "ok": true,
+      "taps": 3,
+      "chars": 0,
+      "screens": 4,
+      "emails": 0,
+      "ms": 6471,
+      "steps": [
+        {
+          "label": "home",
+          "path": "/",
+          "shot": "032-webkit-see-rating-move-home.jpg",
+          "screens": 1.7,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# Tonight",
+            "· WD Whiskey Dekes 1 in Sun Nov 8 vs WP Wild Puckers 9:15 PM ·",
+            "· Whiskey Dekes",
+            "· In",
+            "· Late",
+            "· Out",
+            "· Scout Wild Puckers",
+            "· Lineup",
+            "· Schedule",
+            "· Last game · Sun, Nov 8 W 3-2 vs Wild Puckers Rating 4.14 +0.",
+            "· Just played? Snap the sheet",
+            "# Latest in C League",
+            "· All results",
+            "· C Sun, Nov 8 · 9:15 PM Final WD Whiskey Dekes 3 WP Wild Puck"
+          ]
+        },
+        {
+          "label": "game",
+          "path": "/game/77",
+          "shot": "033-webkit-see-rating-move-game.jpg",
+          "screens": 4,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "· WD Whiskey Dekes",
+            "· WP Wild Puckers",
+            "· Share this result",
+            "# Three stars",
+            "· ★★★ Paul Kuehn 1G 1A +0.022",
+            "· ★★ Chris M. 1G 1A −0.006",
+            "· ★ Derek B. 0G 1A +0.018",
+            "# Scoring"
+          ]
+        },
+        {
+          "label": "player",
+          "path": "/player/244",
+          "shot": "034-webkit-see-rating-move-player.jpg",
+          "screens": 1.9,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "· 55 Paul Kuehn Wing WD Whiskey Dekes #55 Late Ice Rating 4.14",
+            "# Paul Kuehn",
+            "· WD Whiskey Dekes #55",
+            "· 4.14 ▲ 0.167 last 5 C level",
+            "· Career, milestones and goalie numbers ›"
+          ]
+        },
+        {
+          "label": "why-open",
+          "path": "/player/244",
+          "shot": "035-webkit-see-rating-move-why-open.jpg",
+          "screens": 2.1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Career, milestones and goalie numbers ›",
+            "# Why it moved",
+            "· W WP 3–2 vs Wild Puckers Sun, Nov 8 +0.022",
+            "· Game ›",
+            "· W HH 8–1 vs Hinson Hookers Sun, Nov 1 +0.019",
+            "· W BC 4–0 vs Backside Checkers Sun, Oct 25 +0.019",
+            "· W 4–0 vs Hammer'd Heads Sun, Oct 11 +0.022"
+          ]
+        }
+      ],
+      "notes": [
+        "last result card: Last game · Sun, Nov 8 W 3-2 vs Wild Puckers Rating 4.14 +0.022"
+      ],
+      "blockedAt": null,
+      "throttled": false,
+      "human": 13,
+      "pass": true
+    },
+    {
+      "id": "scan-failed",
+      "engine": "webkit",
+      "who": "player",
+      "name": "A scan fails: recover by hand",
+      "goal": "Bad light, the read fails. Get the score in anyway.",
+      "target": {
+        "taps": 4,
+        "human": 45
+      },
+      "ok": true,
+      "taps": 4,
+      "chars": 76,
+      "screens": 5,
+      "emails": 0,
+      "ms": 6711,
+      "steps": [
+        {
+          "label": "scan",
+          "path": "/scan",
+          "shot": "036-webkit-scan-failed-scan.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# SNAP THE SHEET",
+            "· Take photo",
+            "· Upload"
+          ]
+        },
+        {
+          "label": "fail-reading",
+          "path": "/sheet/2",
+          "shot": "037-webkit-scan-failed-fail-reading.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "· Retry with a new photo",
+            "· Enter the score by hand",
+            "· Send to the captain"
+          ]
+        },
+        {
+          "label": "stuck",
+          "path": "/sheet/2",
+          "shot": "038-webkit-scan-failed-stuck.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "· Retry with a new photo",
+            "· Enter the score by hand",
+            "· Send to the captain"
+          ]
+        },
+        {
+          "label": "by-hand",
+          "path": "/sheet/2",
+          "shot": "039-webkit-scan-failed-by-hand.jpg",
+          "screens": 1.3,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "· Retry with a new photo",
+            "· Enter the score by hand",
+            "· Send to the captain"
+          ]
+        },
+        {
+          "label": "by-hand-saved",
+          "path": "/sheet/2",
+          "shot": "040-webkit-scan-failed-by-hand-saved.jpg",
+          "screens": 1.7,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "· View photo",
+            "· C",
+            "· Goals 0",
+            "· Rosters 16",
+            "· Penalties 0",
+            "· Send to the captains to confirm"
+          ]
+        }
+      ],
+      "notes": [],
+      "blockedAt": null,
+      "throttled": false,
+      "human": 43,
+      "pass": true
+    },
+    {
+      "id": "standings",
+      "engine": "webkit",
+      "who": "player",
+      "name": "Where do we stand?",
+      "goal": "Open standings, find my team, open it.",
+      "target": {
+        "taps": 2,
+        "human": 10
+      },
+      "ok": true,
+      "taps": 2,
+      "chars": 0,
+      "screens": 2,
+      "emails": 0,
+      "ms": 4271,
+      "steps": [
+        {
+          "label": "standings",
+          "path": "/leagues",
+          "shot": "041-webkit-standings-standings.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# Standings",
+            "· C C League 81 games · Leaders and results › Team GP W-L-T DI",
+            "· C C League 81 games · Leaders and results ›",
+            "· 1 WD Whiskey Dekes",
+            "· 2 ST Seal Team Sticks (Muckers)",
+            "· 3 Hammer'd Heads",
+            "· 4 WP Wild Puckers",
+            "· 5 BL Blue Liners",
+            "· 6 FI Fighting Irish",
+            "· 7 HH Hinson Hookers",
+            "· 8 BC Backside Checkers"
+          ]
+        },
+        {
+          "label": "my-team",
+          "path": "/team/15",
+          "shot": "042-webkit-standings-my-team.jpg",
+          "screens": 3.2,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "# Whiskey Dekes",
+            "· Captain Luke Barone Contest",
+            "· Contest",
+            "# Schedule",
+            "· In",
+            "· Late",
+            "· Out",
+            "· 1 in · 1 no answer ▾",
+            "· Lineup ›"
+          ]
+        }
+      ],
+      "notes": [],
+      "blockedAt": null,
+      "throttled": false,
+      "human": 7,
+      "pass": true
+    },
+    {
+      "id": "find-player",
+      "engine": "webkit",
+      "who": "player",
+      "name": "Look up tonight's opponent's top player",
+      "goal": "Who is #91 on Wild Puckers?",
+      "target": {
+        "taps": 3,
+        "human": 16
+      },
+      "ok": true,
+      "taps": 3,
+      "chars": 6,
+      "screens": 3,
+      "emails": 0,
+      "ms": 4656,
+      "steps": [
+        {
+          "label": "players",
+          "path": "/players",
+          "shot": "043-webkit-find-player-players.jpg",
+          "screens": 1.6,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# Players",
+            "· Find a player",
+            "· Skaters",
+            "· Center",
+            "· Wing",
+            "· Defense",
+            "· Goalie",
+            "· 11 You · W Whiskey Dekes · C 4.14 +0.022",
+            "· 1 Ben G. · C Whiskey Dekes · C 4.21 +0.018",
+            "· 2 Sean H. · C Whiskey Dekes · C 4.21 +0.014",
+            "· 3 Alex P. · C Whiskey Dekes · C 4.20 +0.014",
+            "· 4 Chris V. · C Whiskey Dekes · C 4.18 +0.018",
+            "· 5 Josh B. · D Whiskey Dekes · C 4.17 +0.023",
+            "· 6 Derek B. · D Whiskey Dekes · C 4.17 +0.018"
+          ]
+        },
+        {
+          "label": "search-surname",
+          "path": "/players",
+          "shot": "044-webkit-find-player-search-surname.jpg",
+          "screens": 1.6,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# Players",
+            "· Find a player",
+            "· Skaters",
+            "· Center",
+            "· Wing",
+            "· Defense",
+            "· Goalie",
+            "· 1 Cole M. · D Seal Team Sticks (Muckers) · C 4.09 +0.027",
+            "· 2 Dan M. Hammer'd Heads · C 3.79 +0.004",
+            "· 3 Ben M. Hammer'd Heads · C 3.75 +0.000",
+            "· 4 Eric M. · D Blue Liners · C 3.73 +0.003",
+            "· 5 Steven M. Hammer'd Heads · C 3.73 +0.004",
+            "· 6 Luke M. · D Wild Puckers · C 3.72 +0.004"
+          ]
+        },
+        {
+          "label": "player",
+          "path": "/player/229",
+          "shot": "045-webkit-find-player-player.jpg",
+          "screens": 2.2,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "· 40 Cole M. Defense · Unclaimed ST Seal Team Sticks (Muckers)",
+            "# Cole M.",
+            "· ST Seal Team Sticks (Muckers) #40",
+            "· 4.09 ▲ 0.081 last 5 C level",
+            "· Career, milestones and goalie numbers ›"
+          ]
+        }
+      ],
+      "notes": [],
+      "blockedAt": null,
+      "throttled": false,
+      "human": 13,
+      "pass": true
+    },
+    {
+      "id": "settings",
+      "engine": "webkit",
+      "who": "player",
+      "name": "Change appearance, availability and notifications",
+      "goal": "Find settings without hunting; light mode; I'm injured for two weeks; check notifications.",
+      "target": {
+        "taps": 5,
+        "human": 30
+      },
+      "ok": true,
+      "taps": 4,
+      "chars": 10,
+      "screens": 6,
+      "emails": 0,
+      "ms": 11064,
+      "steps": [
+        {
+          "label": "me",
+          "path": "/me",
+          "shot": "046-webkit-settings-me.jpg",
+          "screens": 1.2,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· 55 Paul Kuehn Wing WD Whiskey Dekes #55 Late Ice Rating 4.14",
+            "# Paul Kuehn",
+            "· Settings",
+            "· WD Whiskey Dekes #55",
+            "· 4.14 ▲ 0.167 last 5 C level",
+            "# My team",
+            "· WD C Whiskey Dekes #55 · Captain: Luke Barone › Sun Nov 8 vs",
+            "· WD C Whiskey Dekes #55 · Captain: Luke Barone ›",
+            "· Notifications 1 new 1",
+            "· Rating history Every game, and why your rating moved ›",
+            "· Your bobblehead Skin, hair, helmet and gear"
+          ]
+        },
+        {
+          "label": "settings",
+          "path": "/settings",
+          "shot": "047-webkit-settings-settings.jpg",
+          "screens": 4,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "# Settings",
+            "# Profile",
+            "· Center",
+            "· Wing",
+            "· Defense",
+            "· Goalie",
+            "· United States",
+            "· Canada",
+            "· Midnight Pond Anytown, NC · 3 leagues",
+            "· Polar Ice Wilmington Wilmington, NC · 1 league"
+          ]
+        },
+        {
+          "label": "light",
+          "path": "/settings",
+          "shot": "048-webkit-settings-light.jpg",
+          "screens": 4,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Use Face ID next time",
+            "# Skates",
+            "· Log the day you last had your skates sharpened and we'll rem",
+            "· Sharpened today",
+            "# Appearance",
+            "· Match phone",
+            "· Light",
+            "· Dark",
+            "# Notifications"
+          ]
+        },
+        {
+          "label": "status",
+          "path": "/settings",
+          "shot": "049-webkit-settings-status.jpg",
+          "screens": 4,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Midnight Pond Anytown, NC · 3 leagues",
+            "· Polar Ice Wilmington Wilmington, NC · 1 league",
+            "· Terms",
+            "· Save",
+            "# Availability",
+            "· Active",
+            "· Injured reserve",
+            "· Away",
+            "· Looking for a team",
+            "· Will sub"
+          ]
+        },
+        {
+          "label": "notifications",
+          "path": "/settings",
+          "shot": "050-webkit-settings-notifications.jpg",
+          "screens": 4,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# Appearance",
+            "· Match phone",
+            "· Light",
+            "· Dark",
+            "# Notifications",
+            "· Allow",
+            "# Privacy",
+            "· Hide my name"
+          ]
+        },
+        {
+          "label": "home-light",
+          "path": "/",
+          "shot": "051-webkit-settings-home-light.jpg",
+          "screens": 1.7,
+          "cls": 0,
+          "axe": 1,
+          "above": [
+            "# Tonight",
+            "· WD Whiskey Dekes 1 in Sun Nov 8 vs WP Wild Puckers 9:15 PM ·",
+            "· Whiskey Dekes",
+            "· In",
+            "· Late",
+            "· Out",
+            "· Scout Wild Puckers",
+            "· Lineup",
+            "· Schedule",
+            "· Last game · Sun, Nov 8 W 3-2 vs Wild Puckers Rating 4.14 +0.",
+            "· Just played? Snap the sheet",
+            "# Latest in C League",
+            "· All results",
+            "· C Sun, Nov 8 · 9:15 PM Final WD Whiskey Dekes 3 WP Wild Puck"
+          ]
+        }
+      ],
+      "notes": [],
+      "blockedAt": null,
+      "throttled": false,
+      "human": 22,
+      "pass": true
+    },
+    {
+      "id": "sign-out-in",
+      "engine": "webkit",
+      "who": "player",
+      "name": "Sign out, then back in",
+      "goal": "Hand the phone to my kid; come back later.",
+      "target": {
+        "taps": 7,
+        "human": 47
+      },
+      "ok": true,
+      "taps": 5,
+      "chars": 31,
+      "screens": 5,
+      "emails": 1,
+      "ms": 8136,
+      "steps": [
+        {
+          "label": "ask-sign-out",
+          "path": "/settings",
+          "shot": "052-webkit-sign-out-in-ask-sign-out.jpg",
+          "screens": 4.2,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Hide my name",
+            "· Hide my player type",
+            "# Help",
+            "· Help and common questions ›",
+            "· Email us ›",
+            "· Terms and privacy ›",
+            "· Sign out of Late Ice on this phone? Your teams and stats sta",
+            "· Cancel",
+            "· Sign out",
+            "# Your data",
+            "· Download my data Profile, teams, games, ratings and notices ",
+            "· Delete my account Removes your name; past scores stay"
+          ]
+        },
+        {
+          "label": "signed-out",
+          "path": "/join",
+          "shot": "053-webkit-sign-out-in-signed-out.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# YOUR NUMBER. YOUR RATING.",
+            "· Late Ice is invite-only for now. Without your captain's link",
+            "· Email me a code",
+            "· Sign in with Face ID or a passkey",
+            "· terms",
+            "· privacy"
+          ]
+        },
+        {
+          "label": "join",
+          "path": "/join",
+          "shot": "054-webkit-sign-out-in-join.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# YOUR NUMBER. YOUR RATING.",
+            "· Late Ice is invite-only for now. Without your captain's link",
+            "· Email me a code",
+            "· Sign in with Face ID or a passkey",
+            "· terms",
+            "· privacy"
+          ]
+        },
+        {
+          "label": "code",
+          "path": "/join",
+          "shot": "055-webkit-sign-out-in-code.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# YOUR NUMBER. YOUR RATING.",
+            "· Change",
+            "· Sign in",
+            "· Send a new code in 60s"
+          ]
+        },
+        {
+          "label": "back-in",
+          "path": "/me",
+          "shot": "056-webkit-sign-out-in-back-in.jpg",
+          "screens": 1.2,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· 55 Paul Kuehn Wing WD Whiskey Dekes #55 Late Ice Rating 4.14",
+            "# Paul Kuehn",
+            "· Settings",
+            "· WD Whiskey Dekes #55",
+            "· 4.14 ▲ 0.167 last 5 C level",
+            "# My team",
+            "· WD C Whiskey Dekes #55 · Captain: Luke Barone › Sun Nov 8 vs",
+            "· WD C Whiskey Dekes #55 · Captain: Luke Barone ›",
+            "· Notifications 1 new 1",
+            "· Rating history Every game, and why your rating moved ›",
+            "· Your bobblehead Skin, hair, helmet and gear"
+          ]
+        }
+      ],
+      "notes": [],
+      "blockedAt": null,
+      "throttled": false,
+      "human": 48,
+      "pass": false
+    },
+    {
+      "id": "text-200",
+      "engine": "webkit",
+      "who": "player",
+      "name": "Read it with text at 200 percent",
+      "goal": "Larger text from the phone's settings; nothing should be cut off or slide sideways.",
+      "target": {},
+      "ok": true,
+      "taps": 0,
+      "chars": 0,
+      "screens": 6,
+      "emails": 0,
+      "ms": 14168,
+      "steps": [
+        {
+          "label": "zoom-",
+          "path": "/",
+          "shot": "057-webkit-text-200-zoom-.jpg",
+          "screens": 3.1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# Tonight",
+            "· WD Whiskey Dekes 1 in Sun Nov 8 vs WP Wild Puckers 9:15 PM ·",
+            "· Whiskey Dekes",
+            "· In",
+            "· Late",
+            "· Out",
+            "· Scout Wild Puckers"
+          ]
+        },
+        {
+          "label": "zoom-me",
+          "path": "/me",
+          "shot": "058-webkit-text-200-zoom-me.jpg",
+          "screens": 2,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· 55 Paul Kuehn Wing WD Whiskey Dekes #55 Late Ice Rating 4.14",
+            "# Paul Kuehn",
+            "· Settings",
+            "· WD Whiskey Dekes #55",
+            "· 4.14 ▲ 0.167 last 5 C level",
+            "# My team",
+            "· WD C Whiskey Dekes #55 · Captain: Luke Barone › Sun Nov 8 vs",
+            "· WD C Whiskey Dekes #55 · Captain: Luke Barone ›"
+          ]
+        },
+        {
+          "label": "zoom-leagues",
+          "path": "/leagues",
+          "shot": "059-webkit-text-200-zoom-leagues.jpg",
+          "screens": 2.1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# Standings",
+            "· C C League 81 games · Leaders and results › Team GP W-L-T DI",
+            "· C C League 81 games · Leaders and results ›",
+            "· 1 WD",
+            "· 2 ST",
+            "· 3"
+          ]
+        },
+        {
+          "label": "zoom-team-15",
+          "path": "/team/15",
+          "shot": "060-webkit-text-200-zoom-team-15.jpg",
+          "screens": 6.4,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "# Whiskey Dekes"
+          ]
+        },
+        {
+          "label": "zoom-settings",
+          "path": "/settings",
+          "shot": "061-webkit-text-200-zoom-settings.jpg",
+          "screens": 8.6,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "# Settings",
+            "# Profile",
+            "· Center",
+            "· Wing",
+            "· Defense",
+            "· Goalie"
+          ]
+        },
+        {
+          "label": "zoom-game-77",
+          "path": "/game/77",
+          "shot": "062-webkit-text-200-zoom-game-77.jpg",
+          "screens": 8.2,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "· WD Whiskey Dekes",
+            "· WP Wild Puckers",
+            "· Share this result"
+          ]
+        }
+      ],
+      "notes": [],
+      "blockedAt": null,
+      "throttled": false,
+      "human": 12,
+      "pass": true
+    },
+    {
+      "id": "shared-game-link",
+      "engine": "webkit",
+      "who": "teammate",
+      "name": "Teammate opens the shared game link, not signed in",
+      "goal": "The captain posts last night's game in the group chat. Does it open?",
+      "target": {
+        "taps": 1,
+        "human": 10
+      },
+      "ok": true,
+      "taps": 0,
+      "chars": 0,
+      "screens": 1,
+      "emails": 0,
+      "ms": 1981,
+      "steps": [
+        {
+          "label": "game-link",
+          "path": "/game/77?s=HBd_l1QzvVhAavzATAEEnd",
+          "shot": "063-webkit-shared-game-link-game-link.jpg",
+          "screens": 1.4,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Midnight Pond Made-up teams and players. Sign in to see your",
+            "# Scoring"
+          ]
+        }
+      ],
+      "notes": [],
+      "blockedAt": null,
+      "throttled": false,
+      "human": 2,
+      "pass": true
+    },
+    {
+      "id": "leaver-signup",
+      "engine": "webkit",
+      "who": "leaver",
+      "name": "Leaver signs up (setup for the delete job)",
+      "goal": "Setup only.",
+      "target": {},
+      "ok": true,
+      "taps": 4,
+      "chars": 45,
+      "screens": 3,
+      "emails": 1,
+      "ms": 5492,
+      "steps": [
+        {
+          "label": "join",
+          "path": "/join",
+          "shot": "064-webkit-leaver-signup-join.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# YOUR NUMBER. YOUR RATING.",
+            "· Late Ice is invite-only for now. Without your captain's link",
+            "· Email me a code",
+            "· Sign in with Face ID or a passkey",
+            "· terms",
+            "· privacy"
+          ]
+        },
+        {
+          "label": "code",
+          "path": "/join",
+          "shot": "065-webkit-leaver-signup-code.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# YOUR NUMBER. YOUR RATING.",
+            "· Change",
+            "· Sign in",
+            "· Send a new code in 60s"
+          ]
+        },
+        {
+          "label": "profile",
+          "path": "/join",
+          "shot": "066-webkit-leaver-signup-profile.jpg",
+          "screens": 1.4,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# FOUR FIELDS. THAT'S THE WHOLE FORM.",
+            "· Center",
+            "· Wing",
+            "· Defense",
+            "· Goalie",
+            "· United States",
+            "· Canada",
+            "· Midnight Pond Anytown, NC · 3 leagues"
+          ]
+        }
+      ],
+      "notes": [
+        "home rink preset to Polar Ice: yes"
+      ],
+      "blockedAt": null,
+      "throttled": false,
+      "human": 48,
+      "pass": true
+    },
+    {
+      "id": "delete-account",
+      "engine": "webkit",
+      "who": "leaver",
+      "name": "Delete my account",
+      "goal": "I'm done with it; take my name off.",
+      "target": {
+        "taps": 4,
+        "human": 17
+      },
+      "ok": true,
+      "taps": 3,
+      "chars": 0,
+      "screens": 4,
+      "emails": 0,
+      "ms": 6739,
+      "steps": [
+        {
+          "label": "me",
+          "path": "/me",
+          "shot": "067-webkit-delete-account-me.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· You're on the waitlist You can look around. To claim your sp",
+            "· Dana Leaving Defense Late Ice Rating – Not rated yet",
+            "# Dana Leaving",
+            "· Settings",
+            "# My team"
+          ]
+        },
+        {
+          "label": "settings",
+          "path": "/settings",
+          "shot": "068-webkit-delete-account-settings.jpg",
+          "screens": 4,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back to Me",
+            "# Settings",
+            "# Profile",
+            "· Center",
+            "· Wing",
+            "· Defense",
+            "· Goalie",
+            "· United States",
+            "· Canada",
+            "· Midnight Pond Anytown, NC · 3 leagues",
+            "· Polar Ice Wilmington Wilmington, NC · 1 league"
+          ]
+        },
+        {
+          "label": "ask-delete",
+          "path": "/settings",
+          "shot": "069-webkit-delete-account-ask-delete.jpg",
+          "screens": 4.1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Hide my name",
+            "· Hide my player type",
+            "# Help",
+            "· Help and common questions ›",
+            "· Email us ›",
+            "· Terms and privacy ›",
+            "· Sign out",
+            "# Your data",
+            "· Download my data Profile, teams, games, ratings and notices ",
+            "· Delete my account Removes your name; past scores stay",
+            "· Delete your Late Ice account? Your name comes off every rost"
+          ]
+        },
+        {
+          "label": "deleted",
+          "path": "/join",
+          "shot": "070-webkit-delete-account-deleted.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# YOUR NUMBER. YOUR RATING.",
+            "· Late Ice is invite-only for now. Without your captain's link",
+            "· Email me a code",
+            "· Sign in with Face ID or a passkey",
+            "· terms",
+            "· privacy"
+          ]
+        }
+      ],
+      "notes": [],
+      "blockedAt": null,
+      "throttled": false,
+      "human": 13,
+      "pass": true
+    },
+    {
+      "id": "captain-setup",
+      "engine": "chromium",
+      "who": "captain",
+      "name": "Captain claims his team and shares the invite link",
+      "goal": "Sign in, get let in, claim my spot, take the C, send the link to the group chat.",
+      "target": {
+        "taps": 12
+      },
+      "ok": true,
+      "taps": 10,
+      "chars": 49,
+      "screens": 11,
+      "emails": 1,
+      "ms": 18262,
+      "steps": [
+        {
+          "label": "home-signed-out",
+          "path": "/",
+          "shot": "071-chromium-captain-setup-home-signed-out.jpg",
+          "screens": 1.5,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Midnight Pond Made-up teams and players. Sign in to see your",
+            "# EVERY GAME COUNTS. EVEN THE 11:15.",
+            "· Just played? Snap the sheet. One photo. We read every goal, ",
+            "· Join your team Your schedule, your line and your rating, in ",
+            "# Latest finals",
+            "· Standings",
+            "· A Thu, Nov 5 · 21:15 Final Zamboni Zombies 0 Top Shelf Tacos",
+            "· B Wed, Nov 4 · 21:15 Final Sticks & Scones 3 Hat Trick Ponie"
+          ]
+        },
+        {
+          "label": "join",
+          "path": "/join",
+          "shot": "072-chromium-captain-setup-join.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# YOUR NUMBER. YOUR RATING.",
+            "· Late Ice is invite-only for now. Without your captain's link",
+            "· Email me a code",
+            "· Sign in with Face ID or a passkey",
+            "· terms",
+            "· privacy"
+          ]
+        },
+        {
+          "label": "code",
+          "path": "/join",
+          "shot": "073-chromium-captain-setup-code.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# YOUR NUMBER. YOUR RATING.",
+            "· Change",
+            "· Sign in",
+            "· Send a new code in 60s"
+          ]
+        },
+        {
+          "label": "profile",
+          "path": "/join",
+          "shot": "074-chromium-captain-setup-profile.jpg",
+          "screens": 1.4,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# FOUR FIELDS. THAT'S THE WHOLE FORM.",
+            "· Center",
+            "· Wing",
+            "· Defense",
+            "· Goalie",
+            "· United States",
+            "· Canada",
+            "· Midnight Pond Anytown, NC · 3 leagues"
+          ]
+        },
+        {
+          "label": "me-waiting",
+          "path": "/me",
+          "shot": "075-chromium-captain-setup-me-waiting.jpg",
+          "screens": 1.1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· You're on the waitlist You can look around. To claim your sp",
+            "· Is this you? BL #60 Nick T. Blue Liners · C League That's me",
+            "· That's me",
+            "· Nick Tolliver Center Late Ice Rating – Not rated yet",
+            "# Nick Tolliver",
+            "· Settings",
+            "# My team"
+          ]
+        },
+        {
+          "label": "me-let-in",
+          "path": "/me",
+          "shot": "076-chromium-captain-setup-me-let-in.jpg",
+          "screens": 1.6,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Is this you? BL #60 Nick T. Blue Liners · C League That's me",
+            "· That's me",
+            "· Nick Tolliver Center Late Ice Rating – Not rated yet",
+            "# Nick Tolliver",
+            "· Settings",
+            "# My team",
+            "· Find your spot Scoresheets often list a first name and last "
+          ]
+        },
+        {
+          "label": "me-claimed",
+          "path": "/me",
+          "shot": "077-chromium-captain-setup-me-claimed.jpg",
+          "screens": 1.7,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· 60 Nick Tolliver Center BL Blue Liners #60 Late Ice Rating 3",
+            "# Nick Tolliver",
+            "· Settings",
+            "· BL Blue Liners #60",
+            "· 3.78 ▼ 0.017 last 5 C level",
+            "# My team",
+            "· BL C Blue Liners #60 · No captain yet › Sun Nov 8 vs FI Figh",
+            "· BL C Blue Liners #60 · No captain yet ›",
+            "· I'm the captain",
+            "· Rating history Every game, and why your rating moved ›",
+            "· Your bobblehead Skin, hair, helmet and gear"
+          ]
+        },
+        {
+          "label": "me-captain",
+          "path": "/me",
+          "shot": "078-chromium-captain-setup-me-captain.jpg",
+          "screens": 1.8,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· 60 Nick Tolliver Center BL Blue Liners #60 Late Ice Rating 3",
+            "# Nick Tolliver",
+            "· Settings",
+            "· BL Blue Liners #60",
+            "· 3.78 ▼ 0.017 last 5 C level",
+            "# My team",
+            "· BL C Blue Liners #60 · Captain › Sun Nov 8 vs FI Fighting Ir",
+            "· BL C Blue Liners #60 · Captain ›",
+            "· Manage team",
+            "· Rating history Every game, and why your rating moved ›",
+            "· Your bobblehead Skin, hair, helmet and gear"
+          ]
+        },
+        {
+          "label": "manage",
+          "path": "/team/10/manage",
+          "shot": "079-chromium-captain-setup-manage.jpg",
+          "screens": 2.5,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· ‹ Back",
+            "# MANAGE TEAM",
+            "· 15 / 25 Skaters 1 / 2 Goalies 0 On IR or away",
+            "# Roster",
+            "· #5 Brian I. Defense · Not signed up yet 3.80 ›",
+            "· #25 Zach L. Wing · Not signed up yet 3.84 ›",
+            "· #27 Trent A. Wing · Not signed up yet 3.73 ›",
+            "· #29 Wes S. Defense · Not signed up yet 3.70 ›",
+            "· #33 Mike P. Defense · Not signed up yet 3.85 ›"
+          ]
+        },
+        {
+          "label": "invites-open",
+          "path": "/team/10/manage",
+          "shot": "080-chromium-captain-setup-invites-open.jpg",
+          "screens": 2.8,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Add a player For a teammate who isn't in the app yet",
+            "· Invites and the draft pool Share a link, or pull a registere",
+            "· Open the draft pool",
+            "· Invite link Anyone who joins through it is let in and lands ",
+            "· Make an invite link",
+            "· Leadership Assistant captains and handing off the captaincy",
+            "· Team Name, colors and the calendar feed",
+            "· Step down as captain"
+          ]
+        },
+        {
+          "label": "invite-link",
+          "path": "/team/10/manage",
+          "shot": "081-chromium-captain-setup-invite-link.jpg",
+          "screens": 2.9,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Invites and the draft pool Share a link, or pull a registere",
+            "· Open the draft pool",
+            "· Invite link Anyone who joins through it is let in and lands ",
+            "· Share link",
+            "· Turn off link",
+            "· Leadership Assistant captains and handing off the captaincy",
+            "· Team Name, colors and the calendar feed",
+            "· Step down as captain"
+          ]
+        }
+      ],
+      "notes": [
+        "home rink preset to Polar Ice: yes",
+        "invite /join?invite=RmdN-iCYHwmRRMsb"
+      ],
+      "blockedAt": null,
+      "throttled": false,
+      "human": 74,
+      "pass": true
+    },
+    {
+      "id": "first-two-minutes",
+      "engine": "chromium",
+      "who": "player",
+      "name": "New player: invite link to his team in two minutes",
+      "goal": "Tap the captain's link, sign in, four fields, see my team and my next game.",
+      "target": {
+        "taps": 9,
+        "human": 120
+      },
+      "ok": true,
+      "taps": 6,
+      "chars": 45,
+      "screens": 6,
+      "emails": 1,
+      "ms": 15241,
+      "steps": [
+        {
+          "label": "invite-landing",
+          "path": "/join?invite=RmdN-iCYHwmRRMsb",
+          "shot": "082-chromium-first-two-minutes-invite-landing.jpg",
+          "screens": 1,
+          "cls": 0.005,
+          "axe": 0,
+          "above": [
+            "# YOUR NUMBER. YOUR RATING.",
+            "· You're invited to join Blue Liners. Sign in and you're in.",
+            "· Email me a code",
+            "· Sign in with Face ID or a passkey",
+            "· terms",
+            "· privacy"
+          ]
+        },
+        {
+          "label": "code",
+          "path": "/join?invite=RmdN-iCYHwmRRMsb",
+          "shot": "083-chromium-first-two-minutes-code.jpg",
+          "screens": 1,
+          "cls": 0.005,
+          "axe": 0,
+          "above": [
+            "# YOUR NUMBER. YOUR RATING.",
+            "· You're invited to join Blue Liners. Sign in and you're in.",
+            "· Change",
+            "· Sign in",
+            "· Send a new code in 60s"
+          ]
+        },
+        {
+          "label": "profile",
+          "path": "/join?invite=RmdN-iCYHwmRRMsb",
+          "shot": "084-chromium-first-two-minutes-profile.jpg",
+          "screens": 1.5,
+          "cls": 0.005,
+          "axe": 0,
+          "above": [
+            "# FOUR FIELDS. THAT'S THE WHOLE FORM.",
+            "· You're invited to join Blue Liners (C League, Polar Ice Wilm",
+            "· Center",
+            "· Wing",
+            "· Defense",
+            "· Goalie",
+            "· United States",
+            "· Canada"
+          ]
+        },
+        {
+          "label": "me-first",
+          "path": "/me",
+          "shot": "085-chromium-first-two-minutes-me-first.jpg",
+          "screens": 1.4,
+          "cls": 0.005,
+          "axe": 0,
+          "above": [
+            "· Is this you? BL #81 Paul N. Blue Liners · C League That's me",
+            "· That's me",
+            "· Paul Novak Wing Late Ice Rating – Not rated yet",
+            "# Paul Novak",
+            "· Settings",
+            "# My team",
+            "· Find your spot Scoresheets often list a first name and last "
+          ]
+        },
+        {
+          "label": "me-claimed",
+          "path": "/me",
+          "shot": "086-chromium-first-two-minutes-me-claimed.jpg",
+          "screens": 1.4,
+          "cls": 0.005,
+          "axe": 0,
+          "above": [
+            "· 81 Paul Novak Wing BL Blue Liners #81 Late Ice Rating 3.81 ▼",
+            "# Paul Novak",
+            "· Settings",
+            "· BL Blue Liners #81",
+            "· 3.81 ▼ 0.065 last 5 C level",
+            "# My team",
+            "· BL C Blue Liners #81 · Captain: Nick Tolliver › Sun Nov 8 vs",
+            "· BL C Blue Liners #81 · Captain: Nick Tolliver ›",
+            "· Rating history Every game, and why your rating moved ›",
+            "· Your bobblehead Skin, hair, helmet and gear",
+            "· On another team too? Find your spot on a second team or as a"
+          ]
+        },
+        {
+          "label": "home-first",
+          "path": "/",
+          "shot": "087-chromium-first-two-minutes-home-first.jpg",
+          "screens": 1.7,
+          "cls": 0.005,
+          "axe": 0,
+          "above": [
+            "# Tonight",
+            "· BL Blue Liners No answers yet Sun Nov 8 vs FI Fighting Irish",
+            "· Blue Liners",
+            "· In",
+            "· Late",
+            "· Out",
+            "· Scout Fighting Irish",
+            "· Lineup",
+            "· Schedule",
+            "· Last game · Sun, Nov 1 T 4-4 vs Fighting Irish Rating 3.81 +",
+            "· Just played? Snap the sheet",
+            "# Latest in C League",
+            "· All results",
+            "· C Sun, Nov 8 · 9:15 PM Final WD Whiskey Dekes 3 WP Wild Puck"
+          ]
+        }
+      ],
+      "notes": [
+        "home rink preset to Polar Ice: yes",
+        "Is this you? offered"
+      ],
+      "blockedAt": null,
+      "throttled": true,
+      "human": 57,
+      "pass": true
+    },
+    {
+      "id": "game-night-in",
+      "engine": "chromium",
+      "who": "player",
+      "name": "Game night: say In",
+      "goal": "Open the app at work in the afternoon, see tonight's game, say I'm in.",
+      "target": {
+        "taps": 1,
+        "human": 8
+      },
+      "ok": true,
+      "taps": 1,
+      "chars": 0,
+      "screens": 2,
+      "emails": 0,
+      "ms": 4363,
+      "steps": [
+        {
+          "label": "home",
+          "path": "/",
+          "shot": "088-chromium-game-night-in-home.jpg",
+          "screens": 1.7,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# Tonight",
+            "· BL Blue Liners No answers yet Sun Nov 8 vs FI Fighting Irish",
+            "· Blue Liners",
+            "· In",
+            "· Late",
+            "· Out",
+            "· Scout Fighting Irish",
+            "· Lineup",
+            "· Schedule",
+            "· Last game · Sun, Nov 1 T 4-4 vs Fighting Irish Rating 3.81 +",
+            "· Just played? Snap the sheet",
+            "# Latest in C League",
+            "· All results",
+            "· C Sun, Nov 8 · 9:15 PM Final WD Whiskey Dekes 3 WP Wild Puck"
+          ]
+        },
+        {
+          "label": "said-in",
+          "path": "/",
+          "shot": "089-chromium-game-night-in-said-in.jpg",
+          "screens": 1.7,
+          "cls": 0,
+          "axe": 1,
+          "above": [
+            "# Tonight",
+            "· BL Blue Liners 1 in Sun Nov 8 vs FI Fighting Irish 9:15 PM ·",
+            "· Blue Liners",
+            "· In",
+            "· Late",
+            "· Out",
+            "· Scout Fighting Irish",
+            "· Lineup",
+            "· Schedule",
+            "· Last game · Sun, Nov 1 T 4-4 vs Fighting Irish Rating 3.81 +",
+            "· Just played? Snap the sheet",
+            "# Latest in C League",
+            "· All results",
+            "· C Sun, Nov 8 · 9:15 PM Final WD Whiskey Dekes 3 WP Wild Puck"
+          ]
+        }
+      ],
+      "notes": [
+        "Home title: Tonight",
+        "counts: 1 in"
+      ],
+      "blockedAt": null,
+      "throttled": true,
+      "human": 6,
+      "pass": true
+    },
+    {
+      "id": "game-night-captain",
+      "engine": "chromium",
+      "who": "captain",
+      "name": "Game night: captain checks who's in and posts the room",
+      "goal": "See who said In, set sheet 2, white jerseys, locker room 4.",
+      "target": {
+        "taps": 5
+      },
+      "ok": true,
+      "taps": 2,
+      "chars": 7,
+      "screens": 4,
+      "emails": 0,
+      "ms": 7479,
+      "steps": [
+        {
+          "label": "home",
+          "path": "/",
+          "shot": "090-chromium-game-night-captain-home.jpg",
+          "screens": 1.8,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# Tonight",
+            "· BL Blue Liners 1 in Sun Nov 8 vs FI Fighting Irish 9:15 PM ·",
+            "· Blue Liners",
+            "· In",
+            "· Late",
+            "· Out",
+            "· Find a goalie sub",
+            "· Scout Fighting Irish",
+            "· Lineup",
+            "· Set sheet & room",
+            "· Schedule",
+            "· Last game · Sun, Nov 1 T 4-4 vs Fighting Irish Rating 3.78 +",
+            "· Just played? Snap the sheet"
+          ]
+        },
+        {
+          "label": "details-form",
+          "path": "/team/10?details=3",
+          "shot": "091-chromium-game-night-captain-details-form.jpg",
+          "screens": 4.1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Remove",
+            "· In",
+            "· Late",
+            "· Out",
+            "· 2 no answer ▾",
+            "· Set the lineup ›",
+            "· Find a sub",
+            "· Tonight's details",
+            "· Team calendar In the Dash by DaySmart app or the league webs",
+            "· Connect",
+            "# Roster",
+            "· #70 Steve B. 8 GP · 5 G · 6 A 3.76"
+          ]
+        },
+        {
+          "label": "details-saved",
+          "path": "/team/10?details=3",
+          "shot": "092-chromium-game-night-captain-details-saved.jpg",
+          "screens": 4.1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Remove",
+            "· In",
+            "· Late",
+            "· Out",
+            "· 2 no answer ▾",
+            "· Set the lineup ›",
+            "· Find a sub",
+            "· Tonight's details",
+            "· Team calendar In the Dash by DaySmart app or the league webs",
+            "· Connect",
+            "# Roster",
+            "· #70 Steve B. 8 GP · 5 G · 6 A 3.76",
+            "· #81 Paul Novak 10 GP · 4 G · 5 A · Registered 3.81",
+            "· #47 Eric N. 9 GP · 5 G · 3 A 3.83"
+          ]
+        },
+        {
+          "label": "home-after",
+          "path": "/",
+          "shot": "093-chromium-game-night-captain-home-after.jpg",
+          "screens": 1.8,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# Tonight",
+            "· BL Blue Liners 1 in Sun Nov 8 vs FI Fighting Irish 9:15 PM ·",
+            "· Blue Liners",
+            "· In",
+            "· Late",
+            "· Out",
+            "· Find a goalie sub",
+            "· Scout Fighting Irish",
+            "· Lineup",
+            "· Edit details",
+            "· Schedule",
+            "· Last game · Sun, Nov 1 T 4-4 vs Fighting Irish Rating 3.78 +",
+            "· Just played? Snap the sheet"
+          ]
+        }
+      ],
+      "notes": [],
+      "blockedAt": null,
+      "throttled": false,
+      "human": 13,
+      "pass": true
+    },
+    {
+      "id": "game-night-room",
+      "engine": "chromium",
+      "who": "player",
+      "name": "Game night: player sees sheet and room",
+      "goal": "Which room? Without asking the group chat.",
+      "target": {
+        "taps": 0,
+        "human": 4
+      },
+      "ok": true,
+      "taps": 0,
+      "chars": 0,
+      "screens": 1,
+      "emails": 0,
+      "ms": 2614,
+      "steps": [
+        {
+          "label": "home",
+          "path": "/",
+          "shot": "094-chromium-game-night-room-home.jpg",
+          "screens": 1.7,
+          "cls": 0,
+          "axe": 1,
+          "above": [
+            "# Tonight",
+            "· BL Blue Liners 1 in Sun Nov 8 vs FI Fighting Irish 9:15 PM ·",
+            "· Blue Liners",
+            "· In",
+            "· Late",
+            "· Out",
+            "· Scout Fighting Irish",
+            "· Lineup",
+            "· Schedule",
+            "· Last game · Sun, Nov 1 T 4-4 vs Fighting Irish Rating 3.81 +",
+            "· Just played? Snap the sheet",
+            "# Latest in C League",
+            "· All results"
+          ]
+        }
+      ],
+      "notes": [],
+      "blockedAt": null,
+      "throttled": true,
+      "human": 2,
+      "pass": true
+    },
+    {
+      "id": "scan-sheet",
+      "engine": "chromium",
+      "who": "player",
+      "name": "After the game: scan the sheet and send it",
+      "goal": "In the locker room: snap the sheet, glance, send.",
+      "target": {
+        "taps": 4,
+        "human": 30
+      },
+      "ok": true,
+      "taps": 3,
+      "chars": 0,
+      "screens": 4,
+      "emails": 0,
+      "ms": 7970,
+      "steps": [
+        {
+          "label": "scan",
+          "path": "/scan",
+          "shot": "095-chromium-scan-sheet-scan.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# SNAP THE SHEET",
+            "· Take photo",
+            "· Upload"
+          ]
+        },
+        {
+          "label": "scan-reading",
+          "path": "/sheet/3",
+          "shot": "096-chromium-scan-sheet-scan-reading.jpg",
+          "screens": 1.9,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "· View photo",
+            "· C",
+            "· Goals 5",
+            "· Rosters 28",
+            "· Penalties 2",
+            "· Send to the captains to confirm"
+          ]
+        },
+        {
+          "label": "review",
+          "path": "/sheet/3",
+          "shot": "097-chromium-scan-sheet-review.jpg",
+          "screens": 1.9,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "· View photo",
+            "· C",
+            "· Goals 5",
+            "· Rosters 28",
+            "· Penalties 2",
+            "· Send to the captains to confirm"
+          ]
+        },
+        {
+          "label": "sent",
+          "path": "/sheet/3",
+          "shot": "098-chromium-scan-sheet-sent.jpg",
+          "screens": 1.9,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "· View photo",
+            "· C",
+            "· Goals 5",
+            "· Rosters 28",
+            "· Penalties 2"
+          ]
+        }
+      ],
+      "notes": [
+        "review shows 3-2"
+      ],
+      "blockedAt": null,
+      "throttled": true,
+      "human": 13,
+      "pass": true
+    },
+    {
+      "id": "captain-confirm",
+      "engine": "chromium",
+      "who": "captain",
+      "name": "Captain confirms the sheet",
+      "goal": "Phone buzzes on the drive home: check it, confirm.",
+      "target": {
+        "taps": 3,
+        "human": 20
+      },
+      "ok": true,
+      "taps": 2,
+      "chars": 0,
+      "screens": 3,
+      "emails": 0,
+      "ms": 5161,
+      "steps": [
+        {
+          "label": "home",
+          "path": "/",
+          "shot": "099-chromium-captain-confirm-home.jpg",
+          "screens": 1.9,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# Tonight",
+            "· A sheet is waiting for you to confirm Blue Liners vs Fightin",
+            "· BL Blue Liners 1 in Sun Nov 8 vs FI Fighting Irish 9:15 PM ·",
+            "· Blue Liners",
+            "· In",
+            "· Late",
+            "· Out",
+            "· Find a goalie sub",
+            "· Scout Fighting Irish",
+            "· Lineup",
+            "· Edit details",
+            "· Schedule",
+            "· Last game · Sun, Nov 1 T 4-4 vs Fighting Irish Rating 3.78 +",
+            "· Just played? Snap the sheet"
+          ]
+        },
+        {
+          "label": "sheet-to-confirm",
+          "path": "/sheet/3",
+          "shot": "100-chromium-captain-confirm-sheet-to-confirm.jpg",
+          "screens": 1.9,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "· View photo",
+            "· C",
+            "· Goals 5",
+            "· Rosters 28",
+            "· Penalties 2",
+            "· Confirm final · C · 3–2"
+          ]
+        },
+        {
+          "label": "game-in-books",
+          "path": "/game/78",
+          "shot": "101-chromium-captain-confirm-game-in-books.jpg",
+          "screens": 3.5,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "· BL Blue Liners",
+            "· FI Fighting Irish",
+            "· Share this result",
+            "# Three stars",
+            "· ★★★ Paul Novak 1G 1A +0.040",
+            "· ★★ Nick S. 1G 1A −0.024",
+            "· ★ Mike P. 0G 1A +0.036",
+            "# Scoring"
+          ]
+        }
+      ],
+      "notes": [
+        "Home waiting card: yes; unread dot on Me: yes"
+      ],
+      "blockedAt": null,
+      "throttled": false,
+      "human": 9,
+      "pass": true
+    },
+    {
+      "id": "see-rating-move",
+      "engine": "chromium",
+      "who": "player",
+      "name": "Player sees his line and why his rating moved",
+      "goal": "Next morning: did we win, what did I get, why did my number change?",
+      "target": {
+        "taps": 3,
+        "human": 16
+      },
+      "ok": true,
+      "taps": 3,
+      "chars": 0,
+      "screens": 4,
+      "emails": 0,
+      "ms": 9237,
+      "steps": [
+        {
+          "label": "home",
+          "path": "/",
+          "shot": "102-chromium-see-rating-move-home.jpg",
+          "screens": 1.7,
+          "cls": 0,
+          "axe": 1,
+          "above": [
+            "# Tonight",
+            "· BL Blue Liners 1 in Sun Nov 8 vs FI Fighting Irish 9:15 PM ·",
+            "· Blue Liners",
+            "· In",
+            "· Late",
+            "· Out",
+            "· Scout Fighting Irish",
+            "· Lineup",
+            "· Schedule",
+            "· Last game · Sun, Nov 8 W 3-2 vs Fighting Irish Rating 3.85 +",
+            "· Just played? Snap the sheet",
+            "# Latest in C League",
+            "· All results"
+          ]
+        },
+        {
+          "label": "game",
+          "path": "/game/78",
+          "shot": "103-chromium-see-rating-move-game.jpg",
+          "screens": 3.5,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "· BL Blue Liners",
+            "· FI Fighting Irish",
+            "· Share this result",
+            "# Three stars",
+            "· ★★★ Paul Novak 1G 1A +0.040",
+            "· ★★ Nick S. 1G 1A −0.024",
+            "· ★ Mike P. 0G 1A +0.036",
+            "# Scoring"
+          ]
+        },
+        {
+          "label": "player",
+          "path": "/player/180",
+          "shot": "104-chromium-see-rating-move-player.jpg",
+          "screens": 2.1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "· 81 Paul Novak Wing BL Blue Liners #81 Late Ice Rating 3.85 ▼",
+            "# Paul Novak",
+            "· BL Blue Liners #81",
+            "· 3.85 ▼ 0.021 last 5 C level",
+            "· Career, milestones and goalie numbers ›"
+          ]
+        },
+        {
+          "label": "why-open",
+          "path": "/player/180",
+          "shot": "105-chromium-see-rating-move-why-open.jpg",
+          "screens": 2.3,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· L HH 1–6 vs Hinson Hookers Sun, Oct 25 −0.050",
+            "· L WD 5–7 vs Whiskey Dekes Sun, Oct 18 −0.018",
+            "· T BC 2–2 vs Backside Checkers Sun, Oct 11 +0.000",
+            "· T 4–4 vs Hammer'd Heads Sun, Oct 4 −0.004",
+            "· L ST 3–4 vs Seal Team Sticks (Muckers) Sun, Sep 27 −0.053",
+            "· W WP 5–4 vs Wild Puckers Sun, Sep 20 +0.067",
+            "· W FI 4–3 vs Fighting Irish Sun, Sep 13 +0.061",
+            "· T HH 4–4 vs Hinson Hookers Sun, Sep 6 −0.005",
+            "· T WD 2–2 vs Whiskey Dekes Sun, Aug 30 +0.004"
+          ]
+        }
+      ],
+      "notes": [
+        "last result card: Last game · Sun, Nov 8 W 3-2 vs Fighting Irish Rating 3.85 +0.040"
+      ],
+      "blockedAt": null,
+      "throttled": true,
+      "human": 13,
+      "pass": true
+    },
+    {
+      "id": "scan-failed",
+      "engine": "chromium",
+      "who": "player",
+      "name": "A scan fails: recover by hand",
+      "goal": "Bad light, the read fails. Get the score in anyway.",
+      "target": {
+        "taps": 4,
+        "human": 45
+      },
+      "ok": true,
+      "taps": 4,
+      "chars": 73,
+      "screens": 5,
+      "emails": 0,
+      "ms": 8811,
+      "steps": [
+        {
+          "label": "scan",
+          "path": "/scan",
+          "shot": "106-chromium-scan-failed-scan.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# SNAP THE SHEET",
+            "· Take photo",
+            "· Upload"
+          ]
+        },
+        {
+          "label": "fail-reading",
+          "path": "/sheet/4",
+          "shot": "107-chromium-scan-failed-fail-reading.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "· Retry with a new photo",
+            "· Enter the score by hand",
+            "· Send to the captain"
+          ]
+        },
+        {
+          "label": "stuck",
+          "path": "/sheet/4",
+          "shot": "108-chromium-scan-failed-stuck.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "· Retry with a new photo",
+            "· Enter the score by hand",
+            "· Send to the captain"
+          ]
+        },
+        {
+          "label": "by-hand",
+          "path": "/sheet/4",
+          "shot": "109-chromium-scan-failed-by-hand.jpg",
+          "screens": 1.3,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "· Retry with a new photo",
+            "· Enter the score by hand",
+            "· Send to the captain"
+          ]
+        },
+        {
+          "label": "by-hand-saved",
+          "path": "/sheet/4",
+          "shot": "110-chromium-scan-failed-by-hand-saved.jpg",
+          "screens": 1.7,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "· View photo",
+            "· C",
+            "· Goals 0",
+            "· Rosters 16",
+            "· Penalties 0",
+            "· Send to the captains to confirm"
+          ]
+        }
+      ],
+      "notes": [],
+      "blockedAt": null,
+      "throttled": true,
+      "human": 42,
+      "pass": true
+    },
+    {
+      "id": "standings",
+      "engine": "chromium",
+      "who": "player",
+      "name": "Where do we stand?",
+      "goal": "Open standings, find my team, open it.",
+      "target": {
+        "taps": 2,
+        "human": 10
+      },
+      "ok": true,
+      "taps": 2,
+      "chars": 0,
+      "screens": 2,
+      "emails": 0,
+      "ms": 6328,
+      "steps": [
+        {
+          "label": "standings",
+          "path": "/leagues",
+          "shot": "111-chromium-standings-standings.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# Standings",
+            "· C C League 82 games · Leaders and results › Team GP W-L-T DI",
+            "· C C League 82 games · Leaders and results ›",
+            "· 1 WD Whiskey Dekes",
+            "· 2 ST Seal Team Sticks (Muckers)",
+            "· 3 Hammer'd Heads",
+            "· 4 BL Blue Liners",
+            "· 5 WP Wild Puckers",
+            "· 6 FI Fighting Irish",
+            "· 7 HH Hinson Hookers",
+            "· 8 BC Backside Checkers"
+          ]
+        },
+        {
+          "label": "my-team",
+          "path": "/team/10",
+          "shot": "112-chromium-standings-my-team.jpg",
+          "screens": 3.2,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "# Blue Liners",
+            "· Captain Nick Tolliver Contest",
+            "· Contest",
+            "# Schedule",
+            "· In",
+            "· Late",
+            "· Out",
+            "· 1 in · 1 no answer ▾",
+            "· Lineup ›"
+          ]
+        }
+      ],
+      "notes": [],
+      "blockedAt": null,
+      "throttled": true,
+      "human": 7,
+      "pass": true
+    },
+    {
+      "id": "find-player",
+      "engine": "chromium",
+      "who": "player",
+      "name": "Look up tonight's opponent's top player",
+      "goal": "Who is #79 on Fighting Irish?",
+      "target": {
+        "taps": 3,
+        "human": 16
+      },
+      "ok": true,
+      "taps": 3,
+      "chars": 5,
+      "screens": 3,
+      "emails": 0,
+      "ms": 6579,
+      "steps": [
+        {
+          "label": "players",
+          "path": "/players",
+          "shot": "113-chromium-find-player-players.jpg",
+          "screens": 1.6,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# Players",
+            "· Find a player",
+            "· Skaters",
+            "· Center",
+            "· Wing",
+            "· Defense",
+            "· Goalie",
+            "· 43 You · W Blue Liners · C 3.85 +0.040",
+            "· 1 Ben G. · C Whiskey Dekes · C 4.21 +0.018",
+            "· 2 Sean H. · C Whiskey Dekes · C 4.21 +0.014",
+            "· 3 Alex P. · C Whiskey Dekes · C 4.20 +0.014",
+            "· 4 Chris V. · C Whiskey Dekes · C 4.18 +0.018",
+            "· 5 Josh B. · D Whiskey Dekes · C 4.17 +0.023",
+            "· 6 Derek B. · D Whiskey Dekes · C 4.17 +0.018"
+          ]
+        },
+        {
+          "label": "search-surname",
+          "path": "/players",
+          "shot": "114-chromium-find-player-search-surname.jpg",
+          "screens": 1.7,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# Players",
+            "· Find a player",
+            "· Skaters",
+            "· Center",
+            "· Wing",
+            "· Defense",
+            "· Goalie",
+            "· 1 Bill S. · W Seal Team Sticks (Muckers) · C 4.11 +0.027",
+            "· 2 Evan S. · D Seal Team Sticks (Muckers) · C 4.08 +0.027",
+            "· 3 Kyle S. · W Fighting Irish · C 3.90 −0.032",
+            "· 4 Nick S. · W Fighting Irish · C 3.87 −0.024",
+            "· 5 Gary S. · C Blue Liners · C 3.81 +0.032",
+            "· 6 Wes S. · D Blue Liners · C 3.74 +0.036"
+          ]
+        },
+        {
+          "label": "player",
+          "path": "/player/240",
+          "shot": "115-chromium-find-player-player.jpg",
+          "screens": 2.2,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "· 78 Bill S. Wing · Unclaimed ST Seal Team Sticks (Muckers) #7",
+            "# Bill S.",
+            "· ST Seal Team Sticks (Muckers) #78",
+            "· 4.11 ▲ 0.095 last 5 C level",
+            "· Career, milestones and goalie numbers ›"
+          ]
+        }
+      ],
+      "notes": [],
+      "blockedAt": null,
+      "throttled": true,
+      "human": 12,
+      "pass": true
+    },
+    {
+      "id": "settings",
+      "engine": "chromium",
+      "who": "player",
+      "name": "Change appearance, availability and notifications",
+      "goal": "Find settings without hunting; light mode; I'm injured for two weeks; check notifications.",
+      "target": {
+        "taps": 5,
+        "human": 30
+      },
+      "ok": true,
+      "taps": 4,
+      "chars": 10,
+      "screens": 6,
+      "emails": 0,
+      "ms": 14279,
+      "steps": [
+        {
+          "label": "me",
+          "path": "/me",
+          "shot": "116-chromium-settings-me.jpg",
+          "screens": 1.2,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· 81 Paul Novak Wing BL Blue Liners #81 Late Ice Rating 3.85 ▼",
+            "# Paul Novak",
+            "· Settings",
+            "· BL Blue Liners #81",
+            "· 3.85 ▼ 0.021 last 5 C level",
+            "# My team",
+            "· BL C Blue Liners #81 · Captain: Nick Tolliver › Sun Nov 8 vs",
+            "· BL C Blue Liners #81 · Captain: Nick Tolliver ›",
+            "· Notifications 1 new 1",
+            "· Rating history Every game, and why your rating moved ›",
+            "· Your bobblehead Skin, hair, helmet and gear"
+          ]
+        },
+        {
+          "label": "settings",
+          "path": "/settings",
+          "shot": "117-chromium-settings-settings.jpg",
+          "screens": 4,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "# Settings",
+            "# Profile",
+            "· Center",
+            "· Wing",
+            "· Defense",
+            "· Goalie",
+            "· United States",
+            "· Canada",
+            "· Midnight Pond Anytown, NC · 3 leagues",
+            "· Polar Ice Wilmington Wilmington, NC · 1 league"
+          ]
+        },
+        {
+          "label": "light",
+          "path": "/settings",
+          "shot": "118-chromium-settings-light.jpg",
+          "screens": 4,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Allow",
+            "# Privacy",
+            "· Hide my name",
+            "· Hide my player type",
+            "# Help",
+            "· Help and common questions ›",
+            "· Email us ›",
+            "· Terms and privacy ›",
+            "· Sign out",
+            "# Your data"
+          ]
+        },
+        {
+          "label": "status",
+          "path": "/settings",
+          "shot": "119-chromium-settings-status.jpg",
+          "screens": 4,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Use Face ID next time",
+            "# Skates",
+            "· Log the day you last had your skates sharpened and we'll rem",
+            "· Sharpened today",
+            "# Appearance",
+            "· Match phone",
+            "· Light",
+            "· Dark",
+            "# Notifications"
+          ]
+        },
+        {
+          "label": "notifications",
+          "path": "/settings",
+          "shot": "120-chromium-settings-notifications.jpg",
+          "screens": 4,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Hide my name",
+            "· Hide my player type",
+            "# Help",
+            "· Help and common questions ›",
+            "· Email us ›",
+            "· Terms and privacy ›",
+            "· Sign out",
+            "# Your data",
+            "· Download my data Profile, teams, games, ratings and notices ",
+            "· Delete my account Removes your name; past scores stay",
+            "· Terms"
+          ]
+        },
+        {
+          "label": "home-light",
+          "path": "/",
+          "shot": "121-chromium-settings-home-light.jpg",
+          "screens": 1.7,
+          "cls": 0,
+          "axe": 1,
+          "above": [
+            "# Tonight",
+            "· BL Blue Liners 1 in Sun Nov 8 vs FI Fighting Irish 9:15 PM ·",
+            "· Blue Liners",
+            "· In",
+            "· Late",
+            "· Out",
+            "· Scout Fighting Irish",
+            "· Lineup",
+            "· Schedule",
+            "· Last game · Sun, Nov 8 W 3-2 vs Fighting Irish Rating 3.85 +",
+            "· Just played? Snap the sheet",
+            "# Latest in C League",
+            "· All results"
+          ]
+        }
+      ],
+      "notes": [],
+      "blockedAt": null,
+      "throttled": true,
+      "human": 22,
+      "pass": true
+    },
+    {
+      "id": "sign-out-in",
+      "engine": "chromium",
+      "who": "player",
+      "name": "Sign out, then back in",
+      "goal": "Hand the phone to my kid; come back later.",
+      "target": {
+        "taps": 7,
+        "human": 47
+      },
+      "ok": true,
+      "taps": 5,
+      "chars": 33,
+      "screens": 5,
+      "emails": 1,
+      "ms": 10763,
+      "steps": [
+        {
+          "label": "ask-sign-out",
+          "path": "/settings",
+          "shot": "122-chromium-sign-out-in-ask-sign-out.jpg",
+          "screens": 4.1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# Help",
+            "· Help and common questions ›",
+            "· Email us ›",
+            "· Terms and privacy ›",
+            "· Sign out of Late Ice on this phone? Your teams and stats sta",
+            "· Cancel",
+            "· Sign out",
+            "# Your data",
+            "· Download my data Profile, teams, games, ratings and notices ",
+            "· Delete my account Removes your name; past scores stay",
+            "· Terms"
+          ]
+        },
+        {
+          "label": "signed-out",
+          "path": "/join",
+          "shot": "123-chromium-sign-out-in-signed-out.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# YOUR NUMBER. YOUR RATING.",
+            "· Late Ice is invite-only for now. Without your captain's link",
+            "· Email me a code",
+            "· Sign in with Face ID or a passkey",
+            "· terms",
+            "· privacy"
+          ]
+        },
+        {
+          "label": "join",
+          "path": "/join",
+          "shot": "124-chromium-sign-out-in-join.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# YOUR NUMBER. YOUR RATING.",
+            "· Late Ice is invite-only for now. Without your captain's link",
+            "· Email me a code",
+            "· Sign in with Face ID or a passkey",
+            "· terms",
+            "· privacy"
+          ]
+        },
+        {
+          "label": "code",
+          "path": "/join",
+          "shot": "125-chromium-sign-out-in-code.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# YOUR NUMBER. YOUR RATING.",
+            "· Change",
+            "· Sign in",
+            "· Send a new code in 60s"
+          ]
+        },
+        {
+          "label": "back-in",
+          "path": "/me",
+          "shot": "126-chromium-sign-out-in-back-in.jpg",
+          "screens": 1.2,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· 81 Paul Novak Wing BL Blue Liners #81 Late Ice Rating 3.85 ▼",
+            "# Paul Novak",
+            "· Settings",
+            "· BL Blue Liners #81",
+            "· 3.85 ▼ 0.021 last 5 C level",
+            "# My team",
+            "· BL C Blue Liners #81 · Captain: Nick Tolliver › Sun Nov 8 vs",
+            "· BL C Blue Liners #81 · Captain: Nick Tolliver ›",
+            "· Notifications 1 new 1",
+            "· Rating history Every game, and why your rating moved ›",
+            "· Your bobblehead Skin, hair, helmet and gear"
+          ]
+        }
+      ],
+      "notes": [],
+      "blockedAt": null,
+      "throttled": true,
+      "human": 49,
+      "pass": false
+    },
+    {
+      "id": "text-200",
+      "engine": "chromium",
+      "who": "player",
+      "name": "Read it with text at 200 percent",
+      "goal": "Larger text from the phone's settings; nothing should be cut off or slide sideways.",
+      "target": {},
+      "ok": true,
+      "taps": 0,
+      "chars": 0,
+      "screens": 6,
+      "emails": 0,
+      "ms": 20373,
+      "steps": [
+        {
+          "label": "zoom-",
+          "path": "/",
+          "shot": "127-chromium-text-200-zoom-.jpg",
+          "screens": 5.2,
+          "cls": 0.95,
+          "axe": 0,
+          "above": [
+            "# Tonight",
+            "· BL Blue Liners 1 in Sun Nov 8 vs FI Fighting Irish 9:15 PM ·",
+            "· Blue Liners",
+            "· In",
+            "· Late",
+            "· Out"
+          ]
+        },
+        {
+          "label": "zoom-me",
+          "path": "/me",
+          "shot": "128-chromium-text-200-zoom-me.jpg",
+          "screens": 3.4,
+          "cls": 0.95,
+          "axe": 0,
+          "above": [
+            "· 81 Paul Novak Wing BL Blue Liners #81 Late Ice Rating 3.85 ▼",
+            "# Paul Novak",
+            "· Settings",
+            "· BL Blue Liners #81",
+            "· 3.85 ▼ 0.021 last 5 C level"
+          ]
+        },
+        {
+          "label": "zoom-leagues",
+          "path": "/leagues",
+          "shot": "129-chromium-text-200-zoom-leagues.jpg",
+          "screens": 7.7,
+          "cls": 0.943,
+          "axe": 0,
+          "above": [
+            "# Standings",
+            "· C C League 82 games · Leaders and results › Team GP W-L-T DI",
+            "· C C League 82 games · Leaders and results ›"
+          ]
+        },
+        {
+          "label": "zoom-team-10",
+          "path": "/team/10",
+          "shot": "130-chromium-text-200-zoom-team-10.jpg",
+          "screens": 12.7,
+          "cls": 0.97,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "# Blue Liners"
+          ]
+        },
+        {
+          "label": "zoom-settings",
+          "path": "/settings",
+          "shot": "131-chromium-text-200-zoom-settings.jpg",
+          "screens": 18.7,
+          "cls": 0.97,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "# Settings",
+            "# Profile"
+          ]
+        },
+        {
+          "label": "zoom-game-78",
+          "path": "/game/78",
+          "shot": "132-chromium-text-200-zoom-game-78.jpg",
+          "screens": 16.4,
+          "cls": 0.97,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "· BL Blue Liners",
+            "· FI Fighting Irish"
+          ]
+        }
+      ],
+      "notes": [],
+      "blockedAt": null,
+      "throttled": true,
+      "human": 12,
+      "pass": true
+    },
+    {
+      "id": "shared-game-link",
+      "engine": "chromium",
+      "who": "teammate",
+      "name": "Teammate opens the shared game link, not signed in",
+      "goal": "The captain posts last night's game in the group chat. Does it open?",
+      "target": {
+        "taps": 1,
+        "human": 10
+      },
+      "ok": true,
+      "taps": 0,
+      "chars": 0,
+      "screens": 1,
+      "emails": 0,
+      "ms": 1976,
+      "steps": [
+        {
+          "label": "game-link",
+          "path": "/game/78?s=OcNmB8xT7mKQJkNgCfhpAL",
+          "shot": "133-chromium-shared-game-link-game-link.jpg",
+          "screens": 1.4,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Midnight Pond Made-up teams and players. Sign in to see your",
+            "# Scoring"
+          ]
+        }
+      ],
+      "notes": [],
+      "blockedAt": null,
+      "throttled": false,
+      "human": 2,
+      "pass": true
+    },
+    {
+      "id": "leaver-signup",
+      "engine": "chromium",
+      "who": "leaver",
+      "name": "Leaver signs up (setup for the delete job)",
+      "goal": "Setup only.",
+      "target": {},
+      "ok": true,
+      "taps": 4,
+      "chars": 47,
+      "screens": 3,
+      "emails": 1,
+      "ms": 5557,
+      "steps": [
+        {
+          "label": "join",
+          "path": "/join",
+          "shot": "134-chromium-leaver-signup-join.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# YOUR NUMBER. YOUR RATING.",
+            "· Late Ice is invite-only for now. Without your captain's link",
+            "· Email me a code",
+            "· Sign in with Face ID or a passkey",
+            "· terms",
+            "· privacy"
+          ]
+        },
+        {
+          "label": "code",
+          "path": "/join",
+          "shot": "135-chromium-leaver-signup-code.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# YOUR NUMBER. YOUR RATING.",
+            "· Change",
+            "· Sign in",
+            "· Send a new code in 60s"
+          ]
+        },
+        {
+          "label": "profile",
+          "path": "/join",
+          "shot": "136-chromium-leaver-signup-profile.jpg",
+          "screens": 1.4,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# FOUR FIELDS. THAT'S THE WHOLE FORM.",
+            "· Center",
+            "· Wing",
+            "· Defense",
+            "· Goalie",
+            "· United States",
+            "· Canada",
+            "· Midnight Pond Anytown, NC · 3 leagues"
+          ]
+        }
+      ],
+      "notes": [
+        "home rink preset to Polar Ice: yes"
+      ],
+      "blockedAt": null,
+      "throttled": false,
+      "human": 48,
+      "pass": true
+    },
+    {
+      "id": "delete-account",
+      "engine": "chromium",
+      "who": "leaver",
+      "name": "Delete my account",
+      "goal": "I'm done with it; take my name off.",
+      "target": {
+        "taps": 4,
+        "human": 17
+      },
+      "ok": true,
+      "taps": 3,
+      "chars": 0,
+      "screens": 4,
+      "emails": 0,
+      "ms": 6380,
+      "steps": [
+        {
+          "label": "me",
+          "path": "/me",
+          "shot": "137-chromium-delete-account-me.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· You're on the waitlist You can look around. To claim your sp",
+            "· Dana Leaving Defense Late Ice Rating – Not rated yet",
+            "# Dana Leaving",
+            "· Settings",
+            "# My team"
+          ]
+        },
+        {
+          "label": "settings",
+          "path": "/settings",
+          "shot": "138-chromium-delete-account-settings.jpg",
+          "screens": 4,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "· Back",
+            "# Settings",
+            "# Profile",
+            "· Center",
+            "· Wing",
+            "· Defense",
+            "· Goalie",
+            "· United States",
+            "· Canada",
+            "· Midnight Pond Anytown, NC · 3 leagues",
+            "· Polar Ice Wilmington Wilmington, NC · 1 league"
+          ]
+        },
+        {
+          "label": "ask-delete",
+          "path": "/settings",
+          "shot": "139-chromium-delete-account-ask-delete.jpg",
+          "screens": 4.1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# Help",
+            "· Help and common questions ›",
+            "· Email us ›",
+            "· Terms and privacy ›",
+            "· Sign out",
+            "# Your data",
+            "· Download my data Profile, teams, games, ratings and notices ",
+            "· Delete my account Removes your name; past scores stay",
+            "· Delete your Late Ice account? Your name comes off every rost",
+            "· Keep my account",
+            "· Delete it",
+            "· Terms"
+          ]
+        },
+        {
+          "label": "deleted",
+          "path": "/join",
+          "shot": "140-chromium-delete-account-deleted.jpg",
+          "screens": 1,
+          "cls": 0,
+          "axe": 0,
+          "above": [
+            "# YOUR NUMBER. YOUR RATING.",
+            "· Late Ice is invite-only for now. Without your captain's link",
+            "· Email me a code",
+            "· Sign in with Face ID or a passkey",
+            "· terms",
+            "· privacy"
+          ]
+        }
+      ],
+      "notes": [],
+      "blockedAt": null,
+      "throttled": false,
+      "human": 13,
+      "pass": true
+    }
+  ],
+  "findings": [
+    {
+      "severity": "blocker",
+      "kind": "page crash",
+      "engine": "webkit",
+      "job": "Where do we stand?",
+      "step": "",
+      "detail": "TypeError: Load failed",
+      "shot": "040-webkit-scan-failed-by-hand-saved.jpg"
+    },
+    {
+      "severity": "serious",
+      "kind": "a11y color-contrast",
+      "engine": "webkit",
+      "job": "Change appearance, availability and notifications",
+      "step": "home-light",
+      "detail": "/: Elements must meet minimum color contrast ratio thresholds (1x) e.g. .rsvp-in",
+      "shot": "051-webkit-settings-home-light.jpg"
+    },
+    {
+      "severity": "serious",
+      "kind": "a11y color-contrast",
+      "engine": "chromium",
+      "job": "Game night: say In",
+      "step": "said-in",
+      "detail": "/: Elements must meet minimum color contrast ratio thresholds (1x) e.g. .rsvp-in",
+      "shot": "089-chromium-game-night-in-said-in.jpg"
+    },
+    {
+      "severity": "serious",
+      "kind": "request refused",
+      "engine": "webkit",
+      "job": "Read it with text at 200 percent",
+      "step": "zoom-settings",
+      "detail": "401 GET /api/sheets/1/image",
+      "shot": "061-webkit-text-200-zoom-settings.jpg"
+    },
+    {
+      "severity": "serious",
+      "kind": "request refused",
+      "engine": "chromium",
+      "job": "Read it with text at 200 percent",
+      "step": "zoom-leagues",
+      "detail": "401 GET /api/teams/10",
+      "shot": "129-chromium-text-200-zoom-leagues.jpg"
+    },
+    {
+      "severity": "serious",
+      "kind": "request refused",
+      "engine": "chromium",
+      "job": "Read it with text at 200 percent",
+      "step": "zoom-settings",
+      "detail": "401 GET /api/games/78",
+      "shot": "131-chromium-text-200-zoom-settings.jpg"
+    },
+    {
+      "severity": "serious",
+      "kind": "request refused",
+      "engine": "chromium",
+      "job": "Read it with text at 200 percent",
+      "step": "zoom-settings",
+      "detail": "401 GET /api/sheets/3/image",
+      "shot": "131-chromium-text-200-zoom-settings.jpg"
+    },
+    {
+      "severity": "serious",
+      "kind": "tap target under 24 pt",
+      "engine": "webkit",
+      "job": "Player sees his line and why his rating moved",
+      "step": "why-open",
+      "detail": "/player/244: a \"Game ›\" 42x20",
+      "shot": "035-webkit-see-rating-move-why-open.jpg"
+    },
+    {
+      "severity": "serious",
+      "kind": "tap target under 24 pt",
+      "engine": "chromium",
+      "job": "Player sees his line and why his rating moved",
+      "step": "why-open",
+      "detail": "/player/180: a \"Game ›\" 44x20",
+      "shot": "105-chromium-see-rating-move-why-open.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "can't see who's in",
+      "engine": "webkit",
+      "job": "Game night: captain checks who's in and posts the room",
+      "step": "home",
+      "detail": "Game night: captain checks who's in and posts the room: No way from Home to see who said In",
+      "shot": "020-webkit-game-night-captain-home.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "can't see who's in",
+      "engine": "chromium",
+      "job": "Game night: captain checks who's in and posts the room",
+      "step": "home",
+      "detail": "Game night: captain checks who's in and posts the room: No way from Home to see who said In",
+      "shot": "090-chromium-game-night-captain-home.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "webkit",
+      "job": "Captain claims his team and shares the invite link",
+      "step": "home-signed-out",
+      "detail": "/: a[nav-scan] \"Scan scoresheet\" 71x36",
+      "shot": "001-webkit-captain-setup-home-signed-out.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "webkit",
+      "job": "Captain claims his team and shares the invite link",
+      "step": "me-claimed",
+      "detail": "/me: a \"WDCWhiskey Dekes#51 · No captain yet›\" 326x42",
+      "shot": "007-webkit-captain-setup-me-claimed.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "webkit",
+      "job": "Captain claims his team and shares the invite link",
+      "step": "me-captain",
+      "detail": "/me: a \"WDCWhiskey Dekes#51 · Captain›\" 326x42",
+      "shot": "008-webkit-captain-setup-me-captain.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "webkit",
+      "job": "Captain claims his team and shares the invite link",
+      "step": "manage",
+      "detail": "/team/15/manage: a[link-back-team] \"‹ Back\" 35x44",
+      "shot": "009-webkit-captain-setup-manage.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "webkit",
+      "job": "New player: invite link to his team in two minutes",
+      "step": "me-claimed",
+      "detail": "/me: a \"WDCWhiskey Dekes#55 · Captain: Luke Baro\" 326x42",
+      "shot": "016-webkit-first-two-minutes-me-claimed.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "webkit",
+      "job": "New player: invite link to his team in two minutes",
+      "step": "home-first",
+      "detail": "/: a[link-home-lineup] \"Lineup\" 44x44",
+      "shot": "017-webkit-first-two-minutes-home-first.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "webkit",
+      "job": "After the game: scan the sheet and send it",
+      "step": "scan-reading",
+      "detail": "/sheet/1: button[chip-league-C] \"C\" 40x44",
+      "shot": "026-webkit-scan-sheet-scan-reading.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "webkit",
+      "job": "After the game: scan the sheet and send it",
+      "step": "scan-reading",
+      "detail": "/sheet/1: input[input-goal-scorer-home-0] \"Goal 1 scorer number, Home (Whiskey Deke\" 40x44",
+      "shot": "026-webkit-scan-sheet-scan-reading.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "webkit",
+      "job": "After the game: scan the sheet and send it",
+      "step": "scan-reading",
+      "detail": "/sheet/1: input[input-goal-a1-home-0] \"Goal 1 first assist number, Home (Whiske\" 40x44",
+      "shot": "026-webkit-scan-sheet-scan-reading.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "webkit",
+      "job": "After the game: scan the sheet and send it",
+      "step": "scan-reading",
+      "detail": "/sheet/1: input[input-goal-a2-home-0] \"Goal 1 second assist number, Home (Whisk\" 40x44",
+      "shot": "026-webkit-scan-sheet-scan-reading.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "webkit",
+      "job": "After the game: scan the sheet and send it",
+      "step": "scan-reading",
+      "detail": "/sheet/1: input[input-goal-scorer-away-0] \"Goal 1 scorer number, Visitor (Wild Puck\" 40x44",
+      "shot": "026-webkit-scan-sheet-scan-reading.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "webkit",
+      "job": "After the game: scan the sheet and send it",
+      "step": "scan-reading",
+      "detail": "/sheet/1: input[input-goal-a1-away-0] \"Goal 1 first assist number, Visitor (Wil\" 40x44",
+      "shot": "026-webkit-scan-sheet-scan-reading.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "webkit",
+      "job": "After the game: scan the sheet and send it",
+      "step": "scan-reading",
+      "detail": "/sheet/1: input[input-goal-a2-away-0] \"Goal 1 second assist number, Visitor (Wi\" 40x44",
+      "shot": "026-webkit-scan-sheet-scan-reading.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "webkit",
+      "job": "Read it with text at 200 percent",
+      "step": "zoom-leagues",
+      "detail": "/leagues: a[link-standings-team-15] \"1WDWhiskey Dekes\" 25x44",
+      "shot": "059-webkit-text-200-zoom-leagues.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "webkit",
+      "job": "Read it with text at 200 percent",
+      "step": "zoom-leagues",
+      "detail": "/leagues: a[link-standings-team-14] \"2STSeal Team Sticks (Muckers)\" 25x44",
+      "shot": "059-webkit-text-200-zoom-leagues.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "webkit",
+      "job": "Read it with text at 200 percent",
+      "step": "zoom-leagues",
+      "detail": "/leagues: a[link-standings-team-12] \"3Hammer'd Heads\" 25x44",
+      "shot": "059-webkit-text-200-zoom-leagues.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "webkit",
+      "job": "Read it with text at 200 percent",
+      "step": "zoom-leagues",
+      "detail": "/leagues: a[link-standings-team-16] \"4WPWild Puckers\" 25x44",
+      "shot": "059-webkit-text-200-zoom-leagues.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "webkit",
+      "job": "Read it with text at 200 percent",
+      "step": "zoom-leagues",
+      "detail": "/leagues: a[link-standings-team-10] \"5BLBlue Liners\" 25x44",
+      "shot": "059-webkit-text-200-zoom-leagues.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "webkit",
+      "job": "Read it with text at 200 percent",
+      "step": "zoom-leagues",
+      "detail": "/leagues: a[link-standings-team-11] \"6FIFighting Irish\" 25x44",
+      "shot": "059-webkit-text-200-zoom-leagues.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "webkit",
+      "job": "Read it with text at 200 percent",
+      "step": "zoom-leagues",
+      "detail": "/leagues: a[link-standings-team-13] \"7HHHinson Hookers\" 25x44",
+      "shot": "059-webkit-text-200-zoom-leagues.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "webkit",
+      "job": "Read it with text at 200 percent",
+      "step": "zoom-leagues",
+      "detail": "/leagues: a[link-standings-team-9] \"8BCBackside Checkers\" 25x44",
+      "shot": "059-webkit-text-200-zoom-leagues.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "webkit",
+      "job": "Read it with text at 200 percent",
+      "step": "zoom-settings",
+      "detail": "/settings: input[input-sharpen-every] \"Sharpen every how many games\" 30x44",
+      "shot": "061-webkit-text-200-zoom-settings.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "chromium",
+      "job": "Captain claims his team and shares the invite link",
+      "step": "home-signed-out",
+      "detail": "/: a[nav-scan] \"Scan scoresheet\" 71x36",
+      "shot": "071-chromium-captain-setup-home-signed-out.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "chromium",
+      "job": "Captain claims his team and shares the invite link",
+      "step": "me-claimed",
+      "detail": "/me: a \"BLCBlue Liners#60 · No captain yet›\" 326x42",
+      "shot": "077-chromium-captain-setup-me-claimed.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "chromium",
+      "job": "Captain claims his team and shares the invite link",
+      "step": "me-captain",
+      "detail": "/me: a \"BLCBlue Liners#60 · Captain›\" 326x42",
+      "shot": "078-chromium-captain-setup-me-captain.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "chromium",
+      "job": "Captain claims his team and shares the invite link",
+      "step": "manage",
+      "detail": "/team/10/manage: a[link-back-team] \"‹ Back\" 36x44",
+      "shot": "079-chromium-captain-setup-manage.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "chromium",
+      "job": "New player: invite link to his team in two minutes",
+      "step": "me-claimed",
+      "detail": "/me: a \"BLCBlue Liners#81 · Captain: Nick Tolliv\" 326x42",
+      "shot": "086-chromium-first-two-minutes-me-claimed.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "chromium",
+      "job": "After the game: scan the sheet and send it",
+      "step": "scan-reading",
+      "detail": "/sheet/3: button[chip-league-C] \"C\" 40x44",
+      "shot": "096-chromium-scan-sheet-scan-reading.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "chromium",
+      "job": "After the game: scan the sheet and send it",
+      "step": "scan-reading",
+      "detail": "/sheet/3: input[input-goal-scorer-home-0] \"Goal 1 scorer number, Home (Blue Liners)\" 40x44",
+      "shot": "096-chromium-scan-sheet-scan-reading.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "chromium",
+      "job": "After the game: scan the sheet and send it",
+      "step": "scan-reading",
+      "detail": "/sheet/3: input[input-goal-a1-home-0] \"Goal 1 first assist number, Home (Blue L\" 40x44",
+      "shot": "096-chromium-scan-sheet-scan-reading.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "chromium",
+      "job": "After the game: scan the sheet and send it",
+      "step": "scan-reading",
+      "detail": "/sheet/3: input[input-goal-a2-home-0] \"Goal 1 second assist number, Home (Blue \" 40x44",
+      "shot": "096-chromium-scan-sheet-scan-reading.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "chromium",
+      "job": "After the game: scan the sheet and send it",
+      "step": "scan-reading",
+      "detail": "/sheet/3: input[input-goal-scorer-away-0] \"Goal 1 scorer number, Visitor (Fighting \" 40x44",
+      "shot": "096-chromium-scan-sheet-scan-reading.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "chromium",
+      "job": "After the game: scan the sheet and send it",
+      "step": "scan-reading",
+      "detail": "/sheet/3: input[input-goal-a1-away-0] \"Goal 1 first assist number, Visitor (Fig\" 40x44",
+      "shot": "096-chromium-scan-sheet-scan-reading.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "chromium",
+      "job": "After the game: scan the sheet and send it",
+      "step": "scan-reading",
+      "detail": "/sheet/3: input[input-goal-a2-away-0] \"Goal 1 second assist number, Visitor (Fi\" 40x44",
+      "shot": "096-chromium-scan-sheet-scan-reading.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "chromium",
+      "job": "Read it with text at 200 percent",
+      "step": "zoom-leagues",
+      "detail": "/leagues: a[link-standings-team-15] \"1WDWhiskey Dekes\" 25x80",
+      "shot": "129-chromium-text-200-zoom-leagues.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "chromium",
+      "job": "Read it with text at 200 percent",
+      "step": "zoom-leagues",
+      "detail": "/leagues: a[link-standings-team-14] \"2STSeal Team Sticks (Muckers)\" 25x80",
+      "shot": "129-chromium-text-200-zoom-leagues.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "chromium",
+      "job": "Read it with text at 200 percent",
+      "step": "zoom-leagues",
+      "detail": "/leagues: a[link-standings-team-12] \"3Hammer'd Heads\" 25x80",
+      "shot": "129-chromium-text-200-zoom-leagues.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "chromium",
+      "job": "Read it with text at 200 percent",
+      "step": "zoom-leagues",
+      "detail": "/leagues: a[link-standings-team-10] \"4BLBlue Liners\" 25x80",
+      "shot": "129-chromium-text-200-zoom-leagues.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "chromium",
+      "job": "Read it with text at 200 percent",
+      "step": "zoom-leagues",
+      "detail": "/leagues: a[link-standings-team-16] \"5WPWild Puckers\" 25x80",
+      "shot": "129-chromium-text-200-zoom-leagues.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "chromium",
+      "job": "Read it with text at 200 percent",
+      "step": "zoom-leagues",
+      "detail": "/leagues: a[link-standings-team-11] \"6FIFighting Irish\" 25x80",
+      "shot": "129-chromium-text-200-zoom-leagues.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "chromium",
+      "job": "Read it with text at 200 percent",
+      "step": "zoom-leagues",
+      "detail": "/leagues: a[link-standings-team-13] \"7HHHinson Hookers\" 25x80",
+      "shot": "129-chromium-text-200-zoom-leagues.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "chromium",
+      "job": "Read it with text at 200 percent",
+      "step": "zoom-leagues",
+      "detail": "/leagues: a[link-standings-team-9] \"8BCBackside Checkers\" 25x80",
+      "shot": "129-chromium-text-200-zoom-leagues.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "tap target under 44 pt",
+      "engine": "chromium",
+      "job": "Read it with text at 200 percent",
+      "step": "zoom-settings",
+      "detail": "/settings: input[input-sharpen-every] \"Sharpen every how many games\" 30x44",
+      "shot": "131-chromium-text-200-zoom-settings.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "text under 12 pt",
+      "engine": "webkit",
+      "job": "Captain claims his team and shares the invite link",
+      "step": "me-waiting",
+      "detail": "/me: 11.52px \"WD\"",
+      "shot": "005-webkit-captain-setup-me-waiting.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "text under 12 pt",
+      "engine": "webkit",
+      "job": "New player: invite link to his team in two minutes",
+      "step": "home-first",
+      "detail": "/: 10px \"WD\"; 10px \"WP\"; 10.08px \"FI\"; 10.08px \"BL\"",
+      "shot": "017-webkit-first-two-minutes-home-first.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "text under 12 pt",
+      "engine": "webkit",
+      "job": "Game night: captain checks who's in and posts the room",
+      "step": "details-form",
+      "detail": "/team/15?details=1: 10px \"WP\"",
+      "shot": "021-webkit-game-night-captain-details-form.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "text under 12 pt",
+      "engine": "webkit",
+      "job": "Captain confirms the sheet",
+      "step": "game-in-books",
+      "detail": "/game/77/new: 10px \"WD\"; 10px \"WP\"",
+      "shot": "031-webkit-captain-confirm-game-in-books.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "text under 12 pt",
+      "engine": "webkit",
+      "job": "Player sees his line and why his rating moved",
+      "step": "game",
+      "detail": "/game/77: 10px \"WD\"; 10px \"WP\"",
+      "shot": "033-webkit-see-rating-move-game.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "text under 12 pt",
+      "engine": "webkit",
+      "job": "Player sees his line and why his rating moved",
+      "step": "player",
+      "detail": "/player/244: 10px \"55\"; 10px \"WD\"; 10px \"WP\"; 10px \"HH\"",
+      "shot": "034-webkit-see-rating-move-player.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "text under 12 pt",
+      "engine": "webkit",
+      "job": "Where do we stand?",
+      "step": "standings",
+      "detail": "/leagues: 10px \"WD\"; 10px \"ST\"; 10px \"WP\"; 10px \"BL\"",
+      "shot": "041-webkit-standings-standings.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "text under 12 pt",
+      "engine": "webkit",
+      "job": "Where do we stand?",
+      "step": "my-team",
+      "detail": "/team/15: 10px \"WP\"",
+      "shot": "042-webkit-standings-my-team.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "text under 12 pt",
+      "engine": "webkit",
+      "job": "Teammate opens the shared game link, not signed in",
+      "step": "game-link",
+      "detail": "/game/77?s=HBd_l1QzvVhAavzATAEEnd: 10px \"WD\"; 10px \"WP\"",
+      "shot": "063-webkit-shared-game-link-game-link.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "text under 12 pt",
+      "engine": "chromium",
+      "job": "Captain claims his team and shares the invite link",
+      "step": "me-waiting",
+      "detail": "/me: 11.52px \"BL\"",
+      "shot": "075-chromium-captain-setup-me-waiting.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "text under 12 pt",
+      "engine": "chromium",
+      "job": "New player: invite link to his team in two minutes",
+      "step": "home-first",
+      "detail": "/: 10px \"BL\"; 10px \"FI\"; 10.08px \"WD\"; 10.08px \"WP\"",
+      "shot": "087-chromium-first-two-minutes-home-first.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "text under 12 pt",
+      "engine": "chromium",
+      "job": "Game night: captain checks who's in and posts the room",
+      "step": "details-form",
+      "detail": "/team/10?details=3: 10px \"FI\"",
+      "shot": "091-chromium-game-night-captain-details-form.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "text under 12 pt",
+      "engine": "chromium",
+      "job": "Captain confirms the sheet",
+      "step": "game-in-books",
+      "detail": "/game/78: 10px \"BL\"; 10px \"FI\"",
+      "shot": "101-chromium-captain-confirm-game-in-books.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "text under 12 pt",
+      "engine": "chromium",
+      "job": "Player sees his line and why his rating moved",
+      "step": "player",
+      "detail": "/player/180: 10px \"81\"; 10px \"BL\"; 10px \"FI\"; 10px \"HH\"",
+      "shot": "104-chromium-see-rating-move-player.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "text under 12 pt",
+      "engine": "chromium",
+      "job": "Where do we stand?",
+      "step": "standings",
+      "detail": "/leagues: 10px \"WD\"; 10px \"ST\"; 10px \"BL\"; 10px \"WP\"",
+      "shot": "111-chromium-standings-standings.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "text under 12 pt",
+      "engine": "chromium",
+      "job": "Where do we stand?",
+      "step": "my-team",
+      "detail": "/team/10: 10px \"FI\"",
+      "shot": "112-chromium-standings-my-team.jpg"
+    },
+    {
+      "severity": "moderate",
+      "kind": "text under 12 pt",
+      "engine": "chromium",
+      "job": "Teammate opens the shared game link, not signed in",
+      "step": "game-link",
+      "detail": "/game/78?s=OcNmB8xT7mKQJkNgCfhpAL: 10px \"BL\"; 10px \"FI\"",
+      "shot": "133-chromium-shared-game-link-game-link.jpg"
+    }
+  ]
+}
