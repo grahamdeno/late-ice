@@ -49,7 +49,8 @@ function find(severity, kind, ctx, detail, key) {
 const INIT = `window.__cls=0;try{new PerformanceObserver(l=>{for(const e of l.getEntries()){if(!e.hadRecentInput)window.__cls+=e.value}}).observe({type:'layout-shift',buffered:true})}catch{}`;
 
 async function person(browser, engine, who, { throttle = false } = {}) {
-  const ctx = await browser.newContext({ ...PHONE });
+  // WebKit runs in dark mode (the app's default on most iPhones at night), Chromium in light.
+  const ctx = await browser.newContext({ ...PHONE, colorScheme: engine === "webkit" ? "dark" : "light" });
   await ctx.addInitScript(INIT);
   const page = await ctx.newPage();
   const state = { engine, who, job: "", step: "", shot: "", fake: null };
@@ -76,7 +77,8 @@ async function person(browser, engine, who, { throttle = false } = {}) {
   await ctx.route("**/api/sheets", async (route) => {
     const req = route.request();
     if (req.method() !== "POST" || !state.fake) return route.continue();
-    const b = JSON.parse(req.postData() || "{}");
+    const raw = req.postDataBuffer() ?? Buffer.from(req.postData() || "{}");
+    const b = JSON.parse(raw.toString("utf8") || "{}");
     const m = String(b.image || "").match(/^data:(image\/[a-z]+);base64,(.+)$/);
     if (!m) return route.continue();
     const bytes = Buffer.concat([Buffer.from(m[2], "base64"), Buffer.from("LATEICE_FAKE:" + JSON.stringify(state.fake))]);
@@ -412,6 +414,7 @@ async function week(browser, engine, pairIdx) {
     await t.type(page.getByTestId("input-manual-home-score"), "4");
     await t.type(page.getByTestId("input-manual-away-score"), "1");
     await t.type(page.getByTestId("input-manual-home-numbers"), team.roster.slice(0, 8).map((p) => p.number).join(" "));
+    await t.type(page.getByTestId("input-manual-away-numbers"), SEED.pairs[(pairIdx + 2) % 4].home.roster.slice(0, 8).map((p) => p.number).join(" "));
     await t.tap(page.getByTestId("button-manual-save"), "by-hand-saved");
     if (await page.getByTestId("text-manual-error").count()) t.note(`manual error: ${await page.getByTestId("text-manual-error").innerText()}`);
     pl.state.fake = null;
@@ -433,8 +436,15 @@ async function week(browser, engine, pairIdx) {
     const page = pl.page;
     await t.tap(page.getByTestId("nav-players"), "players");
     if (await page.getByTestId("button-player-search").count()) await t.tap(page.getByTestId("button-player-search"));
-    await t.type(page.getByTestId("input-player-search"), opp.roster[2].name.split(" ")[1]);
-    await settle(page); await t.step("search");
+    const [first, last] = opp.roster[2].name.split(" ");
+    await t.type(page.getByTestId("input-player-search"), last);
+    await settle(page); await t.step("search-surname");
+    if (!(await page.locator('[data-testid^="row-player-"]').count())) {
+      const empty = (await page.locator("main").innerText()).replace(/\s+/g, " ");
+      t.check(false, "moderate", "surname search finds nothing", `Searching "${last}" (a rostered player) finds no one; screen says "${empty.slice(empty.indexOf("No "), empty.indexOf("No ") + 40)}"`);
+      await t.type(page.getByTestId("input-player-search"), first);
+      await settle(page); await t.step("search-first-name");
+    }
     await t.tap(page.locator('[data-testid^="row-player-"]'), "player");
   });
 
@@ -495,11 +505,15 @@ async function week(browser, engine, pairIdx) {
 
   // 15. Leaving: delete the account.
   const gone = await person(browser, engine, "leaver");
-  await job(gone, "delete-account", "Delete my account", "I'm done with it; take my name off.", { taps: 5, human: 40 }, async (t) => {
+  await job(gone, "leaver-signup", "Leaver signs up (setup for the delete job)", "Setup only.", {}, async (t) => {
     const page = gone.page;
     await page.goto(BASE + "/join"); await t.step("join");
     await emailCode(t, page, `leaver.${engine}@example.com`);
     await profile(t, page, "Dana Leaving", "44", "D");
+  });
+  await job(gone, "delete-account", "Delete my account", "I'm done with it; take my name off.", { taps: 3, human: 15 }, async (t) => {
+    const page = gone.page;
+    await page.goto(BASE + "/me"); await t.step("me");
     await t.tap(page.getByTestId("link-settings"), "settings");
     await t.tap(page.getByTestId("button-delete-account"), "deleted");
     const r = await page.evaluate(async () => (await fetch("/api/me", { headers: { authorization: "Bearer " + (JSON.parse(localStorage.getItem(Object.keys(localStorage).find((k) => k === "lateice.auth" || /-auth-token$/.test(k)) || "null") || "{}").access_token || "") } })).status);

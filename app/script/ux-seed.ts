@@ -120,7 +120,14 @@ async function main() {
   }
 
   // Tonight: every pair plays 100 minutes from now, then the same pairs in one and two weeks.
-  const tonight = new Date(now + 100 * 60000);
+  // "Tonight" in rink time: 9:15 PM if that's still ahead, else 40 minutes from now, never past 11:55 PM.
+  const etNow = new Date(new Date(now).toLocaleString("en-US", { timeZone: TZ }));
+  const offset = now - etNow.getTime();
+  const at915 = new Date(etNow); at915.setHours(21, 15, 0, 0);
+  const at2355 = new Date(etNow); at2355.setHours(23, 55, 0, 0);
+  let etGame = at915.getTime() > etNow.getTime() + 40 * 60000 ? at915.getTime() : Math.min(etNow.getTime() + 40 * 60000, at2355.getTime());
+  if (etGame < etNow.getTime() + 12 * 60000) etGame = etNow.getTime() + 40 * 60000;
+  const tonight = new Date(etGame + offset);
   for (let w = 0; w < 3; w++) {
     const at = new Date(tonight.getTime() + w * 7 * 86400000);
     for (const [hn, an] of PAIRS) {
@@ -140,7 +147,7 @@ async function main() {
     return {
       home: { id: home, name: hn, roster: hr.map((p) => ({ id: p.id, number: p.num, name: p.name, goalie: p.g })) },
       away: { id: away, name: an, roster: ar.map((p) => ({ id: p.id, number: p.num, name: p.name, goalie: p.g })) },
-      captain: sk[0], player: sk[1],
+      captain: { id: sk[0].id, number: sk[0].num, name: sk[0].name }, player: { id: sk[1].id, number: sk[1].num, name: sk[1].name },
     };
   });
   mkdirSync("audit", { recursive: true });
