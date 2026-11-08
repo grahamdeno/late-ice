@@ -50,7 +50,9 @@ export const GET = handle(async (req) => {
   const staff = roles.some((r) => ["scorekeeper", "commissioner", "rink_manager", "support", "admin"].includes(r.role));
   const notifications = await q(sql, "SELECT * FROM notifications WHERE user_id=$1 ORDER BY id DESC LIMIT 30", [u.id]);
   const unread = (await one<any>(sql, "SELECT COUNT(*) c FROM notifications WHERE user_id=$1 AND read_at IS NULL", [u.id]))!.c;
-  return { imageKey: imageKey(u.id), subRequests: await subRequestsFor(sql, u.id), user: await A.publicUser(sql, u), slots, captainTeams, notifications, unread, suggestions: await A.suggestionsFor(sql, u), roles, staff, handoffs };
+  const invitedTeam = u.invited_team_id && !slots.some((s) => s.team_id === u.invited_team_id)
+    ? await one<any>(sql, "SELECT id, name FROM teams WHERE id=$1", [u.invited_team_id]) : null;
+  return { imageKey: imageKey(u.id), invitedTeam: invitedTeam ?? null, subRequests: await subRequestsFor(sql, u.id), user: await A.publicUser(sql, u), slots, captainTeams, notifications, unread, suggestions: await A.suggestionsFor(sql, u), roles, staff, handoffs };
 });
 
 export const PATCH = handle(async (req) => {
@@ -90,6 +92,8 @@ export const PATCH = handle(async (req) => {
     if (avatar !== undefined) await q(tx, "UPDATE users SET avatar=$1::text::jsonb WHERE id=$2", [avatar ? JSON.stringify(avatar) : null, u.id]);
     if (next.position && next.position !== u.position) await q(tx, "UPDATE players SET position=$1 WHERE user_id=$2", [next.position, u.id]);
     for (const p of await q<{ id: number }>(tx, "SELECT id FROM players WHERE user_id=$1", [u.id])) await A.refreshDisplay(tx, p.id);
+    // Came in through a captain's invite: finishing the profile puts them on that roster.
+    if (touchingProfile) await A.seatInvited(tx, u.id);
     return one(tx, "SELECT * FROM users WHERE id=$1", [u.id]);
   });
   return { user: await A.publicUser(sql, saved) };

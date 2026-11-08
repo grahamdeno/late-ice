@@ -499,20 +499,46 @@ export async function suggestionsFor(db: Tx, u: any) {
     `SELECT p.id, p.name, p.display_name, p.rating, re.number, t.id team_id, t.name team_name, t.color, t.logo, l.level
      FROM roster_entries re JOIN players p ON p.id=re.player_id JOIN teams t ON t.id=re.team_id JOIN leagues l ON l.id=t.league_id
      WHERE p.user_id IS NULL AND l.rink_id=$1 AND l.level NOT IN ('DEMO','TOURN')`, [u.home_rink_id]);
-  const first = (s: string) => (s.trim().split(/\s+/)[0] || "").replace(/[^a-z]/gi, "").toLowerCase();
-  const lastInit = (s: string) => { const t = s.trim().split(/\s+/); return t.length > 1 ? t[t.length - 1][0]?.toLowerCase() : ""; };
   return rows
-    .map((r) => {
-      let score = similarity(u.name, r.name);
-      // "Graham DeNoyer" vs a posted "Graham D.": same first name and last initial is a strong hint.
-      if (first(u.name) && first(u.name) === first(r.name) && lastInit(u.name) && lastInit(u.name) === lastInit(r.name)) score = Math.max(score, 0.8);
-      if (u.number && r.number && u.number === r.number) score += 0.2;
-      return { ...r, score };
-    })
-    .filter((r) => (strictOnly ? r.score >= 0.95 && !myTeams.includes(r.team_id) && !!u.number && r.number === u.number : r.score >= 0.6))
+    .filter((r) => isFullNameMatch(u.name, r.name))
+    .map((r) => ({ ...r, score: 1 + (u.number && r.number && u.number === r.number ? 0.2 : 0) }))
+    .filter((r) => (strictOnly ? !myTeams.includes(r.team_id) && !!u.number && r.number === u.number : true))
     .sort((a, b) => b.score - a.score)
     .slice(0, strictOnly ? 2 : 5)
     .map(({ name: _real, display_name, ...r }) => ({ ...r, name: display_name }));
+}
+
+/** Same first name and the same full last name. A posted "Graham D." never matches: a shared last initial isn't a match. */
+export function isFullNameMatch(mine: string, posted: string) {
+  const parts = (s: string) => s.trim().split(/\s+/).map((x) => x.replace(/[^a-z]/gi, "").toLowerCase()).filter(Boolean);
+  const a = parts(mine), b = parts(posted);
+  if (a.length < 2 || b.length < 2) return false;
+  const lastA = a[a.length - 1], lastB = b[b.length - 1];
+  if (lastB.length < 2 || lastA.length < 2) return false;
+  return a[0] === b[0] && (lastA === lastB || similarity(lastA, lastB) >= 0.85);
+}
+
+/** Someone who joined through a team's invite link goes straight onto that roster, unless a spot with their full name is
+ *  already waiting there (then "Is this you?" offers it, so nobody ends up on the roster twice). Runs once per person and team. */
+export async function seatInvited(db: Tx, userId: number) {
+  const u = await one<any>(db, "SELECT * FROM users WHERE id=$1", [userId]);
+  if (!u?.invited_team_id || !u.name || !u.position || u.access === "removed") return null;
+  const teamId = u.invited_team_id as number;
+  if (await onTeam(db, u.id, teamId)) return null;
+  if (await one(db, "SELECT 1 FROM roster_actions WHERE team_id=$1 AND target_user_id=$2 AND action='invite_join'", [teamId, u.id])) return null;
+  const t = await one<any>(db, "SELECT t.*, l.level, l.rink_id FROM teams t JOIN leagues l ON l.id=t.league_id WHERE t.id=$1", [teamId]);
+  if (!t) return null;
+  const open = await q<any>(db, "SELECT p.name FROM roster_entries re JOIN players p ON p.id=re.player_id WHERE re.team_id=$1 AND p.user_id IS NULL", [teamId]);
+  if (open.some((r) => isFullNameMatch(u.name, r.name))) return null;
+  let number = cleanNumber(u.number);
+  if (number && (await one(db, "SELECT 1 FROM roster_entries WHERE team_id=$1 AND number=$2", [teamId, number]))) number = null;
+  const pid = await slotForUser(db, u, t.level);
+  await q(db, "INSERT INTO roster_entries (team_id,player_id,number,source,added_at) VALUES ($1,$2,$3,'draft',now())", [teamId, pid, number]);
+  await refreshDisplay(db, pid);
+  await logAction(db, teamId, null, "invite_join", pid, u.id, { number });
+  const cap = await captainOf(db, teamId);
+  if (cap && cap.id !== u.id) await notify(db, cap.id, { kind: "invite", teamId, playerId: pid, link: `/team/${teamId}`, title: `${u.name} is on ${t.name}`, body: number ? `They joined from your invite as #${number}.` : "They joined from your invite. Set their number if it's taken." });
+  return pid;
 }
 
 /** Manual find: unclaimed spots anywhere by name, for a second team or a sub spot. */

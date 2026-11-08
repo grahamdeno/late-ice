@@ -141,13 +141,15 @@ export default function Join() {
       </h1>
       <p className="text-sm text-[var(--mute)] mt-3">
         {step === "profile"
-          ? "Registering puts you in the draft pool at your home rink. Your captain pulls you onto the team, or you claim the spot the scoresheet already made for you."
+          ? invite?.team
+            ? `Finish your profile and you're on ${invite.team}. If a scoresheet already has your name, you can claim that spot instead.`
+            : "Registering puts you in the draft pool at your home rink. Your captain pulls you onto the team, or you claim the spot the scoresheet already made for you."
           : "Sign in with your email. We send a six-digit code. No password."}
       </p>
 
       {invite && (
         <div className="card mt-4 p-3.5 text-sm border-[var(--up)]/40" data-testid="card-invite-banner">
-          {invite.team ? <>You're invited to join <b>{invite.team}</b> ({invite.league}, {invite.rink}). Sign in and you're in.</> : <>You've been invited to a team on Late Ice. Sign in to see which one, and you're in.</>}
+          {invite.team ? <>You're invited to join <b>{invite.team}</b>{invite.league ? ` (${invite.league}, ${invite.rink})` : ""}. Sign in and you're in.</> : <>You've been invited to a team on Late Ice. Sign in to see which one, and you're in.</>}
         </div>
       )}
       {!invite && step === "email" && (
@@ -184,7 +186,7 @@ export default function Join() {
         </form>
       )}
 
-      {step === "profile" && <ProfileForm onDone={() => swap("/me")} />}
+      {step === "profile" && <ProfileForm onDone={() => swap("/me")} submitLabel={invite?.team ? `Join ${invite.team}` : undefined} />}
     </div>
   );
 }

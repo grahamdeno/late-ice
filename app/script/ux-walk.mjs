@@ -171,6 +171,8 @@ async function shot(p, j, label) {
   });
   let axe = [];
   try {
+    // Buttons fade their background for 150 ms after a theme switch; check the settled colors, not the blend.
+    await page.waitForTimeout(400);
     await page.addScriptTag({ content: AXE });
     axe = await page.evaluate(async () => (await window.axe.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] }, resultTypes: ["violations"] }))
       .violations.map((v) => ({ id: v.id, impact: v.impact, help: v.help, nodes: v.nodes.slice(0, 3).map((n) => n.target.join(" ")), count: v.nodes.length })));
@@ -373,9 +375,9 @@ async function week(browser, engine, pairIdx) {
   await job(cap, "captain-confirm", "Captain confirms the sheet", "Phone buzzes on the drive home: check it, confirm.", { taps: 3, human: 20 }, async (t) => {
     const page = cap.page;
     await page.goto(BASE + "/"); await t.step("home");
-    const pending = page.locator(`[data-testid="link-pending-${sheetId}"]`);
+    const pending = page.locator(`[data-testid="link-waiting-${sheetId}"], [data-testid="link-pending-${sheetId}"]`);
     const dot = await page.locator('[data-testid="nav-me"] .rounded-full.bg-\\[var\\(--red\\)\\]').count();
-    t.note(`Home pending card: ${await pending.count() ? "yes" : "no"}; unread dot on Me: ${dot ? "yes" : "no"}`);
+    t.note(`Home waiting card: ${await pending.count() ? "yes" : "no"}; unread dot on Me: ${dot ? "yes" : "no"}`);
     if (await pending.count()) await t.tap(pending);
     else {
       t.check(false, "moderate", "waiting sheet hard to find", "Home does not show the sheet waiting for the captain");

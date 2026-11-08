@@ -1,6 +1,7 @@
 import { handle, body } from "@/server/http";
 import { sql, q, one } from "@/server/db";
 import { HttpError } from "@/server/services";
+import * as A from "@/server/accounts";
 import { requireUser, notify, captainOf, isApproved } from "@/server/accounts";
 import { SUPPORT_EMAIL } from "@/lib/contact";
 
@@ -21,8 +22,9 @@ export const POST = handle(async (req) => {
     if (!already) {
       await q(tx, "UPDATE team_invites SET uses=uses+1 WHERE token=$1", [i.token]);
       const cap = await captainOf(tx, i.team_id);
-      if (cap && cap.id !== u.id) await notify(tx, cap.id, { kind: "invite", teamId: i.team_id, link: `/team/${i.team_id}`, title: `${u.name ?? u.email} joined from your invite`, body: "Match them to their roster spot, or draft them." });
+      if (cap && cap.id !== u.id) await notify(tx, cap.id, { kind: "invite", teamId: i.team_id, link: `/team/${i.team_id}`, title: `${u.name ?? u.email} joined from your invite`, body: "They go on your roster once their profile is done. Check their number." });
     }
+    await A.seatInvited(tx, u.id);
     return { teamId: i.team_id, team: i.team, newlyApproved: !already };
   });
 });
