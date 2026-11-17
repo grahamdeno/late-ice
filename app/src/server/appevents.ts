@@ -2,7 +2,7 @@ import "server-only";
 import { q, type Tx } from "./db";
 
 /** Product loop log. Ids only: no sheet text, photos, or credentials. */
-export async function logEvent(db: Tx, e: { userId: number; kind: "scan" | "confirm" | "rsvp" | "app_open"; teamId?: number | null; gameId?: number | null }) {
+export async function logEvent(db: Tx, e: { userId: number; kind: "scan" | "confirm" | "rsvp" | "app_open" | "wrapped_open" | "wrapped_share" | "rollcall_answer" | "dues_paid_tap"; teamId?: number | null; gameId?: number | null }) {
   if (!e.userId) return;
   // app_open is once per user per UTC day. The partial unique index makes concurrent calls safe.
   if (e.kind === "app_open") {

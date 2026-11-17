@@ -93,3 +93,17 @@ export function shareKeyValid(gameId: number, key: string | null | undefined) {
   const want = Buffer.from(shareKey(gameId)), got = Buffer.from(String(key));
   return want.length === got.length && timingSafeEqual(want, got);
 }
+
+/**
+ * A shared Season Wrapped link: opens one player's recap (or the team wrap, playerId 0), signed out, and nothing else.
+ * Built like the game share key: a keyed hash of what it opens, no expiry, no lookup table. The key for one recap
+ * does not open another player's recap, another season, or a game.
+ */
+export function wrapShareKey(teamId: number, seasonId: number, playerId: number) {
+  return createHmac("sha256", secret()).update(`wrap-share.${teamId}.${seasonId}.${playerId}`).digest("base64url").slice(0, 22);
+}
+export function wrapShareKeyValid(teamId: number, seasonId: number, playerId: number, key: string | null | undefined) {
+  if (!key) return false;
+  const want = Buffer.from(wrapShareKey(teamId, seasonId, playerId)), got = Buffer.from(String(key));
+  return want.length === got.length && timingSafeEqual(want, got);
+}

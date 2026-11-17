@@ -4,6 +4,7 @@ import { Link } from "@/lib/router";
 import { useMe, type MeSlot } from "@/lib/auth";
 import { GameLine, Rsvp } from "@/components/Schedule";
 import { GameDetails, GoalieNudge, Scout, SharpenCard } from "@/components/GameNight";
+import { WrappedHomeCards } from "@/components/WrappedBits";
 import { Delta, Empty, FaceoffDot, GameRow, HomeFeedSkeleton, More, Section, TeamBadge, fmtDate, fmtRating, useFilter, type GameCard } from "@/lib/ui";
 
 type Waiting = { id: number; submitted_at: string; teams: string };
@@ -34,6 +35,8 @@ export default function Home() {
     <div>
       <div className="label">{place}</div>
       <h1 className="text-[28px] leading-tight font-black mt-1" data-testid="text-home-title">{title}</h1>
+
+      <WrappedHomeCards />
 
       {waiting.map((w) => (
         <Link key={w.id} href={`/sheet/${w.id}`} className="card mt-4 p-3 min-h-[56px] flex items-center gap-3" data-testid={`link-waiting-${w.id}`}>

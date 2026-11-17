@@ -5,6 +5,7 @@ import { Link, canGoBack, useBack } from "@/lib/router";
 import { useMe, act, STATUS_LABEL, POSITION_LABEL } from "@/lib/auth";
 import { apiRequest } from "@/lib/queryClient";
 import { Loading, More, Section, TeamBadge, fmtRating } from "@/lib/ui";
+import { WrapSeasonTeam } from "@/components/WrappedBits";
 
 const COLORS = ["#EF4444", "#F97316", "#F5B301", "#22C55E", "#14B8A6", "#3B82F6", "#8B5CF6", "#EC4899", "#A3A3A3", "#F8FAFC"];
 const ACTION_TEXT: Record<string, string> = {
@@ -82,6 +83,8 @@ export default function ManageTeam({ id }: { id: string }) {
         )}
         </div>
       </More>
+
+      <WrapSeasonTeam teamId={teamId} />
 
       {isCaptain && (
         <More title="Leadership" hint="Assistant captains and handing off the captaincy" testid="button-more-leadership"><div className="p-3">
