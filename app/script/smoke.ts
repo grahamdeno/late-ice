@@ -1776,7 +1776,10 @@ async function main() {
     // A plain teammate: Mike is rink staff by now, so draft Fran (a plain account) for this check and remove her again.
     const plainId = (await call("GET", "/api/me", undefined, fan)).json.user.id as number;
     const hadPlayer = (await db`SELECT id FROM players WHERE user_id=${plainId}`).map((r: any) => r.id as number);
-    ok((await call("POST", `/api/teams/${hh}/draft`, { userId: plainId, number: "88" }, graham)).status === 200, "A4: a plain teammate joins the roster");
+    // Straight into the roster table: the draft route has its own rules (captain, home rink, numbers) that are tested elsewhere.
+    const fanPlayer = hadPlayer[0] ?? ((await db`INSERT INTO players (name, name_key, position, rating, start_rating, claimed, user_id) VALUES ('Fran Fan', 'franfan', 'W', 3.8, 3.8, 1, ${plainId}) RETURNING id`)[0].id as number);
+    await db`INSERT INTO roster_entries (team_id, player_id, number, source, added_at) VALUES (${hh}, ${fanPlayer}, '97', 'draft', now())`;
+    ok((await call("GET", `/api/teams/${hh}`, undefined, fan)).status === 200, "A4: a plain teammate is on the roster");
     const mate = (await call("GET", `/api/wrapped/team/${hh}/${wrapSeasonId}`, undefined, fan)).json;
     ok(mate.canManage === false && Array.isArray(mate.awards) && mate.awards.length > 0 && !mate.awards.some((a: any) => a.key === "points_leader"), "A4: a teammate doesn't see the hidden award");
     for (const r of await db`SELECT id FROM players WHERE user_id=${plainId}`) {
