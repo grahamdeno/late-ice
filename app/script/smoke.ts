@@ -1671,6 +1671,122 @@ async function main() {
     if (other) ok((await call("GET", `/api/games/${other.id}?s=${full.shareKey}`)).status === 401, "one game's key doesn't open another game");
     ok((await call("GET", `/api/teams/${hh}?s=${full.shareKey}`)).status === 401, "and doesn't open the team page");
   }
+  {
+    // Fall Wrap A, Season Wrapped (A1 to A5).
+    console.log("season wrapped");
+    const blW = (await db`SELECT id FROM teams WHERE name='Blue Liners'`)[0].id as number;
+    const wrapSeasonId = (await db`SELECT s.id FROM games g JOIN seasons s ON s.id=g.season_id WHERE (g.home_team_id=${hh} OR g.away_team_id=${hh}) AND g.event_id IS NULL ORDER BY s.starts_on DESC LIMIT 1`)[0]?.id as number | undefined
+      ?? seasonId;
+    const mtUser = (await call("GET", "/api/me", undefined, mt)).json.user.id as number;
+    await db`UPDATE players SET user_id=${mtUser} WHERE id=${mike}`;
+    const wrapGames: number[] = [];
+    for (let i = 0; i < 4; i++) {
+      const [g] = await db`INSERT INTO games (league_id, season_id, home_team_id, away_team_id, played_on, start_time, home_score, away_score, source)
+        VALUES (${lg}, ${wrapSeasonId}, ${hh}, ${blW}, ${"2026-10-" + String(20 + i)}, ${i === 3 ? "11:15 PM" : "9:00 PM"}, 4, 2, 'sheet') RETURNING id`;
+      wrapGames.push(g.id as number);
+      await db`INSERT INTO player_game_stats (game_id, player_id, team_id, number, goals, assists) VALUES (${g.id}, ${mike}, ${hh}, '44', ${i === 1 ? 3 : 0}, ${i === 1 ? 2 : 1})`;
+    }
+
+    // A5: who can press "Wrap the season".
+    ok((await call("POST", "/api/wrapped/season", { teamId: hh })).status === 401, "A5: signed out, Wrap the season is refused");
+    ok((await call("POST", "/api/wrapped/season", { teamId: hh }, outsider)).status === 403, "A5: someone outside the team can't wrap it");
+    const denied = await call("POST", "/api/wrapped/season", { teamId: hh }, sam);
+    ok(denied.status === 403 && /Only the captain or rink staff can wrap the season\./.test(denied.json?.message ?? denied.text), "A5: a plain assistant gets the friendly refusal");
+    ok((await call("GET", "/api/wrapped", undefined, graham)).json.wraps.every((w: any) => w.teamId !== hh), "A1: nothing opens before the last scheduled game has a result");
+    const wrapped = await call("POST", "/api/wrapped/season", { teamId: hh }, graham);
+    ok(wrapped.status === 200 && wrapped.json.opened === 1, "A5: the captain wraps the season");
+    const again = await call("POST", "/api/wrapped/season", { teamId: hh }, graham);
+    ok(again.status === 200 && again.json.opened === 0 && again.json.alreadyOpen === 1, "A5: pressing it twice changes nothing");
+    ok((await db`SELECT 1 FROM audit_log WHERE action='season.wrap' AND target_id=${hh}`).length === 1, "A5: one audit row, written once");
+    ok((await call("POST", "/api/wrapped/season", { leagueId: lg }, graham)).status === 403, "A5: a captain can't wrap a whole league");
+    ok([200, 409].includes((await call("POST", "/api/wrapped/season", { leagueId: lg }, boss)).status), "A5: rink staff can wrap a league");
+    const mtNotes = await db`SELECT 1 FROM notifications WHERE user_id=${mtUser} AND kind='wrapped' AND link=${`/wrapped/${hh}/${wrapSeasonId}`}`;
+    ok(mtNotes.length === 1, "A1: each player gets one notice, once");
+
+    // A1: it shows up on Home, and the numbers are never stored.
+    const list = (await call("GET", "/api/wrapped", undefined, mt)).json.wraps;
+    const mine = list.find((w: any) => w.teamId === hh);
+    ok(mine && mine.seasonId === wrapSeasonId && mine.home === true, "A1: the wrap is listed for the player and on Home");
+    ok((await call("GET", "/api/wrapped")).status === 401, "A1: signed out, the list is refused");
+
+    // A2: cards only with real data, card 9 held for Handoff B.
+    const rc = await call("GET", `/api/wrapped/recap/${hh}/${wrapSeasonId}`, undefined, mt);
+    const kinds = rc.json.cards.map((c: any) => c.kind);
+    ok(rc.status === 200 && kinds[0] === "cover" && kinds.includes("showed_up") && kinds.includes("scoring") && kinds.at(-1) === "team", `A2: a full season shows its cards (${kinds.join(", ")})`);
+    ok(!kinds.includes("rollcall"), "A2: card 9 stays empty until Handoff B");
+    ok(rc.json.cards.find((c: any) => c.kind === "showed_up").lines.join(" ").includes("11:15 pm on Oct 23"), "A2: the latest puck drop is named");
+    ok(rc.json.alts.length === rc.json.cards.length && rc.json.alts.every((a: string) => a.length > 10), "A3: every card has alt text");
+    const [lateGame] = await db`INSERT INTO games (league_id, season_id, home_team_id, away_team_id, played_on, home_score, away_score, source) VALUES (${lg}, ${wrapSeasonId}, ${hh}, ${blW}, '2026-10-30', 1, 0, 'sheet') RETURNING id`;
+    wrapGames.push(lateGame.id as number);
+    const updated = await call("GET", `/api/wrapped/recap/${hh}/${wrapSeasonId}`, undefined, mt);
+    ok(typeof updated.json.updatedOn === "string" && updated.json.updatedOn.length >= 10, "A1: a sheet added after it opened shows as Updated");
+    const grahamPlayer = (await db`SELECT p.id FROM players p JOIN roster_entries re ON re.player_id=p.id WHERE p.user_id=${(await call("GET", "/api/me", undefined, graham)).json.user.id} AND re.team_id=${hh} LIMIT 1`)[0]?.id as number;
+    const small = await call("GET", `/api/wrapped/recap/${hh}/${wrapSeasonId}`, undefined, graham);
+    ok(small.status === 200 && small.json.cards[0].kind === "cover", "A2: the captain's own recap opens");
+    ok((await call("GET", `/api/wrapped/recap/${hh}/${wrapSeasonId}?p=${mike}`, undefined, graham)).status === 403, "A3: a teammate can't open another player's recap without their link");
+    ok((await call("GET", `/api/wrapped/recap/${hh}/${wrapSeasonId}`, undefined, outsider)).status === 403, "A3: someone off the roster is refused");
+
+    // A3: a signed-out share link shows only that recap.
+    const sharePost = await call("POST", `/api/wrapped/recap/${hh}/${wrapSeasonId}/share`, undefined, mt);
+    ok(sharePost.status === 200 && /p=\d+&s=/.test(sharePost.json.path), "A3: the player gets a share link");
+    const qs = sharePost.json.path.slice(sharePost.json.path.indexOf("?") + 1);
+    const sp = new URLSearchParams(qs);
+    const pub = await call("GET", `/api/wrapped/recap/${hh}/${wrapSeasonId}?p=${sp.get("p")}&s=${sp.get("s")}`);
+    ok(pub.status === 200 && pub.json.mode === "shared", "A3: the share link opens the recap signed out");
+    const otherNames = (await db`SELECT name FROM teams WHERE id NOT IN (${hh}) UNION SELECT name FROM leagues WHERE id <> ${lg} UNION SELECT name FROM rinks WHERE id <> (SELECT rink_id FROM leagues WHERE id=${lg})`).map((r: any) => String(r.name)).filter((n) => n.length > 3);
+    // Another league can share the team's own league name (for example "C League"); that name is allowed.
+    const ownNames = new Set((await db`SELECT t.name AS a, l.name AS b, r.name AS c FROM teams t JOIN leagues l ON l.id=t.league_id JOIN rinks r ON r.id=l.rink_id WHERE t.id=${hh}`).flatMap((r: any) => [r.a, r.b, r.c].map(String)));
+    const leaked = otherNames.filter((n) => !ownNames.has(n) && pub.text.includes(n));
+    ok(otherNames.length > 0 && leaked.length === 0, `A3: the shared recap names no other real team, league or rink (leaked: ${leaked.join(" | ") || "none"})`);
+    ok(!pub.text.includes("Blue Liners") && !pub.text.includes("Tolliver") && !pub.text.includes("Mike "), "A3: no opponent name and no full name signed out");
+    ok(pub.json.cards.every((c: any) => c.kind !== "rollcall"), "A3: nothing from Handoff B appears");
+    ok((await call("GET", `/api/wrapped/recap/${hh}/${wrapSeasonId}?p=${sp.get("p")}&s=not-the-key`)).status === 401, "A3: a wrong key opens nothing");
+    ok((await call("GET", `/api/wrapped/recap/${hh}/${wrapSeasonId}?p=${grahamPlayer}&s=${sp.get("s")}`)).status === 401, "A3: one player's key doesn't open another player's recap");
+    ok((await call("GET", `/api/wrapped/team/${hh}/${wrapSeasonId}?s=${sp.get("s")}`)).status === 401, "A3: a recap key doesn't open the team wrap");
+    const gKey = (await call("GET", `/api/games/${shareGameId!}`, undefined, graham)).json.shareKey;
+    ok((await call("GET", `/api/wrapped/recap/${hh}/${wrapSeasonId}?p=${sp.get("p")}&s=${gKey}`)).status === 401, "A3: a game link doesn't open a recap");
+    const pic = await fetch(`${BASE}/api/cards/wrapped/${hh}/${wrapSeasonId}?card=cover&p=${sp.get("p")}&s=${sp.get("s")}&format=story`);
+    ok(pic.status === 200 && (pic.headers.get("content-type") ?? "").includes("image/png") && !!pic.headers.get("x-card-alt"), "A3: the picture renders with alt text");
+    ok((await fetch(`${BASE}/api/cards/wrapped/${hh}/${wrapSeasonId}?card=cover&p=${sp.get("p")}`)).status === 401, "A3: the picture needs the key when signed out");
+
+    // A3: a hidden name never shows on another player's card or image.
+    ok((await call("PATCH", "/api/me", { hidden: true }, mt)).status === 200, "Mike hides himself");
+    const seen = await call("GET", `/api/wrapped/recap/${hh}/${wrapSeasonId}`, undefined, graham);
+    ok(seen.status === 200, "Graham's own recap still loads");
+    const grahamTeam = await call("GET", `/api/wrapped/team/${hh}/${wrapSeasonId}`, undefined, graham);
+    const pubHidden = await call("GET", `/api/wrapped/recap/${hh}/${wrapSeasonId}?p=${sp.get("p")}&s=${sp.get("s")}`);
+    const teamShare = await call("POST", `/api/wrapped/team/${hh}/${wrapSeasonId}/share`, undefined, graham);
+    const tq = new URLSearchParams(String(teamShare.json?.path ?? "").split("?")[1] ?? "");
+    const pubTeam = await call("GET", `/api/wrapped/team/${hh}/${wrapSeasonId}?s=${tq.get("s")}`);
+    const teamPic = await fetch(`${BASE}/api/cards/wrapped/${hh}/${wrapSeasonId}?team=1&s=${tq.get("s")}&format=story`);
+    const picAlt = decodeURIComponent(teamPic.headers.get("x-card-alt") ?? "");
+    for (const [label, text] of [["Graham's recap", seen.text], ["the team wrap", grahamTeam.text], ["the shared recap", pubHidden.text], ["the shared team wrap", pubTeam.text], ["the team picture alt text", picAlt]] as const) {
+      ok(!/Tolliver/.test(text) && !/Mike\b/.test(text), `A3: hidden Mike's name is not in ${label}`);
+    }
+    ok(grahamTeam.text.includes("Player #44"), "A3: the hidden player appears only as a number");
+    ok((await call("PATCH", "/api/me", { hidden: false }, mt)).status === 200, "Mike shows himself again");
+
+    // A4: the captain hides an award; teammates and signed-out viewers don't see it.
+    ok((await call("PUT", `/api/wrapped/team/${hh}/${wrapSeasonId}`, { hiddenAwards: ["points_leader", "nope"] }, outsider)).status === 403, "A4: only managers change which awards show");
+    ok((await call("PUT", `/api/wrapped/team/${hh}/${wrapSeasonId}`, { hiddenAwards: ["points_leader", "nope"] }, graham)).status === 200, "A4: the captain hides the points leader");
+    const mgr = (await call("GET", `/api/wrapped/team/${hh}/${wrapSeasonId}`, undefined, graham)).json;
+    ok(mgr.awards.some((a: any) => a.key === "points_leader" && a.hidden === true), "A4: the captain still sees it, marked hidden");
+    const asMgr = (await call("GET", `/api/wrapped/team/${hh}/${wrapSeasonId}`, undefined, mt)).json;
+    ok(asMgr.canManage === true && asMgr.awards.some((a: any) => a.key === "points_leader" && a.hidden === true), "A4: a rink manager sees it, marked hidden");
+    // A plain teammate: Mike is rink staff by now. Fran is already on the roster with no manager role.
+    const mate = (await call("GET", `/api/wrapped/team/${hh}/${wrapSeasonId}`, undefined, fan)).json;
+    ok(mate.canManage === false && Array.isArray(mate.awards) && mate.awards.length > 0 && !mate.awards.some((a: any) => a.key === "points_leader"), "A4: a teammate doesn't see the hidden award");
+    const teamShare2 = await call("POST", `/api/wrapped/team/${hh}/${wrapSeasonId}/share`, undefined, graham);
+    const tq2 = new URLSearchParams(String(teamShare2.json?.path ?? "").split("?")[1] ?? "");
+    const pubTeam2 = await call("GET", `/api/wrapped/team/${hh}/${wrapSeasonId}?s=${tq2.get("s")}`);
+    ok(pubTeam2.status === 200 && !pubTeam2.text.includes("Blue Liners") && !pubTeam2.json.awards.some((a: any) => a.key === "points_leader"), "A4: signed out, the hidden award is gone");
+    ok((await call("GET", `/api/wrapped/team/${hh}/${wrapSeasonId}`)).status === 401, "A4: signed out with no key is refused");
+
+    // Clean up so later checks see the original data.
+    await db`DELETE FROM season_wraps WHERE team_id=${hh}`;
+    await db`DELETE FROM player_game_stats WHERE game_id IN ${db(wrapGames)}`;
+    await db`DELETE FROM games WHERE id IN ${db(wrapGames)}`;
+  }
   ok((await call("GET", `/api/standings?rink=${rid}`)).json.rinkId === sampleRink.id, "signed out, standings fall back to the sample rink");
   ok((await call("GET", "/api/sheets")).status === 401, "signed out, the scoresheet list is refused");
   ok((await fetch(`${BASE}/api/cards/game/${conf.json.gameId}`)).status === 401, "signed out, a real game's share card is refused");

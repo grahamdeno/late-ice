@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@/lib/router";
 import { BackBar, Loading, fmtDate } from "@/lib/ui";
 import { ShareCard } from "@/components/ShareCard";
+import { WrappedCareerLinks } from "@/components/WrappedBits";
 
 /** A player's whole run: seasons, rating over time, milestones, and goalie numbers for goalies. */
 export function CareerPage({ id }: { id: string }) {
@@ -25,6 +26,8 @@ export function CareerPage({ id }: { id: string }) {
           ))}
         </div>
       </div>
+
+      <WrappedCareerLinks playerId={player.id} />
 
       {rating.series.length > 1 && (
         <>

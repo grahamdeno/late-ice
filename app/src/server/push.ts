@@ -10,6 +10,7 @@ export type PushKind = (typeof PUSH_KINDS)[number];
 const PUSH_BY_NOTICE: Record<string, PushKind> = {
   game_day: "game_day",
   result: "result",
+  wrapped: "result",
   sub: "sub_request",
   draft: "roster",
   match: "roster",

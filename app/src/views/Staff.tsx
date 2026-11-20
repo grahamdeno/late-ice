@@ -5,6 +5,7 @@ import { Link, useLocation } from "@/lib/router";
 import { useMe, act, ROLE_LABEL } from "@/lib/auth";
 import { apiRequest, invalidatePrefixes } from "@/lib/queryClient";
 import { BackBar, Empty, LevelPill, Loading, Section, TeamBadge } from "@/lib/ui";
+import { WrapSeasonLeague } from "@/components/WrappedBits";
 import { AddButton, AddLeagueForm, AddSeasonForm, AddTeamForm, EditRinkForm, RinkRequestForm, RINK_ROLE_LABEL } from "@/components/ManageForms";
 
 const when = (s: string) => new Date(s).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -212,6 +213,8 @@ function LeagueLevel({ rink, league: l, run, onGone }: { rink: any; league: any;
       <div className="label">League · {rink.name}{l.archived_at ? " · archived" : ""}</div>
       <div className="flex items-center gap-2 mt-1"><LevelPill level={l.level === "DEMO" ? "Demo" : l.level} /><h1 className="font-black text-2xl flex-1 min-w-0 truncate">{l.name}</h1></div>
       <Link href={`/league/${l.id}`} className="text-sm text-[var(--blue)] font-bold">Open the public page ›</Link>
+
+      {rink.can?.seasons && l.level !== "DEMO" && !l.archived_at && <Section title="Season Wrapped"><WrapSeasonLeague leagueId={l.id} name={l.name} /></Section>}
 
       {l.addTeam && l.level !== "DEMO" && (
         <Section title="Settings">
