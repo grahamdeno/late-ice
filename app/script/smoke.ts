@@ -1773,18 +1773,17 @@ async function main() {
     ok(mgr.awards.some((a: any) => a.key === "points_leader" && a.hidden === true), "A4: the captain still sees it, marked hidden");
     const asMgr = (await call("GET", `/api/wrapped/team/${hh}/${wrapSeasonId}`, undefined, mt)).json;
     ok(asMgr.canManage === true && asMgr.awards.some((a: any) => a.key === "points_leader" && a.hidden === true), "A4: a rink manager sees it, marked hidden");
-    // A plain teammate: Mike is rink staff by now, so draft a fresh player for this check and remove him again.
-    const plain = await signUp("wrapmate@example.com", { name: "Wren Plain", number: "77", position: "D" });
-    const plainId = (await call("GET", "/api/me", undefined, plain)).json.user.id as number;
-    ok((await call("POST", `/api/teams/${hh}/draft`, { userId: plainId, number: "77" }, graham)).status === 200, "A4: a plain teammate joins the roster");
-    const mate = (await call("GET", `/api/wrapped/team/${hh}/${wrapSeasonId}`, undefined, plain)).json;
+    // A plain teammate: Mike is rink staff by now, so draft Fran (a plain account) for this check and remove her again.
+    const plainId = (await call("GET", "/api/me", undefined, fan)).json.user.id as number;
+    const hadPlayer = (await db`SELECT id FROM players WHERE user_id=${plainId}`).map((r: any) => r.id as number);
+    ok((await call("POST", `/api/teams/${hh}/draft`, { userId: plainId, number: "88" }, graham)).status === 200, "A4: a plain teammate joins the roster");
+    const mate = (await call("GET", `/api/wrapped/team/${hh}/${wrapSeasonId}`, undefined, fan)).json;
     ok(mate.canManage === false && Array.isArray(mate.awards) && mate.awards.length > 0 && !mate.awards.some((a: any) => a.key === "points_leader"), "A4: a teammate doesn't see the hidden award");
-    const plainPlayer = (await db`SELECT id FROM players WHERE user_id=${plainId}`)[0]?.id as number | undefined;
-    if (plainPlayer) {
-      await db`DELETE FROM roster_entries WHERE player_id=${plainPlayer}`;
-      await db`DELETE FROM notifications WHERE user_id=${plainId}`;
-      await db`DELETE FROM players WHERE id=${plainPlayer}`;
+    for (const r of await db`SELECT id FROM players WHERE user_id=${plainId}`) {
+      await db`DELETE FROM roster_entries WHERE team_id=${hh} AND player_id=${r.id}`;
+      if (!hadPlayer.includes(r.id as number)) await db`DELETE FROM players WHERE id=${r.id}`;
     }
+    await db`DELETE FROM notifications WHERE user_id=${plainId} AND team_id=${hh}`;
     const teamShare2 = await call("POST", `/api/wrapped/team/${hh}/${wrapSeasonId}/share`, undefined, graham);
     const tq2 = new URLSearchParams(String(teamShare2.json?.path ?? "").split("?")[1] ?? "");
     const pubTeam2 = await call("GET", `/api/wrapped/team/${hh}/${wrapSeasonId}?s=${tq2.get("s")}`);
