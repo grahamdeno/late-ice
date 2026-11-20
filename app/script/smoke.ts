@@ -1734,7 +1734,8 @@ async function main() {
     const pub = await call("GET", `/api/wrapped/recap/${hh}/${wrapSeasonId}?p=${sp.get("p")}&s=${sp.get("s")}`);
     ok(pub.status === 200 && pub.json.mode === "shared", "A3: the share link opens the recap signed out");
     const otherNames = (await db`SELECT name FROM teams WHERE id NOT IN (${hh}) UNION SELECT name FROM leagues WHERE id <> ${lg} UNION SELECT name FROM rinks WHERE id <> (SELECT rink_id FROM leagues WHERE id=${lg})`).map((r: any) => String(r.name)).filter((n) => n.length > 3);
-    ok(otherNames.length > 0 && otherNames.every((n) => !pub.text.includes(n)), "A3: the shared recap names no other real team, league or rink");
+    const leaked = otherNames.filter((n) => pub.text.includes(n));
+    ok(otherNames.length > 0 && leaked.length === 0, `A3: the shared recap names no other real team, league or rink (leaked: ${leaked.join(" | ") || "none"})`);
     ok(!pub.text.includes("Blue Liners") && !pub.text.includes("Tolliver") && !pub.text.includes("Mike "), "A3: no opponent name and no full name signed out");
     ok(pub.json.cards.every((c: any) => c.kind !== "rollcall"), "A3: nothing from Handoff B appears");
     ok((await call("GET", `/api/wrapped/recap/${hh}/${wrapSeasonId}?p=${sp.get("p")}&s=not-the-key`)).status === 401, "A3: a wrong key opens nothing");
